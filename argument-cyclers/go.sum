@@ -21,6 +21,12 @@ github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a/go.mod h1:DAHtR1m6l
 github.com/aws/aws-lambda-go v1.13.3/go.mod h1:4UKl9IzQMoD+QF79YdCuzCwp8VbmG4VAQwij/eHl5CU=
 github.com/aws/aws-sdk-go v1.27.0/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/aws/aws-sdk-go-v2 v0.18.0/go.mod h1:JWVYvqSMppoMJC0x5wdwiImzgXTI9FuZwxzkQq9wy+g=
+github.com/bbchallenge/bbchallenge-go v0.0.0-20220127214118-55c487b49bbd h1:ADZ6pry0eJpqtWxRQBApzjvntMTWfXBqqZTdraw4AWg=
+github.com/bbchallenge/bbchallenge-go v0.0.0-20220127214118-55c487b49bbd/go.mod h1:FxTBIiDOgBIH81jaTudplVbl2QXqPZXWFUZZHz1BvSk=
+github.com/bbchallenge/bbchallenge-go v0.0.0-20220127215603-94c0a82220d5 h1:7yhmedLWIkVNW9lOzwWnZ/ksAgovhH29NJWndBN2h3c=
+github.com/bbchallenge/bbchallenge-go v0.0.0-20220127215603-94c0a82220d5/go.mod h1:FxTBIiDOgBIH81jaTudplVbl2QXqPZXWFUZZHz1BvSk=
+github.com/bbchallenge/bbchallenge-go v0.0.0-20220127222737-729597e6bccb h1:JjNamJvsotVg+x9oyWJrdLRMuf8S84mJNIUcD0U1YWg=
+github.com/bbchallenge/bbchallenge-go v0.0.0-20220127222737-729597e6bccb/go.mod h1:FxTBIiDOgBIH81jaTudplVbl2QXqPZXWFUZZHz1BvSk=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
@@ -279,6 +285,8 @@ golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL
 golang.org/x/exp v0.0.0-20190731235908-ec7cb31e5a56/go.mod h1:JhuoJpWY28nO4Vef9tZUw9qufEGTyX1+7lmHxV5q5G4=
 golang.org/x/exp v0.0.0-20220124173137-7a6bfc487013 h1:pOVOgyxif1oxpIkCWpWqNehz3kSt+/hRyqV+qehuLbo=
 golang.org/x/exp v0.0.0-20220124173137-7a6bfc487013/go.mod h1:M50CtfS+xv2iy/epuEazynj250ScQ0/DOjcsin9UE8k=
+golang.org/x/exp v0.0.0-20220126164734-073fb1339172 h1:We6p8ix5lpD7e2yrdxZOMS13hr6xvI6QQr46gZxX6rE=
+golang.org/x/exp v0.0.0-20220126164734-073fb1339172/go.mod h1:M50CtfS+xv2iy/epuEazynj250ScQ0/DOjcsin9UE8k=
 golang.org/x/image v0.0.0-20190227222117-0694c2d4d067/go.mod h1:kZ7UVZpmo3dzQBMxlp+ypCbDeSB+sBbTgSJuh5dn5js=
 golang.org/x/image v0.0.0-20190802002840-cff245a6509b/go.mod h1:FeLwcggjj3mMvU+oOTbSwawSJRM1uh48EjtB4UJZlP0=
 golang.org/x/lint v0.0.0-20181026193005-c67002cb31c3/go.mod h1:UVdnD1Gm6xHRNCYTkRU2/jEulfH38KcIWyp/GAMgvoE=

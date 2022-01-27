@@ -4,14 +4,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"testing"
-)
 
-func TestSimulate(t *testing.T) {
-	time, err := simulate((GetBB5Winner()))
-	if time != 47176870 || err != nil {
-		t.Error(time, err)
-	}
-}
+	bbc "github.com/bbchallenge/bbchallenge-go"
+)
 
 func TestArgumentCyclers(t *testing.T) {
 	DB, err := ioutil.ReadFile(DB_PATH)
@@ -20,7 +15,7 @@ func TestArgumentCyclers(t *testing.T) {
 	}
 	// Non-cyclers machines (halting machines and divergent ones)
 	t.Run("argument_cyclers_bb5", func(t *testing.T) {
-		if argumentCyclers(GetBB5Winner()) {
+		if argumentCyclers(bbc.GetBB5Winner()) {
 			t.Fail()
 		}
 	})
@@ -30,7 +25,7 @@ func TestArgumentCyclers(t *testing.T) {
 	for i := range divergent_indices {
 		index := divergent_indices[i]
 		t.Run(fmt.Sprintf("argument_cyclers_divergent_%d", index), func(t *testing.T) {
-			tm, err := getMachineI(DB[:], index)
+			tm, err := bbc.GetMachineI(DB[:], index, true)
 			if err != nil {
 				t.Fail()
 			}
@@ -45,7 +40,7 @@ func TestArgumentCyclers(t *testing.T) {
 	for i := range cyclers_indices {
 		index := cyclers_indices[i]
 		t.Run(fmt.Sprintf("argument_cyclers_cyclers_%d", index), func(t *testing.T) {
-			tm, err := getMachineI(DB[:], index)
+			tm, err := bbc.GetMachineI(DB[:], index, true)
 			if err != nil {
 				t.Fail()
 			}
@@ -55,4 +50,17 @@ func TestArgumentCyclers(t *testing.T) {
 		})
 	}
 
+}
+
+func TestTapeToStr(t *testing.T) {
+	var tape Tape
+
+	tape[MAX_MEMORY/2].Symbol = 0
+	tape[MAX_MEMORY/2].Seen = true
+	tape[MAX_MEMORY/2+1].Symbol = 0
+	tape[MAX_MEMORY/2+1].Seen = true
+
+	if tapeToStr(&tape) != "00" {
+		t.Fail()
+	}
 }
