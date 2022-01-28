@@ -33,6 +33,8 @@ github.com/bbchallenge/bbchallenge-go v0.0.0-20220127232810-0e7c79e3e060 h1:iBKx
 github.com/bbchallenge/bbchallenge-go v0.0.0-20220127232810-0e7c79e3e060/go.mod h1:FxTBIiDOgBIH81jaTudplVbl2QXqPZXWFUZZHz1BvSk=
 github.com/bbchallenge/bbchallenge-go v0.0.0-20220128164905-ef61616f9182 h1:flTREH2K7kxmN+Wye6TZHJruqOrrJ6TM5ZVrk8YFU5A=
 github.com/bbchallenge/bbchallenge-go v0.0.0-20220128164905-ef61616f9182/go.mod h1:cFZZuWlK0vmcY44g0elXFL4LhcUIF/c2yqT6ZeRJ6dQ=
+github.com/bbchallenge/bbchallenge-go v0.0.0-20220128180312-6e1818969140 h1:Al8cgg9AUfy1pluR0x2Z43+cUTC4fWnh+7N6M0ZqjwU=
+github.com/bbchallenge/bbchallenge-go v0.0.0-20220128180312-6e1818969140/go.mod h1:cFZZuWlK0vmcY44g0elXFL4LhcUIF/c2yqT6ZeRJ6dQ=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=

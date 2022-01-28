@@ -83,9 +83,8 @@ func argumentCyclers(tm bbc.TM, timeLimit int, spaceLimit int) bool {
 	minPosSeen := MAX_MEMORY / 2
 	maxPosSeen := MAX_MEMORY / 2
 
-	var configSeen map[byte]map[byte]map[string]map[int]bool // [state][read][tape][pos] -> True
-
-	configSeen = make(map[byte]map[byte]map[string]map[int]bool)
+	// [state][read][tape][pos] -> bool
+	var configSeen map[byte]map[byte]map[string]map[int]bool = make(map[byte]map[byte]map[string]map[int]bool)
 
 	var err error
 
@@ -150,20 +149,31 @@ func main() {
 		os.Exit(-1)
 	}
 
+	err = bbc.TestDB(DB[:], true)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
+
 	DB_SIZE := (len(DB) / 30) - 1
 	fmt.Println(DB_SIZE)
 
 	argTimeLimit := flag.Int("t", 1000, "time limit")
 	argSpaceLimit := flag.Int("s", 500, "space limit")
+	argMinIndex := flag.Int("m", 0, "min machine index in seed database")
+	argMaxIndex := flag.Int("m", bbc.TOTAL_UNDECIDED_TIME, "min machine index in seed database")
 	argNWorkers := flag.Int("n", 1000, "workers")
 
 	flag.Parse()
 
+	minIndex := *argMinIndex
+	maxIndex := *argMaxIndex
 	timeLimit := *argTimeLimit
 	spaceLimit := *argSpaceLimit
 	nWorkers := *argNWorkers
 
-	f, err := os.OpenFile("output/"+bbc.GetRunName()+"-time-"+fmt.Sprintf("%d", timeLimit)+"-space-"+fmt.Sprintf("%d", spaceLimit),
+	runName := "output/" + bbc.GetRunName() + "-time-" + fmt.Sprintf("%d", timeLimit) + "-space-" + fmt.Sprintf("%d", spaceLimit) + "-minIndex-" + fmt.Sprintf("%d", minIndex) + "-maxIndex-" + fmt.Sprintf("%d", maxIndex)
+	f, _ := os.OpenFile(runName,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 
 	var wg sync.WaitGroup
@@ -174,7 +184,7 @@ func main() {
 		wg.Add(1)
 		go func(iWorker int, nWorkers int) {
 			k := 0
-			for n := iWorker; n < DB_SIZE; n += nWorkers {
+			for n := minIndex + iWorker; n < maxIndex; n += nWorkers {
 				if k%1000 == 0 {
 					fmt.Println(time.Since(startTime), "Worker: ", iWorker, "k: ", k)
 				}
