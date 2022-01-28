@@ -1,9 +1,13 @@
 package main
 
 import (
+	"encoding/binary"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sync"
+	"time"
 
 	bbc "github.com/bbchallenge/bbchallenge-go"
 )
@@ -14,8 +18,6 @@ const R = 0
 const L = 1
 
 const MAX_STATES = 5
-const TIME_LIMIT = 47176870
-const SPACE_LIMIT = 12289
 
 const MAX_MEMORY = 40000
 
@@ -69,7 +71,7 @@ func tapeToStr(tape *Tape) (toRet string) {
 	return toRet
 }
 
-func argumentCyclers(tm bbc.TM) bool {
+func argumentCyclers(tm bbc.TM, timeLimit int, spaceLimit int) bool {
 	currPos := MAX_MEMORY / 2
 	nextPos := 0
 	write := byte(0)
@@ -81,16 +83,16 @@ func argumentCyclers(tm bbc.TM) bool {
 	minPosSeen := MAX_MEMORY / 2
 	maxPosSeen := MAX_MEMORY / 2
 
-	var configSeen map[byte]map[byte]map[string]bool // [state][read][tape] -> True
+	var configSeen map[byte]map[byte]map[string]map[int]bool // [state][read][tape][pos] -> True
 
-	configSeen = make(map[byte]map[byte]map[string]bool)
+	configSeen = make(map[byte]map[byte]map[string]map[int]bool)
 
 	var err error
 
 	for err == nil && currState > 0 && currState <= MAX_STATES {
 
 		if _, ok := configSeen[currState]; !ok {
-			configSeen[currState] = make(map[byte]map[string]bool)
+			configSeen[currState] = make(map[byte]map[string]map[int]bool)
 		}
 
 		minPosSeen = MinI(minPosSeen, currPos)
@@ -100,30 +102,35 @@ func argumentCyclers(tm bbc.TM) bool {
 		read := tape[currPos].Symbol
 
 		if _, ok := configSeen[currState][read]; !ok {
-			configSeen[currState][read] = make(map[string]bool)
+			configSeen[currState][read] = make(map[string]map[int]bool)
 		}
 
 		tapeStr := tapeToStr(&tape)
 
-		_, ok := configSeen[currState][read][tapeStr]
+		if _, ok := configSeen[currState][read][tapeStr]; !ok {
+			configSeen[currState][read][tapeStr] = make(map[int]bool)
+		}
+
+		//fmt.Println(currState, read, tapeStr)
+		_, ok := configSeen[currState][read][tapeStr][currPos]
 
 		if ok {
-			fmt.Println(currTime, currState, read, tapeStr)
+			//fmt.Println(currTime, currState, read, tapeStr)
 			return true
 		}
 
-		configSeen[currState][read][tapeStr] = true
+		configSeen[currState][read][tapeStr][currPos] = true
 
 		write, currState, nextPos = bbc.TmStep(tm, read, currState, currPos, currTime)
 
 		tape[currPos].Symbol = write
 		currPos = nextPos
 
-		if maxPosSeen-minPosSeen > SPACE_LIMIT {
+		if maxPosSeen-minPosSeen > spaceLimit {
 			return false
 		}
 
-		if currTime > TIME_LIMIT {
+		if currTime > timeLimit {
 			return false
 		}
 
@@ -143,12 +150,49 @@ func main() {
 		os.Exit(-1)
 	}
 
-	fmt.Println(len(DB) / 30)
+	DB_SIZE := (len(DB) / 30) - 1
+	fmt.Println(DB_SIZE)
 
-	m, err := bbc.GetMachineI(DB[:], 4888230, true)
-	//m := GetBB5Winner()
+	argTimeLimit := flag.Int("t", 1000, "time limit")
+	argSpaceLimit := flag.Int("s", 500, "space limit")
+	argNWorkers := flag.Int("n", 1000, "workers")
 
-	//fmt.Println(tapeToStr(&tape))
-	//fmt.Println(m.ToAsciiTable(5))
-	fmt.Println(argumentCyclers(m))
+	flag.Parse()
+
+	timeLimit := *argTimeLimit
+	spaceLimit := *argSpaceLimit
+	nWorkers := *argNWorkers
+
+	f, err := os.OpenFile("output/"+bbc.GetRunName()+"-time-"+fmt.Sprintf("%d", timeLimit)+"-space-"+fmt.Sprintf("%d", spaceLimit),
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+
+	var wg sync.WaitGroup
+
+	startTime := time.Now()
+
+	for i := 0; i < nWorkers; i += 1 {
+		wg.Add(1)
+		go func(iWorker int, nWorkers int) {
+			k := 0
+			for n := iWorker; n < DB_SIZE; n += nWorkers {
+				if k%1000 == 0 {
+					fmt.Println(time.Since(startTime), "Worker: ", iWorker, "k: ", k)
+				}
+				m, err := bbc.GetMachineI(DB[:], n, true)
+				if err != nil {
+					fmt.Println("Err:", err, n)
+				}
+				if argumentCyclers(m, timeLimit, spaceLimit) {
+					var arr [4]byte
+					binary.BigEndian.PutUint32(arr[0:4], uint32(n))
+					f.Write(arr[:])
+				}
+				k += 1
+			}
+			wg.Done()
+		}(i, nWorkers)
+	}
+
+	wg.Wait()
+	f.Close()
 }

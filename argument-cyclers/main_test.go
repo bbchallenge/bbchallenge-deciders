@@ -15,12 +15,12 @@ func TestArgumentCyclers(t *testing.T) {
 	}
 	// Non-cyclers machines (halting machines and divergent ones)
 	t.Run("argument_cyclers_bb5", func(t *testing.T) {
-		if argumentCyclers(bbc.GetBB5Winner()) {
+		if argumentCyclers(bbc.GetBB5Winner(), 1000, 500) {
 			t.Fail()
 		}
 	})
 
-	divergent_indices := []int{7888061, 5351680, 7199290, 7177946, 12930718, 16322780, 41540524, 8852035, 14203996, 294146, 13128061, 12023842, 3666258, 56021279}
+	divergent_indices := []int{7888060, 5351679, 7199289, 7177945, 12930717, 16322779, 41540523, 8852034, 14203995, 294145, 13128060, 12023841, 3666257, 56021278}
 
 	for i := range divergent_indices {
 		index := divergent_indices[i]
@@ -29,13 +29,13 @@ func TestArgumentCyclers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentCyclers(tm) {
+			if argumentCyclers(tm, 1000, 500) {
 				t.Fail()
 			}
 		})
 	}
 
-	cyclers_indices := []int{5164458, 13551916, 4888230, 78619823, 52297460, 37549150, 37799885, 33613795, 65712202, 73643021, 73823887, 87711505}
+	cyclers_indices := []int{5164457, 13551915, 4888229}
 
 	for i := range cyclers_indices {
 		index := cyclers_indices[i]
@@ -44,7 +44,7 @@ func TestArgumentCyclers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if !argumentCyclers(tm) {
+			if !argumentCyclers(tm, 1000, 500) {
 				t.Fail()
 			}
 		})
