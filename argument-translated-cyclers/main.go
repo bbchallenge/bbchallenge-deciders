@@ -43,4 +43,6 @@ func main() {
 	spaceLimit := *argSpaceLimit
 	nWorkers := *argNWorkers
 
+	fmt.Println(minIndex, maxIndex, timeLimit, spaceLimit, nWorkers)
+
 }

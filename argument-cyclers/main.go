@@ -16,7 +16,7 @@ const DB_PATH = "../all_5_states_undecided_machines_with_global_header"
 
 const MAX_STATES = 5
 
-const MAX_MEMORY = 40000
+const MAX_MEMORY = 40000 // Retrospectively not very smart as we are limiting space to much less than that in practice (argument space limit)
 
 type SymbolAndSeen struct {
 	Symbol byte
