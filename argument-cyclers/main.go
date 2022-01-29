@@ -14,9 +14,6 @@ import (
 
 const DB_PATH = "../all_5_states_undecided_machines_with_global_header"
 
-const R = 0
-const L = 1
-
 const MAX_STATES = 5
 
 const MAX_MEMORY = 40000
