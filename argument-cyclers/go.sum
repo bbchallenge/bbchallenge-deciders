@@ -37,6 +37,8 @@ github.com/bbchallenge/bbchallenge-go v0.0.0-20220128180312-6e1818969140 h1:Al8c
 github.com/bbchallenge/bbchallenge-go v0.0.0-20220128180312-6e1818969140/go.mod h1:cFZZuWlK0vmcY44g0elXFL4LhcUIF/c2yqT6ZeRJ6dQ=
 github.com/bbchallenge/bbchallenge-go v0.0.0-20220128181024-c8764e8703dd h1:qASb/g8M972sAkDjN4dUVpx2TNlK+Ousc0BnQNzcUjs=
 github.com/bbchallenge/bbchallenge-go v0.0.0-20220128181024-c8764e8703dd/go.mod h1:cFZZuWlK0vmcY44g0elXFL4LhcUIF/c2yqT6ZeRJ6dQ=
+github.com/bbchallenge/bbchallenge-go v0.0.0-20220129112458-2f402ee4f4d4 h1:DiAtc6lWgJJGPIpggjUEuBfm64MqQsEvmRwiCWBxybU=
+github.com/bbchallenge/bbchallenge-go v0.0.0-20220129112458-2f402ee4f4d4/go.mod h1:cFZZuWlK0vmcY44g0elXFL4LhcUIF/c2yqT6ZeRJ6dQ=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
@@ -299,6 +301,8 @@ golang.org/x/exp v0.0.0-20220124173137-7a6bfc487013 h1:pOVOgyxif1oxpIkCWpWqNehz3
 golang.org/x/exp v0.0.0-20220124173137-7a6bfc487013/go.mod h1:M50CtfS+xv2iy/epuEazynj250ScQ0/DOjcsin9UE8k=
 golang.org/x/exp v0.0.0-20220126164734-073fb1339172 h1:We6p8ix5lpD7e2yrdxZOMS13hr6xvI6QQr46gZxX6rE=
 golang.org/x/exp v0.0.0-20220126164734-073fb1339172/go.mod h1:M50CtfS+xv2iy/epuEazynj250ScQ0/DOjcsin9UE8k=
+golang.org/x/exp v0.0.0-20220128181451-c853b6ddb95e h1:FmsvSkPHPBTboKvYBUtHbHvkQGxq+XSrqPXKDQf2W3s=
+golang.org/x/exp v0.0.0-20220128181451-c853b6ddb95e/go.mod h1:M50CtfS+xv2iy/epuEazynj250ScQ0/DOjcsin9UE8k=
 golang.org/x/image v0.0.0-20190227222117-0694c2d4d067/go.mod h1:kZ7UVZpmo3dzQBMxlp+ypCbDeSB+sBbTgSJuh5dn5js=
 golang.org/x/image v0.0.0-20190802002840-cff245a6509b/go.mod h1:FeLwcggjj3mMvU+oOTbSwawSJRM1uh48EjtB4UJZlP0=
 golang.org/x/lint v0.0.0-20181026193005-c67002cb31c3/go.mod h1:UVdnD1Gm6xHRNCYTkRU2/jEulfH38KcIWyp/GAMgvoE=

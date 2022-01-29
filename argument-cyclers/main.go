@@ -25,20 +25,6 @@ type SymbolAndSeen struct {
 
 type Tape [MAX_MEMORY]SymbolAndSeen
 
-func MaxI(a int, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-func MinI(a int, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 func tapeToStr(tape *Tape) (toRet string) {
 
 	for i := MAX_MEMORY / 2; i >= 0; i -= 1 {
@@ -91,8 +77,8 @@ func argumentCyclers(tm bbc.TM, timeLimit int, spaceLimit int) bool {
 			configSeen[currState] = make(map[byte]map[string]map[int]bool)
 		}
 
-		minPosSeen = MinI(minPosSeen, currPos)
-		maxPosSeen = MaxI(maxPosSeen, currPos)
+		minPosSeen = bbc.MinI(minPosSeen, currPos)
+		maxPosSeen = bbc.MaxI(maxPosSeen, currPos)
 
 		tape[currPos].Seen = true
 		read := tape[currPos].Symbol
