@@ -174,8 +174,8 @@ func main() {
 
 	argTimeLimit := flag.Int("t", 1000, "time limit")
 	argSpaceLimit := flag.Int("s", 500, "space limit")
-	argMinIndex := flag.Int("m", 0, "min machine index to consider in seed database")
-	argMaxIndex := flag.Int("M", bbc.TOTAL_UNDECIDED_TIME, "max machine index to consider in seed database")
+	argMinIndex := flag.Int("m", bbc.TOTAL_UNDECIDED_TIME, "min machine index to consider in seed database")
+	argMaxIndex := flag.Int("M", bbc.TOTAL_UNDECIDED, "max machine index to consider in seed database")
 	argNWorkers := flag.Int("n", 1000, "workers")
 
 	flag.Parse()
