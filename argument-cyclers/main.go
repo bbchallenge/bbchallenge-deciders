@@ -155,7 +155,7 @@ func main() {
 	spaceLimit := *argSpaceLimit
 	nWorkers := *argNWorkers
 
-	runName := "output/" + bbc.GetRunName() + "-time-" + fmt.Sprintf("%d", timeLimit) + "-space-" + fmt.Sprintf("%d", spaceLimit) + "-minIndex-" + fmt.Sprintf("%d", minIndex) + "-maxIndex-" + fmt.Sprintf("%d", maxIndex)
+	runName := "output/cyclers-" + bbc.GetRunName() + "-time-" + fmt.Sprintf("%d", timeLimit) + "-space-" + fmt.Sprintf("%d", spaceLimit) + "-minIndex-" + fmt.Sprintf("%d", minIndex) + "-maxIndex-" + fmt.Sprintf("%d", maxIndex)
 	f, _ := os.OpenFile(runName,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 
