@@ -2,7 +2,7 @@
 
 ## News
 
-**Update 29/01/22**. 73 857 622 cyclers were decided (among machines that exceeded space limit) thanks to the translated-cyclers argument:
+**Update 29/01/22**. 73 857 622 translated-cyclers were decided (among machines that exceeded space limit) thanks to the translated-cyclers argument:
 [https://github.com/bbchallenge/bbchallenge-arguments/tree/main/argument-translated-cyclers](https://github.com/bbchallenge/bbchallenge-arguments/tree/main/argument-translated-cyclers). As of this day remain **3 577 204** undecided machines in the database.
 
 **Update 28/01/22**. 11 229 238 cyclers were decided (among machines that exceeded time limit) thanks to the cyclers argument: [https://github.com/bbchallenge/bbchallenge-arguments/tree/main/argument-cyclers](https://github.com/bbchallenge/bbchallenge-arguments/tree/main/argument-cyclers).
