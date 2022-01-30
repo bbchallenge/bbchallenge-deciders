@@ -18,7 +18,7 @@ The database computed by bbchallenge-seed is available here:
 
 The format of the database is described here: [https://github.com/bbchallenge/bbchallenge-seed](https://github.com/bbchallenge/bbchallenge-seed).
 
-## Downloading the indices of currently undecided machines
+## Downloading the index of currently undecided machines
 
 An undecided index file is an ordered binary succession of uint32 (BigEndian) which corresponds to the IDs of the currently undecided machines in the above database.
 
