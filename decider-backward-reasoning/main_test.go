@@ -22,13 +22,13 @@ func TestArgumentBackwardReasoning(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if deciderBackwardReasoning(tm, 10, testing.Verbose()) {
+			if deciderBackwardReasoning(tm, 300, testing.Verbose()) {
 				t.Fail()
 			}
 		})
 	}
 
-	backward_reasoning_indices := []int{13955979, 54221304, 7850055, 7658575}
+	backward_reasoning_indices := []int{13955979, 54221304, 7850055, 7658575, 7274055, 620647, 392407}
 
 	for i := range backward_reasoning_indices {
 		index := backward_reasoning_indices[i]
@@ -37,7 +37,7 @@ func TestArgumentBackwardReasoning(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if !deciderBackwardReasoning(tm, 5, testing.Verbose()) {
+			if !deciderBackwardReasoning(tm, 300, testing.Verbose()) {
 				t.Fail()
 			}
 		})
