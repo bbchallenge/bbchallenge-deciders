@@ -1,4 +1,4 @@
-module bbchallenge-arguments/argument-cyclers
+module bbchallenge-deciders/decider-cyclers
 
 go 1.16
 
