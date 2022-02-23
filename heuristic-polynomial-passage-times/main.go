@@ -49,22 +49,25 @@ func heuristicPolynomialPassageTimes(tm bbc.TM, timeLimit int, nbPointsToConclud
 	passageTimes := simulateAndGetPassageTimes(tm, timeLimit)
 
 	for _, passage := range passageTimes {
+		if passage[0] > maxTimeBehaviorBegin {
+			continue
+		}
 		for samplingStep := 1; samplingStep < maxSamplingStep; samplingStep += 1 {
 			if samplingStep >= len(passage) {
 				break
 			}
 			subseq := bbc.SampleList(passage, 0, samplingStep)
-			if subseq[0] < maxTimeBehaviorBegin {
-				thirdDerivative := bbc.DiscreteDifference(subseq, 3)
-				if len(thirdDerivative) > nbPointsToConclude {
-					if bbc.AllZero(thirdDerivative[len(thirdDerivative)-1-nbPointsToConclude:]) {
-						if debug {
-							fmt.Println(samplingStep, thirdDerivative)
-						}
-						return true
+
+			thirdDerivative := bbc.DiscreteDifference(subseq, 3)
+			if len(thirdDerivative) > nbPointsToConclude {
+				if bbc.AllZero(thirdDerivative[len(thirdDerivative)-1-nbPointsToConclude:]) {
+					if debug {
+						fmt.Println(samplingStep, thirdDerivative)
 					}
+					return true
 				}
 			}
+
 		}
 	}
 

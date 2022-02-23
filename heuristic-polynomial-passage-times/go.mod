@@ -1,4 +1,4 @@
-module bbchallenge-arguments/argument-translated-cyclers
+module bbchallenge-arguments/heuristic-polynomial-passage-times
 
 go 1.16
 
