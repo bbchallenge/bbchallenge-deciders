@@ -46,7 +46,7 @@ func TestOneExponentialRecordTimes(t *testing.T) {
 	}
 }
 
-func TestHeuristicPolynomialPassageTimes(t *testing.T) {
+func TestHeuristicExponentialRecordTimes(t *testing.T) {
 
 	DB, err := ioutil.ReadFile(DB_PATH)
 	if err != nil {
