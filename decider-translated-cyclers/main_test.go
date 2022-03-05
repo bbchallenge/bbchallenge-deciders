@@ -50,4 +50,20 @@ func TestArgumentTranslatedCyclers(t *testing.T) {
 		})
 	}
 
+	// End of Feb 22 we discovered translated cyclers that need bigger parameters to be decided
+	more_complex_translated_cyclers_indices := []int{54203719, 36496615, 78264693, 88470160, 70383585, 34518122, 60197828, 81893093}
+
+	for i := range more_complex_translated_cyclers_indices {
+		index := more_complex_translated_cyclers_indices[i]
+		t.Run(fmt.Sprintf("argument_translated-cyclers_complex-translated-cyclers_%d", index), func(t *testing.T) {
+			tm, err := bbc.GetMachineI(DB[:], index, true)
+			if err != nil {
+				t.Fail()
+			}
+			if !argumentTranslatedCyclers(tm, 10000, 5000) {
+				t.Fail()
+			}
+		})
+	}
+
 }

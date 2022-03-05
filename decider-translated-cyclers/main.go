@@ -177,6 +177,7 @@ func main() {
 	argMinIndex := flag.Int("m", bbc.TOTAL_UNDECIDED_TIME, "min machine index to consider in seed database")
 	argMaxIndex := flag.Int("M", bbc.TOTAL_UNDECIDED, "max machine index to consider in seed database")
 	argNWorkers := flag.Int("n", 1000, "workers")
+	argIndexFile := flag.String("f", "", "undecided index file to use")
 
 	flag.Parse()
 
@@ -185,6 +186,7 @@ func main() {
 	timeLimit := *argTimeLimit
 	spaceLimit := *argSpaceLimit
 	nWorkers := *argNWorkers
+	indexFileName := *argIndexFile
 
 	// fmt.Println(minIndex, maxIndex, timeLimit, spaceLimit, nWorkers)
 
@@ -199,26 +201,60 @@ func main() {
 
 	var wg sync.WaitGroup
 
+	var undecidedIndex []byte
+	if indexFileName != "" {
+		undecidedIndex, err = ioutil.ReadFile(indexFileName)
+
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
+	}
+
 	startTime := time.Now()
 
 	for i := 0; i < nWorkers; i += 1 {
 		wg.Add(1)
 		go func(iWorker int, nWorkers int) {
 			k := 0
-			for n := minIndex + iWorker; n < maxIndex; n += nWorkers {
-				if k%1000 == 0 {
-					fmt.Println(time.Since(startTime), "Worker: ", iWorker, "k: ", k)
+			if indexFileName == "" {
+				for n := minIndex + iWorker; n < maxIndex; n += nWorkers {
+					if k%1000 == 0 {
+						fmt.Println(time.Since(startTime), "Worker: ", iWorker, "k: ", k)
+					}
+					m, err := bbc.GetMachineI(DB[:], n, true)
+					if err != nil {
+						fmt.Println("Err:", err, n)
+					}
+					if argumentTranslatedCyclers(m, timeLimit, spaceLimit) {
+						var arr [4]byte
+						binary.BigEndian.PutUint32(arr[0:4], uint32(n))
+						f.Write(arr[:])
+					}
+					k += 1
 				}
-				m, err := bbc.GetMachineI(DB[:], n, true)
-				if err != nil {
-					fmt.Println("Err:", err, n)
+			} else {
+				for n := iWorker; n < len(undecidedIndex)/4; n += nWorkers {
+					if k%10 == 0 {
+						fmt.Println(time.Since(startTime), "Worker: ", iWorker, "k: ", k)
+					}
+					m, indexInDb, err := bbc.GetMachineIFromIndex(DB[:], n, true, undecidedIndex[:])
+
+					if indexInDb < uint32(minIndex) || indexInDb >= uint32(maxIndex) {
+						continue
+					}
+
+					if err != nil {
+						fmt.Println("Err:", err, n)
+					}
+					if argumentTranslatedCyclers(m, timeLimit, spaceLimit) {
+						var arr [4]byte
+						binary.BigEndian.PutUint32(arr[0:4], uint32(n))
+						f.Write(arr[:])
+					}
+					k += 1
 				}
-				if argumentTranslatedCyclers(m, timeLimit, spaceLimit) {
-					var arr [4]byte
-					binary.BigEndian.PutUint32(arr[0:4], uint32(n))
-					f.Write(arr[:])
-				}
-				k += 1
+
 			}
 			wg.Done()
 		}(i, nWorkers)
