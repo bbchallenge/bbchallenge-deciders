@@ -2,6 +2,8 @@
 
 ## News
 
+**Update 05/02/22**. 1 664 machines were decided by re-running the translated-cyler decider with higher parameters. Indeed we had discovered some more translated cyclers in the remaning undecided machines, such as machine #`36 496 615`. As of this day there remains **2 322 122** undecided machines in the database.
+
 **Update 09/02/22**. 1 253 418 machines were decided thanks to the backward-reasoning decider:
 [https://github.com/bbchallenge/bbchallenge-deciders/tree/main/decider-backward-reasoning](https://github.com/bbchallenge/bbchallenge-deciders/tree/main/decider-backward-reasoning). As of this day there remains **2 323 786** undecided machines in the database.
 
