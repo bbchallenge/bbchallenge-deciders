@@ -235,7 +235,7 @@ func main() {
 				}
 			} else {
 				for n := iWorker; n < len(undecidedIndex)/4; n += nWorkers {
-					if k%10 == 0 {
+					if k%1000 == 0 {
 						fmt.Println(time.Since(startTime), "Worker: ", iWorker, "k: ", k)
 
 					}
