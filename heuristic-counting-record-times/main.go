@@ -110,7 +110,7 @@ func main() {
 		}
 	}
 
-	var runName = "output/heuristic-polynomial-passage-times-" + bbc.GetRunName() + "-t-" + fmt.Sprintf("%d", timeLimit) + "-r-" + fmt.Sprintf("%d", recordLimit)
+	var runName = "output/heuristic-counting-record-times-" + bbc.GetRunName() + "-t-" + fmt.Sprintf("%d", timeLimit) + "-r-" + fmt.Sprintf("%d", recordLimit)
 
 	f, _ := os.OpenFile(runName,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)

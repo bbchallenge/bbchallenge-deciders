@@ -147,7 +147,7 @@ func main() {
 		}
 	}
 
-	var runName = "output/heuristic-polynomial-passage-times-" + bbc.GetRunName() + "-t-" + fmt.Sprintf("%d", timeLimit) + "-c-" + fmt.Sprintf("%d", nbPointsToConclude) +
+	var runName = "output/heuristic-exponential-record-times-" + bbc.GetRunName() + "-t-" + fmt.Sprintf("%d", timeLimit) + "-c-" + fmt.Sprintf("%d", nbPointsToConclude) +
 		"-A-" + fmt.Sprintf("%d", maxA) + "-k-" + fmt.Sprintf("%d", maxk)
 
 	f, _ := os.OpenFile(runName,
