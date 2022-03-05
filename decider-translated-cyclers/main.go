@@ -237,6 +237,7 @@ func main() {
 				for n := iWorker; n < len(undecidedIndex)/4; n += nWorkers {
 					if k%10 == 0 {
 						fmt.Println(time.Since(startTime), "Worker: ", iWorker, "k: ", k)
+
 					}
 					m, indexInDb, err := bbc.GetMachineIFromIndex(DB[:], n, true, undecidedIndex[:])
 
@@ -249,7 +250,7 @@ func main() {
 					}
 					if argumentTranslatedCyclers(m, timeLimit, spaceLimit) {
 						var arr [4]byte
-						binary.BigEndian.PutUint32(arr[0:4], uint32(n))
+						binary.BigEndian.PutUint32(arr[0:4], indexInDb)
 						f.Write(arr[:])
 					}
 					k += 1
