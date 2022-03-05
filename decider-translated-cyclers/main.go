@@ -242,6 +242,7 @@ func main() {
 					m, indexInDb, err := bbc.GetMachineIFromIndex(DB[:], n, true, undecidedIndex[:])
 
 					if indexInDb < uint32(minIndex) || indexInDb >= uint32(maxIndex) {
+						k += 1
 						continue
 					}
 
