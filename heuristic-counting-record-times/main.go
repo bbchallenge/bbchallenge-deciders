@@ -58,43 +58,12 @@ func simulateAndGetRecordTimes(tm bbc.TM, timeLimit int, recordLimit int) (recor
 	return recordTimes
 }
 
-func heuristicExponentialRecordTimes(tm bbc.TM, timeLimit int, recordLimit int, nbPointsToConclude int, maxA int, maxk int, debug bool) bool {
+// Having too little records in a long time is a hint of an exponential counter type of
+// behavior. Typical values are <= 80 records for 10M steps.
+func heuristicCountRecordTimes(tm bbc.TM, timeLimit int, recordLimit int) bool {
 	recordTimes := simulateAndGetRecordTimes(tm, timeLimit, recordLimit)
 
-	side := bbc.R
-	// take the side with the most records
-	if len(recordTimes[bbc.L]) > len(recordTimes[bbc.R]) {
-		side = bbc.L
-	}
-
-	// too many records means exponential behavior unlikely
-	if len(recordTimes[side]) > recordLimit {
-		return false
-	}
-
-	for k := 1; k <= maxk; k += 1 {
-		for A := 2; A <= maxA; A += 1 {
-			subseq := bbc.SampleList(recordTimes[side], 0, k)
-			var exponentialSeq []int
-			for i := 1; i < len(subseq); i += 1 {
-				exponentialSeq = append(exponentialSeq, subseq[i]-A*subseq[i-1])
-			}
-
-			secondDerivative := bbc.DiscreteDifference(exponentialSeq, 2)
-
-			if len(secondDerivative) >= nbPointsToConclude {
-				if debug {
-					fmt.Println(A, k, secondDerivative, secondDerivative[len(secondDerivative)-nbPointsToConclude:])
-				}
-				if bbc.AllZero(secondDerivative[len(secondDerivative)-nbPointsToConclude:]) {
-					return true
-				}
-			}
-
-		}
-	}
-
-	return false
+	return len(recordTimes[0]) <= recordLimit && len(recordTimes[1]) <= recordLimit
 }
 
 func main() {
@@ -117,9 +86,6 @@ func main() {
 
 	argTimeLimit := flag.Int("t", 10000000, "time limit for each machine to run")
 	argRecordLimit := flag.Int("r", 200, "maximum of possible records on one side within time limit")
-	argNbPointsToConclude := flag.Int("c", 10, "numbers of points needed for the heuristic to conclude")
-	argMaxA := flag.Int("A", 5, "maximum multiplier in recurrence equation fitting")
-	argMaxk := flag.Int("k", 5, "maximum subsampling step used by the heuristic")
 	argIndexFile := flag.String("f", "", "undecided index file to use")
 	argMinIndex := flag.Int("m", 0, "min machine index to consider in seed database")
 	argMaxIndex := flag.Int("M", bbc.TOTAL_UNDECIDED, "max machine index to consider in seed database")
@@ -132,9 +98,6 @@ func main() {
 	indexFileName := *argIndexFile
 	timeLimit := *argTimeLimit
 	recordLimit := *argRecordLimit
-	nbPointsToConclude := *argNbPointsToConclude
-	maxA := *argMaxA
-	maxk := *argMaxk
 	nWorkers := *argNWorkers
 
 	var undecidedIndex []byte
@@ -147,8 +110,7 @@ func main() {
 		}
 	}
 
-	var runName = "output/heuristic-polynomial-passage-times-" + bbc.GetRunName() + "-t-" + fmt.Sprintf("%d", timeLimit) + "-c-" + fmt.Sprintf("%d", nbPointsToConclude) +
-		"-A-" + fmt.Sprintf("%d", maxA) + "-k-" + fmt.Sprintf("%d", maxk)
+	var runName = "output/heuristic-polynomial-passage-times-" + bbc.GetRunName() + "-t-" + fmt.Sprintf("%d", timeLimit) + "-r-" + fmt.Sprintf("%d", recordLimit)
 
 	f, _ := os.OpenFile(runName,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -170,7 +132,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if heuristicExponentialRecordTimes(m, timeLimit, recordLimit, nbPointsToConclude, maxA, maxk, false) {
+					if heuristicCountRecordTimes(m, timeLimit, recordLimit) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], uint32(n))
 						f.Write(arr[:])
@@ -191,7 +153,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if heuristicExponentialRecordTimes(m, timeLimit, recordLimit, nbPointsToConclude, maxA, maxk, false) {
+					if heuristicCountRecordTimes(m, timeLimit, recordLimit) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], indexInDb)
 						f.Write(arr[:])

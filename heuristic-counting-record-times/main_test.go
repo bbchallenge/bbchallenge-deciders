@@ -31,41 +31,26 @@ func TestSimulateAndGetRecordTimes(t *testing.T) {
 	}
 }
 
-func TestOneExponentialRecordTimes(t *testing.T) {
-	n := 12345394
-	DB, err := ioutil.ReadFile(DB_PATH)
-	if err != nil {
-		t.Fail()
-	}
-	tm, err := bbc.GetMachineI(DB[:], n, true)
-	if err != nil {
-		t.Fail()
-	}
-	if !heuristicExponentialRecordTimes(tm, 10000000, 200, 8, 5, 5, true) {
-		t.Fail()
-	}
-}
-
-func TestHeuristicExponentialRecordTimes(t *testing.T) {
+func TestHeuristicCountRecordTimes(t *testing.T) {
 
 	DB, err := ioutil.ReadFile(DB_PATH)
 	if err != nil {
 		t.Fail()
 	}
 
-	if heuristicExponentialRecordTimes(bbc.GetBB5Winner(), 10000000, 200, 8, 5, 5, false) {
+	if heuristicCountRecordTimes(bbc.GetBB5Winner(), 10000000, 80) {
 		t.Fail()
 	}
 
 	notExponentialRecordTimes := []int{5643626, 3565349, 2108244, 13474013, 9755023, 8103390, 9225630, 3169967, 10363739, 12223654, 13090023, 11225780, 11544059, 1507193, 13795582, 12244006, 13930014, 11334525, 1028021, 1566023, 269038, 828479, 8497788, 6136947, 11635490, 6398375, 9703986, 5203553, 6843551, 6964220, 11598427, 13576089, 11519070, 9913985, 11916339, 14086216, 8439154, 87940465, 11089226, 4482180, 4284, 4468110, 12189145, 12206912, 46840666, 8416617, 13440160, 2498135, 12285970, 14218336, 8634375, 1048062, 13977714, 8457777, 4745553, 1153972, 13802273, 11388271, 5383040, 1507193, 9786806, 5702127, 7883753, 4557119, 33672339, 3370060, 402959, 11515638, 6399980, 1960734, 8818662, 6300366, 8900440, 6092203, 11980798, 9813712, 4058620, 3418516, 14044691, 9312210, 172282, 582211, 12199575, 12594284, 2731122, 7716308, 12292720, 12549707, 26414953, 2479142, 6152467, 38111044, 662317, 526738, 5328524, 13649989, 4208656, 13784545, 5928209, 5532891, 12876855, 937083, 4726380, 67780089, 13104130, 1015814, 12215361, 76952003, 205766, 13394264, 13810851, 11746917, 24345867, 9551409, 5292000, 3648846, 13676337, 64805436, 619693, 11069776, 12838991, 9115769, 12558695, 13301056, 12160685, 12301430, 1051485, 4023683, 33427945, 11460162, 6389200, 8414269, 4859453, 4105843, 4824149, 47437564, 7431789, 10613000, 40851850, 54221304, 11710205, 11726152, 72903966, 10039500, 7850055, 4966400, 13754164, 7658575}
 	for i := range notExponentialRecordTimes {
 		index := notExponentialRecordTimes[i]
-		t.Run(fmt.Sprintf("heuristic_not-exponential-record-times_%d", index), func(t *testing.T) {
+		t.Run(fmt.Sprintf("heuristic_not-count-record-times_%d", index), func(t *testing.T) {
 			tm, err := bbc.GetMachineI(DB[:], index, true)
 			if err != nil {
 				t.Fail()
 			}
-			if heuristicExponentialRecordTimes(tm, 10000000, 200, 8, 5, 5, false) {
+			if heuristicCountRecordTimes(tm, 10000000, 80) {
 				t.Fail()
 			}
 		})
@@ -73,16 +58,16 @@ func TestHeuristicExponentialRecordTimes(t *testing.T) {
 
 	// smart counters expect 11776032
 	// see https://github.com/bbchallenge/bbchallenge-py/blob/main/Heuristic%20-%20Exponential%20Record%20Times.ipynb
-	exponentialRecordTimes := []int{11184382, 7931183, 7695094, 8594059, 12877334, 4631164, 4807678, 467941, 12345394, 1236862, 14009904, 12418684, 10269203}
+	exponentialRecordTimes := []int{11184382, 7931183, 7695094, 8594059, 12877334, 4631164, 4807678, 467941, 12345394, 1236862, 14009904, 12418684, 10269203, 8764111, 13202794, 7301351, 8586099, 12009819, 13288237, 12052365, 13578877, 12095868, 10978171, 9039259, 1712588, 5488889, 5019568, 413537, 7446611}
 
 	for i := range exponentialRecordTimes {
 		index := exponentialRecordTimes[i]
-		t.Run(fmt.Sprintf("heuristic_polynomial-exponential-record-times_%d", index), func(t *testing.T) {
+		t.Run(fmt.Sprintf("heuristic_polynomial-count-record-times_%d", index), func(t *testing.T) {
 			tm, err := bbc.GetMachineI(DB[:], index, true)
 			if err != nil {
 				t.Fail()
 			}
-			if !heuristicExponentialRecordTimes(tm, 10000000, 200, 8, 5, 5, false) {
+			if !heuristicCountRecordTimes(tm, 10000000, 80) {
 				t.Fail()
 			}
 		})
