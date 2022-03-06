@@ -20,7 +20,21 @@ func TestArgumentTranslatedCyclers(t *testing.T) {
 		}
 	})
 
-	divergent_indices := []int{7888060, 5351679, 7199289, 7177945, 12930717, 16322779, 41540523, 8852034, 14203995, 294145, 13128060, 12023841, 3666257, 56021278}
+	// Obsolete indices since DB sorting operation 6/03/22 divergent_indices := []int{7888060, 5351679, 7199289, 7177945, 12930717, 16322779, 41540523, 8852034, 14203995, 294145, 13128060, 12023841, 3666257, 56021278}
+	divergent_indices := []int{14017021,
+		13206000,
+		8107478,
+		14053644,
+		14276172,
+		78082807,
+		83293270,
+		1201055,
+		9354848,
+		6369968,
+		5795478,
+		12745999,
+		13578663,
+		23400034}
 
 	for i := range divergent_indices {
 		index := divergent_indices[i]
@@ -35,7 +49,16 @@ func TestArgumentTranslatedCyclers(t *testing.T) {
 		})
 	}
 
-	translated_cyclers_indices := []int{78619822, 52297459, 37549149, 37799884, 33613794, 65712201, 73643020, 73823886, 87711504}
+	// Obsolete indices since DB sorting operation 6/03/22 translated_cyclers_indices := []int{78619822, 52297459, 37549149, 37799884, 33613794, 65712201, 73643020, 73823886, 87711504}
+	translated_cyclers_indices := []int{32510779,
+		45010518,
+		14427007,
+		14643029,
+		15167997,
+		50491158,
+		59645887,
+		31141863,
+		28690248}
 
 	for i := range translated_cyclers_indices {
 		index := translated_cyclers_indices[i]
@@ -51,7 +74,15 @@ func TestArgumentTranslatedCyclers(t *testing.T) {
 	}
 
 	// End of Feb 22 we discovered translated cyclers that need bigger parameters to be decided
-	more_complex_translated_cyclers_indices := []int{54203719, 36496615, 78264693, 88470160, 70383585, 34518122, 60197828, 81893093}
+	// Obsolete indices since DB sorting operation 6/03/22 more_complex_translated_cyclers_indices := []int{54203719, 36496615, 78264693, 88470160, 70383585, 34518122, 60197828, 81893093}
+	more_complex_translated_cyclers_indices := []int{46965866,
+		74980673,
+		88062418,
+		59090563,
+		76989562,
+		46546554,
+		36091834,
+		58966114}
 
 	for i := range more_complex_translated_cyclers_indices {
 		index := more_complex_translated_cyclers_indices[i]

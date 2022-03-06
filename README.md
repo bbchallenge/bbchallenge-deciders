@@ -2,7 +2,9 @@
 
 ## News
 
-**Update 05/02/22**. 1 664 machines were decided by re-running the translated-cyler decider with higher parameters. Indeed we had discovered some more translated cyclers in the remaning undecided machines, such as machine #`36 496 615`. As of this day there remains **2 322 122** undecided machines in the database.
+**Update 06/03/22**. To improve the reproducibility of the results we have decided to lexicographically sort the main database `all_5_states_undecided_machines_with_global_header`. The first `14,322,029` undecided machines (47M time limit exceeded) were lexicographically sorted independently of the next `74,342,035` undecided machines (12k space limit exceeded). All indices files have been updated according to this order.
+
+**Update 05/03/22**. 1 664 machines were decided by re-running the translated-cyler decider with higher parameters. Indeed we had discovered some more translated cyclers in the remaning undecided machines, such as machine #`36 496 615`. As of this day there remains **2 322 122** undecided machines in the database.
 
 **Update 09/02/22**. 1 253 418 machines were decided thanks to the backward-reasoning decider:
 [https://github.com/bbchallenge/bbchallenge-deciders/tree/main/decider-backward-reasoning](https://github.com/bbchallenge/bbchallenge-deciders/tree/main/decider-backward-reasoning). As of this day there remains **2 323 786** undecided machines in the database.
@@ -18,13 +20,15 @@
 The database computed by bbchallenge-seed is available here:
 
 - [https://dna.hamilton.ie/tsterin/all_5_states_undecided_machines_with_global_header.zip](https://dna.hamilton.ie/tsterin/all_5_states_undecided_machines_with_global_header.zip)
-- [ipfs://QmPRjcK9mJz4UMwkzLNrVG3YtAUzdRHACuHbmpf1n1bfYr](ipfs://QmPRjcK9mJz4UMwkzLNrVG3YtAUzdRHACuHbmpf1n1bfYr)
-- [https://ipfs.prgm.dev/ipfs/QmPRjcK9mJz4UMwkzLNrVG3YtAUzdRHACuHbmpf1n1bfYr](https://ipfs.prgm.dev/ipfs/QmPRjcK9mJz4UMwkzLNrVG3YtAUzdRHACuHbmpf1n1bfYr)
+- [ipfs://QmcgucgLRjAQAjU41w6HR7GJbcte3F14gv9oXcf8uZ8aFM](ipfs://QmcgucgLRjAQAjU41w6HR7GJbcte3F14gv9oXcf8uZ8aFM)
+- [https://ipfs.prgm.dev/ipfs/QmcgucgLRjAQAjU41w6HR7GJbcte3F14gv9oXcf8uZ8aFM](https://ipfs.prgm.dev/ipfs/QmcgucgLRjAQAjU41w6HR7GJbcte3F14gv9oXcf8uZ8aFM)
 
 The format of the database is described here: [https://github.com/bbchallenge/bbchallenge-seed](https://github.com/bbchallenge/bbchallenge-seed).
 
-Database (.zip) shasum: `8ba107bf1dbd7864865260d3eb8f07580646cb8c`.
-
+Database shasum: 
+  - `all_5_states_undecided_machines_with_global_header.zip`: `2576b647185063db2aa3dc2f5622908e99f3cd40`.
+  - `all_5_states_undecided_machines_with_global_header`: `e57063afefd900fa629cfefb40731fd083d90b5e`
+  
 ## Downloading the index of currently undecided machines
 
 An undecided index file is an ordered binary succession of uint32 (BigEndian) which corresponds to the IDs of the currently undecided machines in the above database.
@@ -33,4 +37,4 @@ The current size of the file is **9 295 144** bytes which corresponds to **(9 29
 
 - [https://dna.hamilton.ie/tsterin/bb5_undecided_index](https://dna.hamilton.ie/tsterin/bb5_undecided_index)
 
-Index file shasum: `d9b94d57feaa116a7d8e922aa55377b308d0a1eb`.
+Index file shasum: `f9e7f731532259691cf917ff35fd5051c00f1636`.
