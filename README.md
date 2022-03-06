@@ -26,8 +26,8 @@ The database computed by bbchallenge-seed is available here:
 The format of the database is described here: [https://github.com/bbchallenge/bbchallenge-seed](https://github.com/bbchallenge/bbchallenge-seed).
 
 Database shasum: 
-  - `all_5_states_undecided_machines_with_global_header.zip`: `2576b647185063db2aa3dc2f5622908e99f3cd40`.
-  - `all_5_states_undecided_machines_with_global_header`: `e57063afefd900fa629cfefb40731fd083d90b5e`
+  - all_5_states_undecided_machines_with_global_header.zip: `2576b647185063db2aa3dc2f5622908e99f3cd40`
+  - all_5_states_undecided_machines_with_global_header: `e57063afefd900fa629cfefb40731fd083d90b5e`
   
 ## Downloading the index of currently undecided machines
 
