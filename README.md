@@ -2,7 +2,7 @@
 
 ## News
 
-**Update 06/03/22**. To improve the reproducibility of the results we have decided to lexicographically sort the main database `all_5_states_undecided_machines_with_global_header`. The first `14,322,029` undecided machines (47M time limit exceeded) were lexicographically sorted independently of the next `74,342,035` undecided machines (12k space limit exceeded). All indices files have been updated according to this order.
+**Update 06/03/22**. To improve the reproducibility of the results we have decided to lexicographically sort the main database `all_5_states_undecided_machines_with_global_header`. The first `14 322 029` undecided machines (47M time limit exceeded) were lexicographically sorted independently of the next `74 342 035` undecided machines (12k space limit exceeded). All indices files have been updated according to this order.
 
 **Update 05/03/22**. 1 664 machines were decided by re-running the translated-cyler decider with higher parameters. Indeed we had discovered some more translated cyclers in the remaning undecided machines, such as machine #`36 496 615`. As of this day there remains **2 322 122** undecided machines in the database.
 
@@ -33,7 +33,7 @@ Database shasum:
 
 An undecided index file is an ordered binary succession of uint32 (BigEndian) which corresponds to the IDs of the currently undecided machines in the above database.
 
-The current size of the file is **9 295 144** bytes which corresponds to **(9 295 144)/4 = 2 323 786** machines. 
+The current size of the file is **9 288 488** bytes which corresponds to **(9 288 488)/4 = 2 322 122** machines. 
 
 - [https://dna.hamilton.ie/tsterin/bb5_undecided_index](https://dna.hamilton.ie/tsterin/bb5_undecided_index)
 
