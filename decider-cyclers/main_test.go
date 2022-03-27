@@ -20,8 +20,9 @@ func TestArgumentCyclers(t *testing.T) {
 		}
 	})
 
-	// Obsolete indices since DB sorting operation 6/03/22 divergent_indices := []int{7888060, 5351679, 7199289, 7177945, 12930717, 16322779, 41540523, 8852034, 14203995, 294145, 13128060, 12023841, 3666257, 56021278}
-
+	// Obsolete indices since DB sorting operation 6/03/22 
+	// divergent_indices := []int{7888060, 5351679, 7199289, 7177945, 12930717, 16322779, 41540523, 8852034, 14203995, 294145, 13128060, 12023841, 3666257, 56021278}
+	// Below are new indices
 	divergent_indices := []int{14017021,
 		13206000,
 		8107478,
@@ -50,7 +51,9 @@ func TestArgumentCyclers(t *testing.T) {
 		})
 	}
 
-	// Obsolete indices since DB sorting operation 6/03/22 cyclers_indices := []int{5164457, 13551915, 4888229}
+	// Obsolete indices since DB sorting operation 6/03/22 
+	// cyclers_indices := []int{5164457, 13551915, 4888229}
+	// Below are new indices
 	cyclers_indices := []int{11636047, 4231819, 279081}
 
 	for i := range cyclers_indices {
