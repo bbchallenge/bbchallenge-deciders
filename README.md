@@ -4,7 +4,7 @@
 
 **Update 06/03/22**. To improve the reproducibility of the results we have decided to lexicographically sort the main database `all_5_states_undecided_machines_with_global_header`. The first `14 322 029` undecided machines (47M time limit exceeded) were lexicographically sorted independently of the next `74 342 035` undecided machines (12k space limit exceeded). All indices files have been updated according to this order.
 
-**Update 05/03/22**. 1 664 machines were decided by re-running the translated-cyler decider with higher parameters. Indeed we had discovered some more translated cyclers in the remaning undecided machines, such as machine #`36 496 615`. As of this day there remains **2 322 122** undecided machines in the database.
+**Update 05/03/22**. 1 664 machines were decided by re-running the translated-cyler decider with higher parameters. Indeed we had discovered some more translated cyclers in the remaning undecided machines, such as machine [#59,090,563](https://bbchallenge.org/59090563). As of this day there remains **2 322 122** undecided machines in the database.
 
 **Update 09/02/22**. 1 253 418 machines were decided thanks to the backward-reasoning decider:
 [https://github.com/bbchallenge/bbchallenge-deciders/tree/main/decider-backward-reasoning](https://github.com/bbchallenge/bbchallenge-deciders/tree/main/decider-backward-reasoning). As of this day there remains **2 323 786** undecided machines in the database.
