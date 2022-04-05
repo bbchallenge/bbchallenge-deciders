@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/binary"
-	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -17,13 +16,6 @@ const DB_PATH = "../all_5_states_undecided_machines_with_global_header"
 const MAX_STATES = 5
 
 const MAX_MEMORY = 1000
-
-type SymbolAndSeen struct {
-	Symbol byte
-	Seen   bool
-}
-
-type Tape [MAX_MEMORY]SymbolAndSeen
 
 // Example:
 // s    0    1
@@ -41,70 +33,85 @@ type Tape [MAX_MEMORY]SymbolAndSeen
 // 0 1 2 3 4
 // A B C D E
 
-func deciderBackwardReasoningRec(m bbc.TM, transitionTreeDepth int, currDepth int, currState byte, currRead byte, currPos int, currTape Tape, printTrace bool) (bool, error) {
-	if printTrace {
-		fmt.Println(currDepth, string('A'+(currState-1)), currRead, currPos, currDepth)
-	}
-
-	if currDepth == transitionTreeDepth {
-		return false, nil
-	}
-
-	if currPos < 0 || currPos >= len(currTape) {
-		return false, errors.New("tape memory exceeded")
-	}
-
-	// We spotted a backward reasoning contradiction
-	if currTape[currPos].Seen == true && currTape[currPos].Symbol != currRead {
-		return true, nil
-	}
-
-	currTape[currPos].Symbol = currRead
-	currTape[currPos].Seen = true
-
-	for iTransition := byte(0); iTransition < 10; iTransition += 1 {
-		//write := m[3*iTransition]
-		move := m[3*iTransition+1]
-		gotoState := m[3*iTransition+2]
-
-		// That transition points to us eg. (A,0) is "1LE" and currState is E
-		if gotoState == currState {
-			newState := iTransition / 2
-			newRead := iTransition % 2
-			newPos := currPos + 1
-			// Moving backward so in opposite direction
-			if move == bbc.R {
-				newPos = currPos - 1
-			}
-			result, err := deciderBackwardReasoningRec(m, transitionTreeDepth, currDepth+1, newState+1, newRead, newPos, currTape, printTrace)
-
-			if !result || err != nil {
-				return false, err
-			}
-		}
-	}
-
-	return true, nil
+type Configuration struct {
+	Tape  string
+	State byte
+	Head  int
 }
 
-func deciderBackwardReasoning(m bbc.TM, transitionTreeDepth int, printTrace bool) bool {
+func backwardTransition(config Configuration, write byte, read byte, direction byte, state byte) *Configuration {
+	var new_tape string
+	var new_head int
+	if config.Head == 0 && direction == 1 {
+		new_tape = string(read) + config.Tape
+		new_head = 0
+	} else if config.Head == len(config.Tape)-1 && direction == 0 {
+		new_tape = config.Tape + string(read)
+		new_head = 1
+	} else {
+		new_head = config.Head + 1 - 2*int(direction)
+		if config.Tape[new_head] != write {
+			return nil
+		}
+		new_tape = config.Tape[:new_head] + string(read) + config.Tape[new_head+1:]
+	}
+	return &Configuration{
+		Tape:  new_tape,
+		State: state,
+		Head:  new_head,
+	}
+}
 
-	for iTransition := byte(0); iTransition < 10; iTransition += 1 {
-		gotoState := m[3*iTransition+2]
+func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int) bool {
 
-		if gotoState == 0 {
-			newState := iTransition / 2
-			newRead := iTransition % 2
-			var tape Tape
-			result, err := deciderBackwardReasoningRec(m, transitionTreeDepth, 0, newState+1, newRead, MAX_MEMORY/2, tape, printTrace)
+	seenStates := make(map[Configuration]bool)
+	stack := make([]Configuration, 0, 10)
 
-			if !result || err != nil {
-				return false
+	// map from state-1 to the mask of the ten Turing machine transitions that go to it
+	var predecessors [5][10]bool
+
+	// populate predecessors
+	for i := 0; i < 10; i += 1 {
+		my_new_state := m[3*i+2]
+		starting_bit := string(rune('0' + i%2))
+		if my_new_state == 0 {
+			stack = append(stack, Configuration{Tape: starting_bit, State: byte(i/2) + 1, Head: 0})
+			continue
+		}
+		predecessors[my_new_state-1][i] = true
+	}
+
+	var configuration Configuration
+
+	// continue until all states have looped/contradicted or searched enough branches
+	for branches_searched := 0; len(stack) != 0 && branches_searched < transitionTreeDepthLimit; branches_searched += 1 {
+		configuration, stack = stack[len(stack)-1], stack[:len(stack)-1]
+
+		my_preds := predecessors[configuration.State-1]
+		seenStates[configuration] = true
+
+		for i := 0; i < 10; i += 1 {
+			if !my_preds[i] {
+				continue
+			}
+
+			transition := i * 3
+			read := i % 2
+			try_backwards := backwardTransition(configuration, m[transition], byte(read), m[transition+1], m[transition+2])
+
+			// checks that state has a valid predecessor and has not been seen before
+			if try_backwards != nil && !seenStates[*try_backwards] {
+				stack = append(stack, *try_backwards)
 			}
 		}
 	}
 
-	return true
+	if len(stack) == 0 {
+		return true
+	} else {
+		return false
+	}
+
 }
 
 func main() {
@@ -180,7 +187,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if deciderBackwardReasoning(m, transitionTreeDepth, false) {
+					if deciderBackwardReasoning(m, transitionTreeDepth) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], uint32(n))
 						f.Write(arr[:])
@@ -201,7 +208,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if deciderBackwardReasoning(m, transitionTreeDepth, false) {
+					if deciderBackwardReasoning(m, transitionTreeDepth) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], indexInDb)
 						f.Write(arr[:])
