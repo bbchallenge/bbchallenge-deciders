@@ -42,18 +42,18 @@ type Configuration struct {
 func backwardTransition(config Configuration, write byte, read byte, direction byte, state byte) *Configuration {
 	var new_tape string
 	var new_head int
-	if config.Head == 0 && direction == 1 {
-		new_tape = string(read) + config.Tape
+	if config.Head == 0 && direction == 0 {
+		new_tape = string('0'+read) + config.Tape
 		new_head = 0
-	} else if config.Head == len(config.Tape)-1 && direction == 0 {
-		new_tape = config.Tape + string(read)
+	} else if config.Head == len(config.Tape)-1 && direction == 1 {
+		new_tape = config.Tape + string('0'+read)
 		new_head = 1
 	} else {
-		new_head = config.Head + 1 - 2*int(direction)
+		new_head = config.Head - 1 + 2*int(direction)
 		if config.Tape[new_head] != write {
 			return nil
 		}
-		new_tape = config.Tape[:new_head] + string(read) + config.Tape[new_head+1:]
+		new_tape = config.Tape[:new_head] + string('0'+read) + config.Tape[new_head+1:]
 	}
 	return &Configuration{
 		Tape:  new_tape,
@@ -73,7 +73,7 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int) bool {
 	// populate predecessors
 	for i := 0; i < 10; i += 1 {
 		my_new_state := m[3*i+2]
-		starting_bit := string(rune('0' + i%2))
+		starting_bit := string(byte('0' + (i % 2)))
 		if my_new_state == 0 {
 			stack = append(stack, Configuration{Tape: starting_bit, State: byte(i/2) + 1, Head: 0})
 			continue

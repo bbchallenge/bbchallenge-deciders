@@ -21,13 +21,11 @@ func TestArgumentBackwardReasoning(t *testing.T) {
 		t.Run(fmt.Sprintf("decider_not-backward-reasoning_%d", index), func(t *testing.T) {
 			tm, err := bbc.GetMachineI(DB[:], index, true)
 			if err != nil {
-				print("Uh oh 2\n")
-				fmt.Println("Uh oh true", index)
 				t.Fail()
 			}
 			if deciderBackwardReasoning(tm, 300) {
 				print("Uh oh false", index)
-				fmt.Println("Uh oh true", index)
+				fmt.Println("Uh oh false", index)
 				t.Fail()
 			}
 		})
