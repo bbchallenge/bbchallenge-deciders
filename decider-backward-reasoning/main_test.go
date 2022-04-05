@@ -24,8 +24,7 @@ func TestArgumentBackwardReasoning(t *testing.T) {
 				t.Fail()
 			}
 			if deciderBackwardReasoning(tm, 300) {
-				print("Uh oh false", index)
-				fmt.Println("Uh oh false", index)
+				fmt.Println("Uh oh, expected false but got true: ", index)
 				t.Fail()
 			}
 		})
@@ -42,7 +41,7 @@ func TestArgumentBackwardReasoning(t *testing.T) {
 				t.Fail()
 			}
 			if !deciderBackwardReasoning(tm, 300) {
-				fmt.Println("Uh oh true", index)
+				fmt.Println("Uh oh, expected true but got false: ", index)
 				t.Fail()
 			}
 		})

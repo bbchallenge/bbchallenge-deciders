@@ -71,9 +71,9 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int) bool {
 	var predecessors [5][10]bool
 
 	// populate predecessors
-	for i := 0; i < 10; i += 1 {
+	for i := byte(0); i < 10; i += 1 {
 		my_new_state := m[3*i+2]
-		starting_bit := string(byte('0' + (i % 2)))
+		starting_bit := string('0' + (i % 2))
 		if my_new_state == 0 {
 			stack = append(stack, Configuration{Tape: starting_bit, State: byte(i/2) + 1, Head: 0})
 			continue
@@ -83,8 +83,9 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int) bool {
 
 	var configuration Configuration
 
+	branches_searched := 0
 	// continue until all states have looped/contradicted or searched enough branches
-	for branches_searched := 0; len(stack) != 0 && branches_searched < transitionTreeDepthLimit; branches_searched += 1 {
+	for ; len(stack) != 0 && branches_searched < transitionTreeDepthLimit; branches_searched += 1 {
 		configuration, stack = stack[len(stack)-1], stack[:len(stack)-1]
 
 		my_preds := predecessors[configuration.State-1]
@@ -97,7 +98,7 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int) bool {
 
 			transition := i * 3
 			read := i % 2
-			try_backwards := backwardTransition(configuration, m[transition], byte(read), m[transition+1], m[transition+2])
+			try_backwards := backwardTransition(configuration, m[transition], byte(read), m[transition+1], byte(i/2)+1)
 
 			// checks that state has a valid predecessor and has not been seen before
 			if try_backwards != nil && !seenStates[*try_backwards] {
@@ -106,12 +107,13 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int) bool {
 		}
 	}
 
+	fmt.Println("branches searched: ", branches_searched)
+
 	if len(stack) == 0 {
 		return true
 	} else {
 		return false
 	}
-
 }
 
 func main() {
