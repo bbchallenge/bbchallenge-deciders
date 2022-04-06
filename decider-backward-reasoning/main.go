@@ -47,7 +47,7 @@ func backwardTransition(config Configuration, write byte, read byte, direction b
 		new_head = 0
 	} else if config.Head == len(config.Tape)-1 && direction == 1 {
 		new_tape = config.Tape + string('0'+read)
-		new_head = 1
+		new_head = config.Head + 1
 	} else {
 		new_head = config.Head - 1 + 2*int(direction)
 		if config.Tape[new_head] != write {
