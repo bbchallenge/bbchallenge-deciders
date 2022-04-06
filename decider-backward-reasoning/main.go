@@ -83,9 +83,8 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int) bool {
 
 	var configuration Configuration
 
-	branches_searched := 0
 	// continue until all states have looped/contradicted or searched enough branches
-	for ; len(stack) != 0 && branches_searched < transitionTreeDepthLimit; branches_searched += 1 {
+	for branches_searched := 0; len(stack) != 0 && branches_searched < transitionTreeDepthLimit; branches_searched += 1 {
 		configuration, stack = stack[len(stack)-1], stack[:len(stack)-1]
 
 		my_preds := predecessors[configuration.State-1]
@@ -107,13 +106,7 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int) bool {
 		}
 	}
 
-	fmt.Println("branches searched: ", branches_searched)
-
-	if len(stack) == 0 {
-		return true
-	} else {
-		return false
-	}
+	return len(stack) == 0
 }
 
 func main() {
