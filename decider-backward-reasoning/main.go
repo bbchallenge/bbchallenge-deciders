@@ -62,10 +62,9 @@ func backwardTransition(config Configuration, write byte, read byte, direction b
 	}
 }
 
-func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int) bool {
-
-	seenStates := make(map[Configuration]bool)
-	stack := make([]Configuration, 0, 10)
+func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int, debug bool) bool {
+	var stack []Configuration
+	var depthStack []int
 
 	// map from state-1 to the mask of the ten Turing machine transitions that go to it
 	var predecessors [5][10]bool
@@ -76,6 +75,7 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int) bool {
 		starting_bit := string('0' + (i % 2))
 		if my_new_state == 0 {
 			stack = append(stack, Configuration{Tape: starting_bit, State: byte(i/2) + 1, Head: 0})
+			depthStack = append(depthStack, 0)
 			continue
 		}
 		predecessors[my_new_state-1][i] = true
@@ -83,12 +83,17 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int) bool {
 
 	var configuration Configuration
 
-	// continue until all states have looped/contradicted or searched enough branches
-	for branches_searched := 0; len(stack) != 0 && branches_searched < transitionTreeDepthLimit; branches_searched += 1 {
+	// continue until all configurations have contradicted or one branch is too long
+	for branches_searched := 0; len(stack) != 0; branches_searched += 1 {
 		configuration, stack = stack[len(stack)-1], stack[:len(stack)-1]
+		depth, depthStack := depthStack[len(depthStack)-1], depthStack[:len(depthStack)-1]
+
+		// Fail if a branch gets longer than `transitionTreeDepthLimit`
+		if depth > transitionTreeDepthLimit {
+			return false
+		}
 
 		my_preds := predecessors[configuration.State-1]
-		seenStates[configuration] = true
 
 		for i := 0; i < 10; i += 1 {
 			if !my_preds[i] {
@@ -99,9 +104,10 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int) bool {
 			read := i % 2
 			try_backwards := backwardTransition(configuration, m[transition], byte(read), m[transition+1], byte(i/2)+1)
 
-			// checks that state has a valid predecessor and has not been seen before
-			if try_backwards != nil && !seenStates[*try_backwards] {
+			// add the predecessor configuration to the stack if valid
+			if try_backwards != nil {
 				stack = append(stack, *try_backwards)
+				depthStack = append(depthStack, depth+1)
 			}
 		}
 	}
@@ -131,7 +137,7 @@ func main() {
 	argIndexFile := flag.String("f", "", "undecided index file to use")
 	argMinIndex := flag.Int("m", 0, "min machine index to consider in seed database")
 	argMaxIndex := flag.Int("M", bbc.TOTAL_UNDECIDED, "max machine index to consider in seed database")
-	argNWorkers := flag.Int("n", 10000, "workers")
+	argNWorkers := flag.Int("n", 1000, "workers")
 
 	flag.Parse()
 
@@ -169,6 +175,8 @@ func main() {
 
 	startTime := time.Now()
 
+	debug := true
+
 	for i := 0; i < nWorkers; i += 1 {
 		wg.Add(1)
 		go func(iWorker int, nWorkers int) {
@@ -182,7 +190,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if deciderBackwardReasoning(m, transitionTreeDepth) {
+					if deciderBackwardReasoning(m, transitionTreeDepth, debug) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], uint32(n))
 						f.Write(arr[:])
@@ -203,7 +211,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if deciderBackwardReasoning(m, transitionTreeDepth) {
+					if deciderBackwardReasoning(m, transitionTreeDepth, debug) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], indexInDb)
 						f.Write(arr[:])
