@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -37,6 +38,10 @@ type Configuration struct {
 	Tape  string
 	State byte
 	Head  int
+}
+
+func (c Configuration) toString() string {
+	return c.Tape + string(c.State) + strconv.Itoa(c.Head)
 }
 
 func backwardTransition(config Configuration, write byte, read byte, direction byte, state byte) *Configuration {
@@ -83,6 +88,7 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int, debug bool
 
 	var configuration Configuration
 
+	seenConfigurations := map[string]bool{}
 	// continue until all configurations have contradicted or one branch is too long
 	for branches_searched := 0; len(stack) != 0; branches_searched += 1 {
 		configuration, stack = stack[len(stack)-1], stack[:len(stack)-1]
@@ -92,6 +98,12 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int, debug bool
 		if depth > transitionTreeDepthLimit {
 			return false
 		}
+
+		if _, found := seenConfigurations[configuration.toString()]; found {
+			continue
+		}
+
+		seenConfigurations[configuration.toString()] = true
 
 		my_preds := predecessors[configuration.State-1]
 
