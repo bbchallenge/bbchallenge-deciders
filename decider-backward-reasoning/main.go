@@ -175,7 +175,7 @@ func main() {
 
 	startTime := time.Now()
 
-	debug := true
+	debug := false
 
 	for i := 0; i < nWorkers; i += 1 {
 		wg.Add(1)
