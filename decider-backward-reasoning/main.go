@@ -67,7 +67,7 @@ func backwardTransition(config Configuration, write byte, read byte, direction b
 	}
 }
 
-func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int, debug bool) bool {
+func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int) bool {
 	var stack []Configuration
 	var depthStack []int
 
@@ -187,8 +187,6 @@ func main() {
 
 	startTime := time.Now()
 
-	debug := false
-
 	for i := 0; i < nWorkers; i += 1 {
 		wg.Add(1)
 		go func(iWorker int, nWorkers int) {
@@ -202,7 +200,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if deciderBackwardReasoning(m, transitionTreeDepth, debug) {
+					if deciderBackwardReasoning(m, transitionTreeDepth) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], uint32(n))
 						f.Write(arr[:])
@@ -223,7 +221,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if deciderBackwardReasoning(m, transitionTreeDepth, debug) {
+					if deciderBackwardReasoning(m, transitionTreeDepth) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], indexInDb)
 						f.Write(arr[:])
