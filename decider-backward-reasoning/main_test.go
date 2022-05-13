@@ -14,10 +14,19 @@ func TestArgumentBackwardReasoning(t *testing.T) {
 		t.Fail()
 	}
 
-	// Obsolete indices since DB sorting operation 6/03/22 
-	// not_backward_reasoning_indices := []int{40851850, 11710205, 11726152, 72903966, 10039500, 4966400, 13754164}
-	// Below are new indices
-	not_backward_reasoning_indices := []int{73261028, 8527536, 7911681, 28086713, 11059089, 11670429, 7865218}
+	t.Run(fmt.Sprintf("decider_not-backward-reasoning_bb5_winner"), func(t *testing.T) {
+		tm := bbc.GetBB5Winner()
+
+		if deciderBackwardReasoning(tm, 300) {
+			fmt.Println(tm.ToAsciiTable(5))
+			fmt.Println(tm)
+			fmt.Println("Uh oh, expected false but got true")
+			t.Fail()
+		}
+	})
+
+	// Below are indices
+	not_backward_reasoning_indices := []int{7410754}
 	for i := range not_backward_reasoning_indices {
 		index := not_backward_reasoning_indices[i]
 		t.Run(fmt.Sprintf("decider_not-backward-reasoning_%d", index), func(t *testing.T) {
@@ -25,16 +34,17 @@ func TestArgumentBackwardReasoning(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if deciderBackwardReasoning(tm, 300, testing.Verbose()) {
+			if deciderBackwardReasoning(tm, 300) {
+				fmt.Println(tm.ToAsciiTable(5))
+				fmt.Println(tm)
+				fmt.Println("Uh oh, expected false but got true: ", index)
 				t.Fail()
 			}
 		})
 	}
 
-	// Obsolete indices since DB sorting operation 6/03/22 
-	// backward_reasoning_indices := []int{13955979, 54221304, 7850055, 7658575, 7274055, 620647, 392407}
 	// Below are new indices
-	backward_reasoning_indices := []int{4843748, 58360621, 2009846, 1973992, 11176971, 4147941, 12071224}
+	backward_reasoning_indices := []int{55897188, 27879939, 2713328, 10817532}
 
 	for i := range backward_reasoning_indices {
 		index := backward_reasoning_indices[i]
@@ -43,7 +53,8 @@ func TestArgumentBackwardReasoning(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if !deciderBackwardReasoning(tm, 300, testing.Verbose()) {
+			if !deciderBackwardReasoning(tm, 300) {
+				fmt.Println("Uh oh, expected true but got false: ", index)
 				t.Fail()
 			}
 		})
