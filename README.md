@@ -1,5 +1,7 @@
 # BBChallenge Deciders
 
+Deciders are programs that are meant to automatically decide whether some given Turing machines halt or not starting from blank input. This is not feasible in general which is why each decider focuses on specific families of machines that have a decidable halting problem. See [Method](https://bbchallenge.org/method#deciders) for more.
+
 ## News
 
 **Updated 01/04/22**. News are now at https://discuss.bbchallenge.org/c/news/13. 
