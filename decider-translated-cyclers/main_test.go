@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"math"
 	"testing"
 
 	bbc "github.com/bbchallenge/bbchallenge-go"
@@ -15,12 +16,12 @@ func TestArgumentTranslatedCyclers(t *testing.T) {
 	}
 	// Non-cyclers machines (halting machines and divergent ones)
 	t.Run("argument_translated-cyclers_bb5", func(t *testing.T) {
-		if argumentTranslatedCyclers(bbc.GetBB5Winner(), 1000, 500) {
+		if argumentTranslatedCyclers(bbc.GetBB5Winner(), math.MaxUint32, 1000, 500, false) {
 			t.Fail()
 		}
 	})
 
-	// Obsolete indices since DB sorting operation 6/03/22 
+	// Obsolete indices since DB sorting operation 6/03/22
 	// divergent_indices := []int{7888060, 5351679, 7199289, 7177945, 12930717, 16322779, 41540523, 8852034, 14203995, 294145, 13128060, 12023841, 3666257, 56021278}
 	// Below are new indices
 	divergent_indices := []int{14017021,
@@ -45,13 +46,13 @@ func TestArgumentTranslatedCyclers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentTranslatedCyclers(tm, 1000, 500) {
+			if argumentTranslatedCyclers(tm, uint32(index), 1000, 500, false) {
 				t.Fail()
 			}
 		})
 	}
 
-	// Obsolete indices since DB sorting operation 6/03/22 
+	// Obsolete indices since DB sorting operation 6/03/22
 	// translated_cyclers_indices := []int{78619822, 52297459, 37549149, 37799884, 33613794, 65712201, 73643020, 73823886, 87711504}
 	// Below are new indices
 	translated_cyclers_indices := []int{32510779,
@@ -71,14 +72,14 @@ func TestArgumentTranslatedCyclers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if !argumentTranslatedCyclers(tm, 1000, 500) {
+			if !argumentTranslatedCyclers(tm, uint32(index), 1000, 500, false) {
 				t.Fail()
 			}
 		})
 	}
 
 	// End of Feb 22 we discovered translated cyclers that need bigger parameters to be decided
-	// Obsolete indices since DB sorting operation 6/03/22 
+	// Obsolete indices since DB sorting operation 6/03/22
 	// more_complex_translated_cyclers_indices := []int{54203719, 36496615, 78264693, 88470160, 70383585, 34518122, 60197828, 81893093}
 	// Below are new indices
 	more_complex_translated_cyclers_indices := []int{46965866,
@@ -97,7 +98,7 @@ func TestArgumentTranslatedCyclers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if !argumentTranslatedCyclers(tm, 10000, 5000) {
+			if !argumentTranslatedCyclers(tm, uint32(index), 10000, 5000, false) {
 				t.Fail()
 			}
 		})

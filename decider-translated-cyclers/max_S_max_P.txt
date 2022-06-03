@@ -1,0 +1,10 @@
+Max S: 9291
+S champion ID: 46524691
+Max P: 6347
+P champion ID: 34891328
+
+Max S: 9852
+S champion ID: 43617682
+Max P: 9482
+P champion ID: 63687188
+
