@@ -9,6 +9,19 @@ import (
 	bbc "github.com/bbchallenge/bbchallenge-go"
 )
 
+func TestIndividualMachines(t *testing.T) {
+	DB, _ := ioutil.ReadFile(DB_PATH)
+	// No test yet
+	indices := []int{}
+	for i := range indices {
+		index := indices[i]
+		tm, _ := bbc.GetMachineI(DB[:], index, true)
+		if argumentTranslatedCyclers(tm, uint32(index), 100000, 50000, false) {
+			t.Fail()
+		}
+	}
+}
+
 func TestArgumentTranslatedCyclers(t *testing.T) {
 	DB, err := ioutil.ReadFile(DB_PATH)
 	if err != nil {
