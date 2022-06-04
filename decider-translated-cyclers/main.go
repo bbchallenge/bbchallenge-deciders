@@ -82,7 +82,7 @@ var championPID uint32
 var maxValueS int
 var championSID uint32
 
-func argumentTranslatedCyclers(tm bbc.TM, indexInDb uint32, timeLimit int, spaceLimit int, reportMaxSandP bool) bool {
+func argumentTranslatedCyclers(tm bbc.TM, indexInDb uint32, timeLimit int, spaceLimit int, reportMaxSandP bool, reportMaxSandPForAll bool) bool {
 
 	tapeMemory := 2 * spaceLimit
 
@@ -148,7 +148,10 @@ func argumentTranslatedCyclers(tm bbc.TM, indexInDb uint32, timeLimit int, space
 							}
 							mutexPS.Unlock()
 						}
-
+						if reportMaxSandPForAll {
+							fmt.Println("S:", maxValueS)
+							fmt.Println("P:", maxValueP)
+						}
 						return true
 					}
 				}
@@ -255,7 +258,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if argumentTranslatedCyclers(m, math.MaxUint32, timeLimit, spaceLimit, reportMaxSAndP) {
+					if argumentTranslatedCyclers(m, math.MaxUint32, timeLimit, spaceLimit, reportMaxSAndP, false) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], uint32(n))
 						f.Write(arr[:])
@@ -278,7 +281,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if argumentTranslatedCyclers(m, indexInDb, timeLimit, spaceLimit, reportMaxSAndP) {
+					if argumentTranslatedCyclers(m, indexInDb, timeLimit, spaceLimit, reportMaxSAndP, false) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], indexInDb)
 						f.Write(arr[:])
