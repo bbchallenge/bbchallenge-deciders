@@ -25,7 +25,7 @@ func TestIndividualMachines(t *testing.T) {
 func TestSkeletMachines(t *testing.T) {
 	DB, _ := ioutil.ReadFile(DB_PATH)
 	// I suspect some Skelet machines to be "only" big P, big S translated cyclers
-	indices := []int{55767995, 60581745, 58211439, 31357173, 15439451, 45615747}
+	indices := []int{55767995, 60581745, 58211439, 31357173, 15439451, 45615747, 47260245}
 	for i := range indices {
 		index := indices[i]
 		tm, _ := bbc.GetMachineI(DB[:], index, true)
