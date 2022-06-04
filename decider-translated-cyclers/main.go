@@ -149,8 +149,8 @@ func argumentTranslatedCyclers(tm bbc.TM, indexInDb uint32, timeLimit int, space
 							mutexPS.Unlock()
 						}
 						if reportMaxSandPForAll {
-							fmt.Println("S:", maxValueS)
-							fmt.Println("P:", maxValueP)
+							fmt.Println("S:", valueOfS)
+							fmt.Println("P:", valueOfP)
 						}
 						return true
 					}
