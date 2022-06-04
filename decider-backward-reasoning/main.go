@@ -34,40 +34,66 @@ const MAX_MEMORY = 1000
 // 0 1 2 3 4
 // A B C D E
 
+type TapeType map[int]byte
+
 type Configuration struct {
-	Tape  string
-	State byte
-	Head  int
+	Tape       TapeType
+	maxTapePos int
+	minTapePos int
+	State      byte
+	Head       int
+}
+
+func (c Configuration) tapeToString() string {
+	tapeString := ""
+
+	// Assuming that Configurations are correctly
+	// propagating the invariant that any pos
+	// between min and max are well defined
+	for pos := c.minTapePos; pos <= c.maxTapePos; pos += 1 {
+		tapeString += string('0' + c.Tape[pos])
+	}
+	return tapeString
 }
 
 func (c Configuration) toString() string {
-	return c.Tape + string(c.State) + strconv.Itoa(c.Head)
+	return c.tapeToString() + string(c.State) + strconv.Itoa(c.Head)
 }
 
 func backwardTransition(config Configuration, write byte, read byte, direction byte, state byte) *Configuration {
-	var new_tape string
-	var new_head int
-	if config.Head == 0 && direction == 0 {
-		new_tape = string('0'+read) + config.Tape
-		new_head = 0
-	} else if config.Head == len(config.Tape)-1 && direction == 1 {
-		new_tape = config.Tape + string('0'+read)
-		new_head = config.Head + 1
+
+	// Going in the reversed direction
+	reversedHeadMoveOffest := 1
+	if direction == bbc.R {
+		reversedHeadMoveOffest = -1
+	}
+
+	previousHeadPosition := config.Head + reversedHeadMoveOffest
+
+	maxHeadPos := config.maxTapePos
+	minHeadPos := config.minTapePos
+
+	if previousHeadPosition < minHeadPos {
+		minHeadPos = previousHeadPosition
+	} else if previousHeadPosition > maxHeadPos {
+		maxHeadPos = previousHeadPosition
 	} else {
-		new_head = config.Head - 1 + 2*int(direction)
-		if config.Tape[new_head] != write {
+		if config.Tape[previousHeadPosition] != write {
 			return nil
 		}
-		new_tape = config.Tape[:new_head] + string('0'+read) + config.Tape[new_head+1:]
 	}
-	return &Configuration{
-		Tape:  new_tape,
-		State: state,
-		Head:  new_head,
+
+	var newTape TapeType = make(TapeType)
+	for pos, value := range config.Tape {
+		newTape[pos] = value
 	}
+	newTape[previousHeadPosition] = read
+	previousConfiguration := Configuration{State: state, Tape: newTape, minTapePos: minHeadPos, maxTapePos: maxHeadPos, Head: previousHeadPosition}
+
+	return &previousConfiguration
 }
 
-func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int) bool {
+func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int, printRunInfo bool) bool {
 	var stack []Configuration
 	var depthStack []int
 
@@ -77,9 +103,11 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int) bool {
 	// populate predecessors
 	for i := byte(0); i < 10; i += 1 {
 		my_new_state := m[3*i+2]
-		starting_bit := string('0' + (i % 2))
+		starting_bit := i % 2
+		var initialTape TapeType = make(TapeType)
+		initialTape[0] = starting_bit
 		if my_new_state == 0 {
-			stack = append(stack, Configuration{Tape: starting_bit, State: byte(i/2) + 1, Head: 0})
+			stack = append(stack, Configuration{Tape: initialTape, State: byte(i/2) + 1, Head: 0})
 			depthStack = append(depthStack, 0)
 			continue
 		}
@@ -87,12 +115,21 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int) bool {
 	}
 
 	var configuration Configuration
-
+	var maxDepth int
 	seenConfigurations := map[string]bool{}
 	// continue until all configurations have contradicted or one branch is too long
 	for branches_searched := 0; len(stack) != 0; branches_searched += 1 {
+
 		configuration, stack = stack[len(stack)-1], stack[:len(stack)-1]
 		depth, depthStack := depthStack[len(depthStack)-1], depthStack[:len(depthStack)-1]
+
+		if printRunInfo {
+			fmt.Println("State:", configuration.State, ";", "Head:", configuration.Head, ";", "Tape:", configuration.tapeToString(), ";")
+		}
+
+		if depth > maxDepth {
+			maxDepth = depth
+		}
 
 		// Fail if a branch gets longer than `transitionTreeDepthLimit`
 		if depth > transitionTreeDepthLimit {
@@ -122,6 +159,10 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int) bool {
 				depthStack = append(depthStack, depth+1)
 			}
 		}
+	}
+
+	if printRunInfo {
+		fmt.Println(maxDepth)
 	}
 
 	return len(stack) == 0
@@ -200,7 +241,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if deciderBackwardReasoning(m, transitionTreeDepth) {
+					if deciderBackwardReasoning(m, transitionTreeDepth, false) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], uint32(n))
 						f.Write(arr[:])
@@ -221,7 +262,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if deciderBackwardReasoning(m, transitionTreeDepth) {
+					if deciderBackwardReasoning(m, transitionTreeDepth, false) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], indexInDb)
 						f.Write(arr[:])
