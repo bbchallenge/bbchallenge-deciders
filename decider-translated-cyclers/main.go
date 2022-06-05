@@ -149,7 +149,7 @@ func argumentTranslatedCyclers(tm bbc.TM, indexInDb uint32, timeLimit int, space
 							mutexPS.Unlock()
 						}
 						if reportMaxSandPForAll {
-							fmt.Println("S:", valueOfS)
+							fmt.Println("(almost) S:", valueOfS)
 							fmt.Println("P:", valueOfP)
 						}
 						return true
@@ -298,7 +298,7 @@ func main() {
 	f.Close()
 
 	if reportMaxSAndP {
-		fmt.Println("Max S:", maxValueS)
+		fmt.Println("Max (almost) S:", maxValueS)
 		fmt.Println("S champion ID:", championSID)
 		fmt.Println("Max P:", maxValueP)
 		fmt.Println("P champion ID:", championPID)
