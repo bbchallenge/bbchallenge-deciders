@@ -1,0 +1,12 @@
+Among decided machines:
+
+Max S: 9852
+S champion ID: 43617682
+Max P: 9482
+P champion ID: 63687188
+
+In June 3rd undecided index:
+Max S: 66872
+S champion ID: 29274305
+Max P: 91995
+P champion ID: 31357173

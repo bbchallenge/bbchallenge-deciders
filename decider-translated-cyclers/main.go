@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
 	"sync"
 	"time"
@@ -75,7 +76,13 @@ func tapeRepr(tape []TapePosition, pos int, radius int) (toRet string) {
 	return toRet
 }
 
-func argumentTranslatedCyclers(tm bbc.TM, timeLimit int, spaceLimit int) bool {
+var mutexPS sync.Mutex
+var maxValueP int
+var championPID uint32
+var maxValueS int
+var championSID uint32
+
+func argumentTranslatedCyclers(tm bbc.TM, indexInDb uint32, timeLimit int, spaceLimit int, reportMaxSandP bool, reportMaxSandPForAll bool) bool {
 
 	tapeMemory := 2 * spaceLimit
 
@@ -124,6 +131,27 @@ func argumentTranslatedCyclers(tm bbc.TM, timeLimit int, spaceLimit int) bool {
 			if _, ok := recordHolders[minSide][currState][read]; ok {
 				for _, pastRecord := range recordHolders[minSide][currState][read] {
 					if recordsAreEquivalent(minSide, &pastRecord, &record) {
+
+						// See https://groups.google.com/g/busy-beaver-discuss/c/lcr_6buFz_8
+						valueOfS := pastRecord.Time + 1
+						valueOfP := currTime - pastRecord.Time
+
+						if reportMaxSandP {
+							mutexPS.Lock()
+							if valueOfS > maxValueS {
+								maxValueS = valueOfS
+								championSID = indexInDb
+							}
+							if valueOfP > maxValueP {
+								maxValueP = valueOfP
+								championPID = indexInDb
+							}
+							mutexPS.Unlock()
+						}
+						if reportMaxSandPForAll {
+							fmt.Println("(almost) S:", valueOfS)
+							fmt.Println("P:", valueOfP)
+						}
 						return true
 					}
 				}
@@ -179,6 +207,9 @@ func main() {
 	argNWorkers := flag.Int("n", 1000, "workers")
 	argIndexFile := flag.String("f", "", "undecided index file to use")
 
+	// See https://groups.google.com/g/busy-beaver-discuss/c/lcr_6buFz_8
+	argReportMaxSAndP := flag.Bool("p", false, "report max S and P")
+
 	flag.Parse()
 
 	minIndex := *argMinIndex
@@ -187,6 +218,7 @@ func main() {
 	spaceLimit := *argSpaceLimit
 	nWorkers := *argNWorkers
 	indexFileName := *argIndexFile
+	reportMaxSAndP := *argReportMaxSAndP
 
 	// fmt.Println(minIndex, maxIndex, timeLimit, spaceLimit, nWorkers)
 
@@ -226,7 +258,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if argumentTranslatedCyclers(m, timeLimit, spaceLimit) {
+					if argumentTranslatedCyclers(m, math.MaxUint32, timeLimit, spaceLimit, reportMaxSAndP, false) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], uint32(n))
 						f.Write(arr[:])
@@ -249,7 +281,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if argumentTranslatedCyclers(m, timeLimit, spaceLimit) {
+					if argumentTranslatedCyclers(m, indexInDb, timeLimit, spaceLimit, reportMaxSAndP, false) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], indexInDb)
 						f.Write(arr[:])
@@ -264,4 +296,11 @@ func main() {
 
 	wg.Wait()
 	f.Close()
+
+	if reportMaxSAndP {
+		fmt.Println("Max (almost) S:", maxValueS)
+		fmt.Println("S champion ID:", championSID)
+		fmt.Println("Max P:", maxValueP)
+		fmt.Println("P champion ID:", championPID)
+	}
 }
