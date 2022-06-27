@@ -25,7 +25,7 @@ func TestSkelet10(t *testing.T) {
 		if err != nil {
 			t.Fail()
 		}
-		if deciderBackwardReasoning(tm, 300, true) {
+		if deciderBackwardReasoning(tm, 300, true, false) {
 			fmt.Println(tm.ToAsciiTable(5))
 			fmt.Println(tm)
 
@@ -48,7 +48,7 @@ func TestIndividualMachine(t *testing.T) {
 		if err != nil {
 			t.Fail()
 		}
-		if !deciderBackwardReasoning(tm, 2, true) {
+		if !deciderBackwardReasoning(tm, 2, true, false) {
 			fmt.Println(tm.ToAsciiTable(5))
 			fmt.Println(tm)
 
@@ -66,7 +66,7 @@ func TestArgumentBackwardReasoning(t *testing.T) {
 	t.Run(fmt.Sprintf("decider_not-backward-reasoning_bb5_winner"), func(t *testing.T) {
 		tm := bbc.GetBB5Winner()
 
-		if deciderBackwardReasoning(tm, 50, false) {
+		if deciderBackwardReasoning(tm, 50, false, false) {
 			fmt.Println(tm.ToAsciiTable(5))
 			fmt.Println(tm)
 			fmt.Println("Uh oh, expected false but got true")
@@ -83,7 +83,7 @@ func TestArgumentBackwardReasoning(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if deciderBackwardReasoning(tm, 50, false) {
+			if deciderBackwardReasoning(tm, 50, false, false) {
 				fmt.Println(tm.ToAsciiTable(5))
 				fmt.Println(tm)
 				fmt.Println("Uh oh, expected false but got true: ", index)
@@ -102,7 +102,7 @@ func TestArgumentBackwardReasoning(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if !deciderBackwardReasoning(tm, 50, false) {
+			if !deciderBackwardReasoning(tm, 50, false, false) {
 				fmt.Println("Uh oh, expected true but got false: ", index)
 				t.Fail()
 			}

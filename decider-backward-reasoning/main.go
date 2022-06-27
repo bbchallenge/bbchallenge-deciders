@@ -94,7 +94,10 @@ func backwardTransition(config ConfigurationAndDepth, write byte, read byte, dir
 	return &previousConfiguration
 }
 
-func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int, printRunInfo bool) bool {
+var globalMaxDepth int
+var mutexMaxDepth sync.Mutex
+
+func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int, printRunInfo bool, computeGlobalMaxDepth bool) bool {
 	var stack []ConfigurationAndDepth
 
 	// map from state-1 to the mask of the ten Turing machine transitions that go to it
@@ -163,6 +166,12 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int, printRunIn
 		fmt.Println(maxDepth)
 	}
 
+	if computeGlobalMaxDepth && len(stack) == 0 && maxDepth > globalMaxDepth {
+		mutexMaxDepth.Lock()
+		globalMaxDepth = maxDepth
+		mutexMaxDepth.Unlock()
+	}
+
 	return len(stack) == 0
 }
 
@@ -189,6 +198,7 @@ func main() {
 	argMinIndex := flag.Int("m", 0, "min machine index to consider in seed database")
 	argMaxIndex := flag.Int("M", bbc.TOTAL_UNDECIDED, "max machine index to consider in seed database")
 	argNWorkers := flag.Int("n", 1000, "workers")
+	argReportMaxDepth := flag.Bool("r", false, "report max bactracking depth met in this batch of machines")
 
 	flag.Parse()
 
@@ -197,6 +207,7 @@ func main() {
 	indexFileName := *argIndexFile
 	transitionTreeDepth := *argTransitionTreeDepth
 	nWorkers := *argNWorkers
+	reportMaxDepth := *argReportMaxDepth
 
 	var undecidedIndex []byte
 	if indexFileName != "" {
@@ -239,7 +250,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if deciderBackwardReasoning(m, transitionTreeDepth, false) {
+					if deciderBackwardReasoning(m, transitionTreeDepth, false, reportMaxDepth) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], uint32(n))
 						f.Write(arr[:])
@@ -260,7 +271,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if deciderBackwardReasoning(m, transitionTreeDepth, false) {
+					if deciderBackwardReasoning(m, transitionTreeDepth, false, reportMaxDepth) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], indexInDb)
 						f.Write(arr[:])
@@ -274,4 +285,8 @@ func main() {
 
 	wg.Wait()
 	f.Close()
+
+	if reportMaxDepth {
+		fmt.Println("Max depth:", globalMaxDepth)
+	}
 }
