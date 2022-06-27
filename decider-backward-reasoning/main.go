@@ -95,9 +95,10 @@ func backwardTransition(config ConfigurationAndDepth, write byte, read byte, dir
 }
 
 var globalMaxDepth int
+var globalMaxDepthMachineId int
 var mutexMaxDepth sync.Mutex
 
-func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int, printRunInfo bool, computeGlobalMaxDepth bool) bool {
+func deciderBackwardReasoning(m bbc.TM, machineId int, transitionTreeDepthLimit int, printRunInfo bool, computeGlobalMaxDepth bool) bool {
 	var stack []ConfigurationAndDepth
 
 	// map from state-1 to the mask of the ten Turing machine transitions that go to it
@@ -169,6 +170,7 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int, printRunIn
 	if computeGlobalMaxDepth && len(stack) == 0 && maxDepth > globalMaxDepth {
 		mutexMaxDepth.Lock()
 		globalMaxDepth = maxDepth
+		globalMaxDepthMachineId = machineId
 		mutexMaxDepth.Unlock()
 	}
 
@@ -250,7 +252,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if deciderBackwardReasoning(m, transitionTreeDepth, false, reportMaxDepth) {
+					if deciderBackwardReasoning(m, n, transitionTreeDepth, false, reportMaxDepth) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], uint32(n))
 						f.Write(arr[:])
@@ -271,7 +273,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if deciderBackwardReasoning(m, transitionTreeDepth, false, reportMaxDepth) {
+					if deciderBackwardReasoning(m, int(indexInDb), transitionTreeDepth, false, reportMaxDepth) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], indexInDb)
 						f.Write(arr[:])
@@ -288,5 +290,6 @@ func main() {
 
 	if reportMaxDepth {
 		fmt.Println("Max depth:", globalMaxDepth)
+		fmt.Println("Reach by machine with id:", globalMaxDepthMachineId)
 	}
 }
