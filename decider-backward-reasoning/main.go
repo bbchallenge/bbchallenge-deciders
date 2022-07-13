@@ -36,15 +36,16 @@ const MAX_MEMORY = 1000
 
 type TapeType map[int]byte
 
-type Configuration struct {
+type ConfigurationAndDepth struct {
 	Tape       TapeType
 	maxTapePos int
 	minTapePos int
 	State      byte
 	Head       int
+	Depth      int
 }
 
-func (c Configuration) tapeToString() string {
+func (c ConfigurationAndDepth) tapeToString() string {
 	tapeString := ""
 
 	// Assuming that Configurations are correctly
@@ -56,11 +57,11 @@ func (c Configuration) tapeToString() string {
 	return tapeString
 }
 
-func (c Configuration) toString() string {
+func (c ConfigurationAndDepth) toString() string {
 	return c.tapeToString() + string(c.State) + strconv.Itoa(c.Head)
 }
 
-func backwardTransition(config Configuration, write byte, read byte, direction byte, state byte) *Configuration {
+func backwardTransition(config ConfigurationAndDepth, write byte, read byte, direction byte, state byte) *ConfigurationAndDepth {
 
 	// Going in the reversed direction
 	reversedHeadMoveOffest := 1
@@ -88,14 +89,17 @@ func backwardTransition(config Configuration, write byte, read byte, direction b
 		newTape[pos] = value
 	}
 	newTape[previousHeadPosition] = read
-	previousConfiguration := Configuration{State: state, Tape: newTape, minTapePos: minHeadPos, maxTapePos: maxHeadPos, Head: previousHeadPosition}
+	previousConfiguration := ConfigurationAndDepth{State: state, Tape: newTape, minTapePos: minHeadPos, maxTapePos: maxHeadPos, Head: previousHeadPosition, Depth: config.Depth + 1}
 
 	return &previousConfiguration
 }
 
-func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int, printRunInfo bool) bool {
-	var stack []Configuration
-	var depthStack []int
+var globalMaxDepth int
+var globalMaxDepthMachineId int
+var mutexMaxDepth sync.Mutex
+
+func deciderBackwardReasoning(m bbc.TM, machineId int, transitionTreeDepthLimit int, printRunInfo bool, computeGlobalMaxDepth bool) bool {
+	var stack []ConfigurationAndDepth
 
 	// map from state-1 to the mask of the ten Turing machine transitions that go to it
 	var predecessors [5][10]bool
@@ -107,24 +111,23 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int, printRunIn
 		var initialTape TapeType = make(TapeType)
 		initialTape[0] = starting_bit
 		if my_new_state == 0 {
-			stack = append(stack, Configuration{Tape: initialTape, State: byte(i/2) + 1, Head: 0})
-			depthStack = append(depthStack, 0)
+			stack = append(stack, ConfigurationAndDepth{Tape: initialTape, State: byte(i/2) + 1, Head: 0, Depth: 0})
 			continue
 		}
 		predecessors[my_new_state-1][i] = true
 	}
 
-	var configuration Configuration
+	var configurationAndDepth ConfigurationAndDepth
 	var maxDepth int
 	seenConfigurations := map[string]bool{}
 	// continue until all configurations have contradicted or one branch is too long
 	for branches_searched := 0; len(stack) != 0; branches_searched += 1 {
 
-		configuration, stack = stack[len(stack)-1], stack[:len(stack)-1]
-		depth, depthStack := depthStack[len(depthStack)-1], depthStack[:len(depthStack)-1]
+		configurationAndDepth, stack = stack[len(stack)-1], stack[:len(stack)-1]
+		depth := configurationAndDepth.Depth
 
 		if printRunInfo {
-			fmt.Println("State:", configuration.State, ";", "Head:", configuration.Head, ";", "Tape:", configuration.tapeToString(), ";")
+			fmt.Println("State:", configurationAndDepth.State, ";", "Head:", configurationAndDepth.Head, ";", "Tape:", configurationAndDepth.tapeToString(), ";")
 		}
 
 		if depth > maxDepth {
@@ -136,13 +139,13 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int, printRunIn
 			return false
 		}
 
-		if _, found := seenConfigurations[configuration.toString()]; found {
+		if _, found := seenConfigurations[configurationAndDepth.toString()]; found {
 			continue
 		}
 
-		seenConfigurations[configuration.toString()] = true
+		seenConfigurations[configurationAndDepth.toString()] = true
 
-		my_preds := predecessors[configuration.State-1]
+		my_preds := predecessors[configurationAndDepth.State-1]
 
 		for i := 0; i < 10; i += 1 {
 			if !my_preds[i] {
@@ -151,18 +154,24 @@ func deciderBackwardReasoning(m bbc.TM, transitionTreeDepthLimit int, printRunIn
 
 			transition := i * 3
 			read := i % 2
-			try_backwards := backwardTransition(configuration, m[transition], byte(read), m[transition+1], byte(i/2)+1)
+			try_backwards := backwardTransition(configurationAndDepth, m[transition], byte(read), m[transition+1], byte(i/2)+1)
 
 			// add the predecessor configuration to the stack if valid
 			if try_backwards != nil {
 				stack = append(stack, *try_backwards)
-				depthStack = append(depthStack, depth+1)
 			}
 		}
 	}
 
 	if printRunInfo {
 		fmt.Println(maxDepth)
+	}
+
+	if computeGlobalMaxDepth && len(stack) == 0 && maxDepth > globalMaxDepth {
+		mutexMaxDepth.Lock()
+		globalMaxDepth = maxDepth
+		globalMaxDepthMachineId = machineId
+		mutexMaxDepth.Unlock()
 	}
 
 	return len(stack) == 0
@@ -191,6 +200,7 @@ func main() {
 	argMinIndex := flag.Int("m", 0, "min machine index to consider in seed database")
 	argMaxIndex := flag.Int("M", bbc.TOTAL_UNDECIDED, "max machine index to consider in seed database")
 	argNWorkers := flag.Int("n", 1000, "workers")
+	argReportMaxDepth := flag.Bool("r", false, "report max bactracking depth met in this batch of machines")
 
 	flag.Parse()
 
@@ -199,6 +209,7 @@ func main() {
 	indexFileName := *argIndexFile
 	transitionTreeDepth := *argTransitionTreeDepth
 	nWorkers := *argNWorkers
+	reportMaxDepth := *argReportMaxDepth
 
 	var undecidedIndex []byte
 	if indexFileName != "" {
@@ -241,7 +252,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if deciderBackwardReasoning(m, transitionTreeDepth, false) {
+					if deciderBackwardReasoning(m, n, transitionTreeDepth, false, reportMaxDepth) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], uint32(n))
 						f.Write(arr[:])
@@ -262,7 +273,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if deciderBackwardReasoning(m, transitionTreeDepth, false) {
+					if deciderBackwardReasoning(m, int(indexInDb), transitionTreeDepth, false, reportMaxDepth) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], indexInDb)
 						f.Write(arr[:])
@@ -276,4 +287,9 @@ func main() {
 
 	wg.Wait()
 	f.Close()
+
+	if reportMaxDepth {
+		fmt.Println("Max depth:", globalMaxDepth)
+		fmt.Println("Reach by machine with id:", globalMaxDepthMachineId)
+	}
 }
