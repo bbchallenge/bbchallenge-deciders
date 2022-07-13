@@ -1,0 +1,28 @@
+Consider the 6 tape segments and 2 states the checker is looking for. For ease of visualisation I'll give them 1 letter names:
+- Base = s
+- Head = h
+- Buffer1 = b
+- Buffer2 = p
+- Increment1 = i
+- Increment2 = j
+- State1 = X (always reading the leftmost symbol of the segment to the right)
+- State2 = Y (always reading the rightmost symbol of the segment to the left)
+
+Assuming the following conditions are met:
+(i)	sbXh  turns into siYph	using only the tape positons from b, h, and the infinite 0s to the right
+(ii)	siYph turns into sYpjh	using only the tape positions from i and p
+(iii)	sYpjh turns into sbXjh	using only the tape positions from s and p
+(iv)	sbXjh turns into sibXh	using only the tape positions from b and j
+
+Then we can show by induction that s(i^n)Yph turns into s(i^(n+1))bXh for all n. (use (iii) for the base case and (ii), (iv) for the induction step)
+Combine that with (i) to get that once sbXh is reached the machine goes to all the s(i^n)bXh configurations, so it never halts.
+
+-----------------
+
+Now we only need to show that the decider only outputs true if it finds segments and states that meet those conditions.
+Clearly it only outputs true if it successively went from phase 0 to phase 6 of the checker.
+We go from phase 1 to phase 2, to sbXh is reached.
+We go from phase 2 to phase 3, so (i) holds.
+We go from phase 3 to phase 4, so (ii) holds.
+We go from phase 4 to phase 5, so (iii) holds.
+We go from phase 5 to phase 6, so (iv) holds.
