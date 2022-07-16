@@ -61,15 +61,17 @@ def pptm(machine, return_repr=False):
 def format_machine(machine):
     to_return = []
     for i in range(5):
+        state_rep = ""
         for j in range(2):
             write = machine[6 * i + 3 * j]
             move = machine[6 * i + 3 * j + 1]
             goto = machine[6 * i + 3 * j + 2] - 1
 
             if goto == -1:
-                to_return.append("---")
+                state_rep += "---"
                 continue
 
-            to_return.append(f"{write}{g(move)}{ithl(goto)}")
+            state_rep += f"{write}{g(move)}{ithl(goto)}"
+        to_return.append(state_rep)
 
     return "_".join(to_return)

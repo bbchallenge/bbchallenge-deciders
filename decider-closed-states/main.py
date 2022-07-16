@@ -100,7 +100,7 @@ if __name__ == "__main__":
         UNDECIDED_INDEX_PATH
     )
 
-    print("machine_id; machine; closed states")
+    print("machine_id; machine; closed_states")
 
     for machine_id in tqdm.tqdm(undecided_machines_indices):
         machine = get_machine_i(DB_PATH, machine_id)
