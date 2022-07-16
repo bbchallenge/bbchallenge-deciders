@@ -102,7 +102,6 @@ if __name__ == "__main__":
 
     print("machine_id; machine; closed states")
 
-    decided_ids = []
     for machine_id in tqdm.tqdm(undecided_machines_indices):
         machine = get_machine_i(DB_PATH, machine_id)
         closed_states = set({})
@@ -110,6 +109,3 @@ if __name__ == "__main__":
             print(machine_id, end="; ")
             print(format_machine(machine), end="; ")
             print(set(map(lambda x: chr(ord("A") + x), closed_states)))
-
-    print(decided_ids[:20])
-    print(len(decided_ids))
