@@ -65,6 +65,7 @@ type CheckerState struct {
 
 const PHASE_INITIAL_SIZE_DISCOVERY = 0
 const PHASE_HAS_NOT_EVER_REACHED_RIGHT_SIDE_UTURN_YET = 1
+const PHASE_EXPANDING_TAPE_TO_THE_RIGHT = 2
 
 func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, currPos int, minPos int, maxPos int, debug bool) {
 	switch c.Phase {
@@ -96,12 +97,12 @@ func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, c
 			c.Buffer1 = tapeSegment(tape, currPos-c.BufferSize, currPos-1)
 			c.State1 = currState
 			c.UturnRightSide = tapeSegment(tape, currPos, maxPos)
-			c.Phase = 2
+			c.Phase = PHASE_EXPANDING_TAPE_TO_THE_RIGHT
 			if debug {
 				fmt.Printf("finished phase 1 --- %+v\n", c)
 			}
 		}
-	case 2:
+	case PHASE_EXPANDING_TAPE_TO_THE_RIGHT:
 		//the checker stays in phase 2 as long as the TM stays on the Buffer and Head segments of the tape, moving those to the right as maxPos grows
 		if currPos == maxPos-c.UturnRightSideSize-c.BufferSize {
 			//the head entered the Increment segment:
