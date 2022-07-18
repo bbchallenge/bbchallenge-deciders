@@ -68,6 +68,7 @@ const PHASE_HAS_NOT_EVER_REACHED_RIGHT_SIDE_UTURN_YET = 1
 const PHASE_EXPANDING_TAPE_TO_THE_RIGHT = 2
 const PHASE_BOUNCING_BACK_TO_THE_LEFT = 3
 const PHASE_TURNING_FROM_LEFT_TO_RIGHT = 4
+const PHASE_BOUNCING_BACK_TO_THE_RIGHT = 5
 
 func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, currPos int, minPos int, maxPos int, debug bool) {
 	switch c.Phase {
@@ -171,7 +172,7 @@ func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, c
 			//                      State1
 			//if this is a valid bounce then (Base), (Head), (Buffer1), (Increment2) and (State1) have to be the same as before. There was no opportunity to change (Increment2) or (Head)
 			if c.State1 == currState && c.UturnLeftSide == tapeSegment(tape, minPos, currPos-c.BufferSize) && c.Buffer1 == tapeSegment(tape, minPos+c.UturnLeftSideSize, currPos-1) {
-				c.Phase = 5
+				c.Phase = PHASE_BOUNCING_BACK_TO_THE_RIGHT
 				if debug {
 					fmt.Printf("finished phase 4 --- %+v\n", c)
 				}
@@ -189,7 +190,7 @@ func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, c
 				fmt.Println("failed phase 4 --- wrong exit direction")
 			}
 		}
-	case 5:
+	case PHASE_BOUNCING_BACK_TO_THE_RIGHT:
 		//the checker stays in phase 5 as long as the TM stays on the Buffer and Increment segments of the tape
 		if currPos == maxPos-c.UturnRightSideSize+1 {
 			//the head entered the Head segment:
