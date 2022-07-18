@@ -65,7 +65,7 @@ type CheckerState struct {
 
 const PHASE_INITIAL_SIZE_DISCOVERY = 0
 
-func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, currPos int, minPos int, maxPos int) {
+func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, currPos int, minPos int, maxPos int, debug bool) {
 	switch c.Phase {
 	case PHASE_INITIAL_SIZE_DISCOVERY:
 		if maxPos-minPos >= 3 && currPos <= (minPos+maxPos)/2 {
@@ -78,7 +78,10 @@ func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, c
 			c.UturnRightSideSize = (maxPos - minPos) / 3 //pick some growing value for the head and buffer size. We will pick up bouncers even if those values are bigger than necessary
 			c.BufferSize = (maxPos - minPos) / 3         //here we make sure the chosen values get big enough eventually, but we can still begin testing early
 			c.Phase = 1                                  //begin testing for a bounce
-			//fmt.Printf("finished phase 0 --- %+v\n", c)
+
+			if debug {
+				fmt.Printf("finished phase 0 --- %+v\n", c)
+			}
 		}
 	case 1:
 		//the checker stays in phase 1 as long as the TM stays on the Base and Buffer segments of the tape
@@ -93,7 +96,9 @@ func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, c
 			c.State1 = currState
 			c.UturnRightSide = tapeSegment(tape, currPos, maxPos)
 			c.Phase = 2
-			//fmt.Printf("finished phase 1 --- %+v\n", c)
+			if debug {
+				fmt.Printf("finished phase 1 --- %+v\n", c)
+			}
 		}
 	case 2:
 		//the checker stays in phase 2 as long as the TM stays on the Buffer and Head segments of the tape, moving those to the right as maxPos grows
@@ -110,14 +115,20 @@ func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, c
 					c.State2 = currState
 					c.Buffer2 = tapeSegment(tape, currPos+1, currPos+c.BufferSize)
 					c.Phase = 3
-					//fmt.Printf("finished phase 2 --- %+v\n", c)
+					if debug {
+						fmt.Printf("finished phase 2 --- %+v\n", c)
+					}
 				} else {
 					c.Phase = PHASE_INITIAL_SIZE_DISCOVERY
-					//fmt.Println("failed phase 2 --- no growth")
+					if debug {
+						fmt.Println("failed phase 2 --- no growth")
+					}
 				}
 			} else {
 				c.Phase = PHASE_INITIAL_SIZE_DISCOVERY
-				//fmt.Printf("failed phase 2 --- %+v\n", c)
+				if debug {
+					fmt.Printf("failed phase 2 --- %+v\n", c)
+				}
 			}
 		}
 	case 3:
@@ -131,15 +142,21 @@ func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, c
 			if c.State2 == currState && c.Buffer2 == tapeSegment(tape, currPos+1, currPos+c.BufferSize) {
 				c.Increment2 = tapeSegment(tape, currPos+c.BufferSize+1, maxPos-c.UturnRightSideSize)
 				c.Phase = 4
-				//fmt.Printf("finished phase 3 --- %+v\n", c)
+				if debug {
+					fmt.Printf("finished phase 3 --- %+v\n", c)
+				}
 			} else {
 				c.Phase = PHASE_INITIAL_SIZE_DISCOVERY
-				//fmt.Printf("failed phase 3 --- %+v\n", c)
+				if debug {
+					fmt.Printf("failed phase 3 --- %+v\n", c)
+				}
 			}
 		}
 		if currPos == maxPos-c.UturnRightSideSize+1 {
 			c.Phase = PHASE_INITIAL_SIZE_DISCOVERY
-			//fmt.Println("failed phase 3 --- wrong exit direction")
+			if debug {
+				fmt.Println("failed phase 3 --- wrong exit direction")
+			}
 		}
 	case 4:
 		//the checker stays in phase 4 as long as the TM stays on the Buffer and Base segments of the tape
@@ -151,16 +168,22 @@ func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, c
 			//if this is a valid bounce then (Base), (Head), (Buffer1), (Increment2) and (State1) have to be the same as before. There was no opportunity to change (Increment2) or (Head)
 			if c.State1 == currState && c.UturnLeftSide == tapeSegment(tape, minPos, currPos-c.BufferSize) && c.Buffer1 == tapeSegment(tape, minPos+c.UturnLeftSideSize, currPos-1) {
 				c.Phase = 5
-				//fmt.Printf("finished phase 4 --- %+v\n", c)
+				if debug {
+					fmt.Printf("finished phase 4 --- %+v\n", c)
+				}
 			} else {
 				c.Phase = PHASE_INITIAL_SIZE_DISCOVERY
-				//fmt.Printf("failed phase 4 --- %+v\n", c)
+				if debug {
+					fmt.Printf("failed phase 4 --- %+v\n", c)
+				}
 			}
 		}
 		if maxPos-minPos > c.UturnLeftSideSize+c.UturnRightSideSize+c.IncrementSize+c.BufferSize {
 			//the visited tape is growing while we are on the left side. We do not handle that here and have to start our checks from the beginning
 			c.Phase = PHASE_INITIAL_SIZE_DISCOVERY
-			//fmt.Println("failed phase 4 --- wrong exit direction")
+			if debug {
+				fmt.Println("failed phase 4 --- wrong exit direction")
+			}
 		}
 	case 5:
 		//the checker stays in phase 5 as long as the TM stays on the Buffer and Increment segments of the tape
@@ -172,16 +195,22 @@ func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, c
 			//if this is a valid bounce then (Base), (Head), (Buffer1), (Increment1) and (State1) have to be the same as before. There was no opportunity to change (Base) or (Head)
 			if c.State1 == currState && c.Increment1 == tapeSegment(tape, minPos+c.UturnLeftSideSize, currPos-c.BufferSize-1) && c.Buffer1 == tapeSegment(tape, currPos-c.BufferSize, currPos-1) {
 				c.Phase = 6
-				//fmt.Printf("finished phase 5 --- %+v\n", c)
-				//fmt.Println("unilateral-bouncer-right detected")
+				if debug {
+					fmt.Printf("finished phase 5 --- %+v\n", c)
+					fmt.Println("unilateral-bouncer-right detected")
+				}
 			} else {
 				c.Phase = PHASE_INITIAL_SIZE_DISCOVERY
-				//fmt.Printf("failed phase 5 --- %+v\n", c)
+				if debug {
+					fmt.Printf("failed phase 5 --- %+v\n", c)
+				}
 			}
 		}
 		if currPos == minPos+c.UturnLeftSideSize-1 {
 			c.Phase = PHASE_INITIAL_SIZE_DISCOVERY
-			//fmt.Println("failed phase 5 --- wrong exit direction")
+			if debug {
+				fmt.Println("failed phase 5 --- wrong exit direction")
+			}
 		}
 	}
 }
@@ -193,7 +222,7 @@ var trecord_index uint32
 var srecord int
 var srecord_index uint32
 
-func argumentUnilateralBouncers(tm bbc.TM, indexInDb uint32, timeLimit int, spaceLimit int, invertTM bool, reportRecords bool) bool {
+func argumentUnilateralBouncers(tm bbc.TM, indexInDb uint32, timeLimit int, spaceLimit int, invertTM bool, reportRecords bool, debug bool) bool {
 
 	if invertTM {
 		invertMachine(&tm)
@@ -227,7 +256,7 @@ func argumentUnilateralBouncers(tm bbc.TM, indexInDb uint32, timeLimit int, spac
 			return false
 		}
 
-		rightChecker.checkRightBouncers(tape, currState, currPos, minPosSeen, maxPosSeen)
+		rightChecker.checkRightBouncers(tape, currState, currPos, minPosSeen, maxPosSeen, debug)
 		if rightChecker.Phase == 6 {
 			if reportRecords {
 				if irecord < len(rightChecker.Increment1) {
@@ -296,6 +325,8 @@ func main() {
 	argInvertTM := flag.Bool("i", false, "invert the L and R direction of the machine to detect bouncers to the left")
 	argReportRecords := flag.Bool("r", false, "report records for time, space and increment size")
 
+	argDebuggingLogs := flag.Bool("d", false, "Enables debugging logs on stdout")
+
 	flag.Parse()
 
 	minIndex := *argMinIndex
@@ -306,6 +337,7 @@ func main() {
 	indexFileName := *argIndexFile
 	invertTM := *argInvertTM
 	reportRecords := *argReportRecords
+	debuggingLogs := *argDebuggingLogs
 
 	direction := "right-"
 	if invertTM {
@@ -342,7 +374,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if argumentUnilateralBouncers(m, math.MaxUint32, timeLimit, spaceLimit, invertTM, reportRecords) {
+					if argumentUnilateralBouncers(m, math.MaxUint32, timeLimit, spaceLimit, invertTM, reportRecords, debuggingLogs) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], uint32(n))
 						f.Write(arr[:])
@@ -365,7 +397,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if argumentUnilateralBouncers(m, indexInDb, timeLimit, spaceLimit, invertTM, reportRecords) {
+					if argumentUnilateralBouncers(m, indexInDb, timeLimit, spaceLimit, invertTM, reportRecords, debuggingLogs) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], indexInDb)
 						f.Write(arr[:])

@@ -11,13 +11,13 @@ import (
 
 func TestIndividualMachines(t *testing.T) {
 	DB, _ := ioutil.ReadFile(DB_PATH)
-	
+
 	//this one takes bit longer to detect
 	indices := []int{7866044}
 	for i := range indices {
 		index := indices[i]
 		tm, _ := bbc.GetMachineI(DB[:], index, true)
-		if !argumentUnilateralBouncers(tm, uint32(index), 10000, 500, false, true) {
+		if !argumentUnilateralBouncers(tm, uint32(index), 10000, 500, false, true, false) {
 			t.Fail()
 		}
 	}
@@ -31,7 +31,7 @@ func TestArgumentUnilateralBouncers(t *testing.T) {
 
 	// halting machines
 	t.Run("argument_translated-cyclers_bb5", func(t *testing.T) {
-		if argumentUnilateralBouncers(bbc.GetBB5Winner(), math.MaxUint32, 1000, 500, false, false) {
+		if argumentUnilateralBouncers(bbc.GetBB5Winner(), math.MaxUint32, 1000, 500, false, false, false) {
 			t.Fail()
 		}
 	})
@@ -44,7 +44,7 @@ func TestArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false) {
+			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false, false) {
 				t.Fail()
 			}
 		})
@@ -58,7 +58,7 @@ func TestArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false) {
+			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false, false) {
 				t.Fail()
 			}
 		})
@@ -72,7 +72,7 @@ func TestArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if !argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false) {
+			if !argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false, false) {
 				t.Fail()
 			}
 		})
@@ -86,7 +86,7 @@ func TestArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false) {
+			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false, false) {
 				t.Fail()
 			}
 		})
@@ -101,7 +101,7 @@ func TestArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false) {
+			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false, false) {
 				t.Fail()
 			}
 		})
@@ -114,7 +114,7 @@ func TestArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false) {
+			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false, false) {
 				t.Fail()
 			}
 		})
@@ -128,7 +128,7 @@ func TestArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false) {
+			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false, false) {
 				t.Fail()
 			}
 		})
@@ -142,7 +142,7 @@ func TestArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false) {
+			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false, false) {
 				t.Fail()
 			}
 		})
@@ -156,7 +156,7 @@ func TestArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false) {
+			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false, false) {
 				t.Fail()
 			}
 		})
@@ -170,7 +170,7 @@ func TestArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false) {
+			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, false, false, false) {
 				t.Fail()
 			}
 		})
@@ -186,7 +186,7 @@ func TestInvertedArgumentUnilateralBouncers(t *testing.T) {
 
 	// halting machines
 	t.Run("argument_translated-cyclers_bb5", func(t *testing.T) {
-		if argumentUnilateralBouncers(bbc.GetBB5Winner(), math.MaxUint32, 1000, 500, true, false) {
+		if argumentUnilateralBouncers(bbc.GetBB5Winner(), math.MaxUint32, 1000, 500, true, false, false) {
 			t.Fail()
 		}
 	})
@@ -199,7 +199,7 @@ func TestInvertedArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false) {
+			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false, false) {
 				t.Fail()
 			}
 		})
@@ -213,7 +213,7 @@ func TestInvertedArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false) {
+			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false, false) {
 				t.Fail()
 			}
 		})
@@ -227,7 +227,7 @@ func TestInvertedArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false) {
+			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false, false) {
 				t.Fail()
 			}
 		})
@@ -241,7 +241,7 @@ func TestInvertedArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if !argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false) {
+			if !argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false, false) {
 				t.Fail()
 			}
 		})
@@ -260,7 +260,7 @@ func TestInvertedArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false) {
+			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false, false) {
 				t.Fail()
 			}
 		})
@@ -274,7 +274,7 @@ func TestInvertedArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false) {
+			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false, false) {
 				t.Fail()
 			}
 		})
@@ -288,7 +288,7 @@ func TestInvertedArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false) {
+			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false, false) {
 				t.Fail()
 			}
 		})
@@ -302,7 +302,7 @@ func TestInvertedArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false) {
+			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false, false) {
 				t.Fail()
 			}
 		})
@@ -316,7 +316,7 @@ func TestInvertedArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false) {
+			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false, false) {
 				t.Fail()
 			}
 		})
@@ -330,7 +330,7 @@ func TestInvertedArgumentUnilateralBouncers(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false) {
+			if argumentUnilateralBouncers(tm, uint32(index), 1000, 500, true, false, false) {
 				t.Fail()
 			}
 		})
