@@ -69,6 +69,7 @@ const PHASE_EXPANDING_TAPE_TO_THE_RIGHT = 2
 const PHASE_BOUNCING_BACK_TO_THE_LEFT = 3
 const PHASE_TURNING_FROM_LEFT_TO_RIGHT = 4
 const PHASE_BOUNCING_BACK_TO_THE_RIGHT = 5
+const PHASE_UNILATERAL_BOUNCER_DETECTED = 6
 
 func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, currPos int, minPos int, maxPos int, debug bool) {
 	switch c.Phase {
@@ -199,7 +200,7 @@ func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, c
 			//                                  State1
 			//if this is a valid bounce then (Base), (Head), (Buffer1), (Increment1) and (State1) have to be the same as before. There was no opportunity to change (Base) or (Head)
 			if c.State1 == currState && c.Increment1 == tapeSegment(tape, minPos+c.UturnLeftSideSize, currPos-c.BufferSize-1) && c.Buffer1 == tapeSegment(tape, currPos-c.BufferSize, currPos-1) {
-				c.Phase = 6
+				c.Phase = PHASE_UNILATERAL_BOUNCER_DETECTED
 				if debug {
 					fmt.Printf("finished phase 5 --- %+v\n", c)
 					fmt.Println("unilateral-bouncer-right detected")
