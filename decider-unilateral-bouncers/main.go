@@ -64,6 +64,7 @@ type CheckerState struct {
 }
 
 const PHASE_INITIAL_SIZE_DISCOVERY = 0
+const PHASE_HAS_NOT_EVER_REACHED_RIGHT_SIDE_UTURN_YET = 1
 
 func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, currPos int, minPos int, maxPos int, debug bool) {
 	switch c.Phase {
@@ -75,15 +76,15 @@ func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, c
 			//doing it like this does mean that we pick up machines like 7866044 a bit later than we could, since we only start testing after it has been bouncing for a while
 			//there are different ways we could pick starting spots as well as head and buffer size with different advantages. In practice it does not seem to matter much
 			//
-			c.UturnRightSideSize = (maxPos - minPos) / 3 //pick some growing value for the head and buffer size. We will pick up bouncers even if those values are bigger than necessary
-			c.BufferSize = (maxPos - minPos) / 3         //here we make sure the chosen values get big enough eventually, but we can still begin testing early
-			c.Phase = 1                                  //begin testing for a bounce
+			c.UturnRightSideSize = (maxPos - minPos) / 3              //pick some growing value for the head and buffer size. We will pick up bouncers even if those values are bigger than necessary
+			c.BufferSize = (maxPos - minPos) / 3                      //here we make sure the chosen values get big enough eventually, but we can still begin testing early
+			c.Phase = PHASE_HAS_NOT_EVER_REACHED_RIGHT_SIDE_UTURN_YET //begin testing for a bounce
 
 			if debug {
 				fmt.Printf("finished phase 0 --- %+v\n", c)
 			}
 		}
-	case 1:
+	case PHASE_HAS_NOT_EVER_REACHED_RIGHT_SIDE_UTURN_YET:
 		//the checker stays in phase 1 as long as the TM stays on the Base and Buffer segments of the tape
 		if currPos == maxPos-c.UturnRightSideSize+1 {
 			//the head entered the Head segment:
