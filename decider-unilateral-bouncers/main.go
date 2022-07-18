@@ -63,9 +63,11 @@ type CheckerState struct {
 	IncrementSize      int
 }
 
+const PHASE_INITIAL_SIZE_DISCOVERY = 0
+
 func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, currPos int, minPos int, maxPos int) {
 	switch c.Phase {
-	case 0:
+	case PHASE_INITIAL_SIZE_DISCOVERY:
 		if maxPos-minPos >= 3 && currPos <= (minPos+maxPos)/2 {
 			//we have seen 4 or more cells and the TM head is in the first half of the visited tape
 			//if the TM is a unilateral bouncer to the right that has to happen between bounces once the repeated section grows big enough
@@ -110,11 +112,11 @@ func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, c
 					c.Phase = 3
 					//fmt.Printf("finished phase 2 --- %+v\n", c)
 				} else {
-					c.Phase = 0
+					c.Phase = PHASE_INITIAL_SIZE_DISCOVERY
 					//fmt.Println("failed phase 2 --- no growth")
 				}
 			} else {
-				c.Phase = 0
+				c.Phase = PHASE_INITIAL_SIZE_DISCOVERY
 				//fmt.Printf("failed phase 2 --- %+v\n", c)
 			}
 		}
@@ -131,12 +133,12 @@ func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, c
 				c.Phase = 4
 				//fmt.Printf("finished phase 3 --- %+v\n", c)
 			} else {
-				c.Phase = 0
+				c.Phase = PHASE_INITIAL_SIZE_DISCOVERY
 				//fmt.Printf("failed phase 3 --- %+v\n", c)
 			}
 		}
 		if currPos == maxPos-c.UturnRightSideSize+1 {
-			c.Phase = 0
+			c.Phase = PHASE_INITIAL_SIZE_DISCOVERY
 			//fmt.Println("failed phase 3 --- wrong exit direction")
 		}
 	case 4:
@@ -151,13 +153,13 @@ func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, c
 				c.Phase = 5
 				//fmt.Printf("finished phase 4 --- %+v\n", c)
 			} else {
-				c.Phase = 0
+				c.Phase = PHASE_INITIAL_SIZE_DISCOVERY
 				//fmt.Printf("failed phase 4 --- %+v\n", c)
 			}
 		}
 		if maxPos-minPos > c.UturnLeftSideSize+c.UturnRightSideSize+c.IncrementSize+c.BufferSize {
 			//the visited tape is growing while we are on the left side. We do not handle that here and have to start our checks from the beginning
-			c.Phase = 0
+			c.Phase = PHASE_INITIAL_SIZE_DISCOVERY
 			//fmt.Println("failed phase 4 --- wrong exit direction")
 		}
 	case 5:
@@ -173,12 +175,12 @@ func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, c
 				//fmt.Printf("finished phase 5 --- %+v\n", c)
 				//fmt.Println("unilateral-bouncer-right detected")
 			} else {
-				c.Phase = 0
+				c.Phase = PHASE_INITIAL_SIZE_DISCOVERY
 				//fmt.Printf("failed phase 5 --- %+v\n", c)
 			}
 		}
 		if currPos == minPos+c.UturnLeftSideSize-1 {
-			c.Phase = 0
+			c.Phase = PHASE_INITIAL_SIZE_DISCOVERY
 			//fmt.Println("failed phase 5 --- wrong exit direction")
 		}
 	}
