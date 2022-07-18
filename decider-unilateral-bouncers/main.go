@@ -162,7 +162,7 @@ func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, c
 				fmt.Println("failed phase 3 --- wrong exit direction")
 			}
 		}
-	case 4:
+	case PHASE_TURNING_FROM_LEFT_TO_RIGHT:
 		//the checker stays in phase 4 as long as the TM stays on the Buffer and Base segments of the tape
 		if currPos == minPos+c.UturnLeftSideSize+c.BufferSize {
 			//the head entered the Increment segment:
