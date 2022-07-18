@@ -1,3 +1,5 @@
+__pycache__
+venv
 decider-cyclers/decider-cyclers
 rsync_indexes.sh
 unsorted_indexes
