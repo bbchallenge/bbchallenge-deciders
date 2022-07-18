@@ -49,8 +49,8 @@ func invertMachine(tm *bbc.TM) {
 
 type CheckerState struct {
 	Phase              int
-	Base               string
-	Head               string
+	UturnLeftSide      string
+	UturnRightSide     string
 	Buffer1            string
 	Buffer2            string
 	Increment1         string
@@ -86,10 +86,10 @@ func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, c
 			//                        ^
 			//                      State1
 			c.UturnLeftSideSize = currPos - c.BufferSize - minPos
-			c.Base = tapeSegment(tape, minPos, minPos+c.UturnLeftSideSize)
+			c.UturnLeftSide = tapeSegment(tape, minPos, minPos+c.UturnLeftSideSize)
 			c.Buffer1 = tapeSegment(tape, currPos-c.BufferSize, currPos-1)
 			c.State1 = currState
-			c.Head = tapeSegment(tape, currPos, maxPos)
+			c.UturnRightSide = tapeSegment(tape, currPos, maxPos)
 			c.Phase = 2
 			//fmt.Printf("finished phase 1 --- %+v\n", c)
 		}
@@ -101,7 +101,7 @@ func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, c
 			//                          ^
 			//                        State2
 			//if this is a valid bounce then (Base) and (Head) have to be the same as before. There was no opportunity to change (Base), so just check (Head)
-			if c.Head == tapeSegment(tape, maxPos-c.UturnRightSideSize+1, maxPos) {
+			if c.UturnRightSide == tapeSegment(tape, maxPos-c.UturnRightSideSize+1, maxPos) {
 				c.IncrementSize = (currPos + 1) - (minPos + c.UturnLeftSideSize)
 				if c.IncrementSize > 0 {
 					c.Increment1 = tapeSegment(tape, minPos+c.UturnLeftSideSize, currPos)
@@ -147,7 +147,7 @@ func (c *CheckerState) checkRightBouncers(tape []TapePosition, currState byte, c
 			//                        ^
 			//                      State1
 			//if this is a valid bounce then (Base), (Head), (Buffer1), (Increment2) and (State1) have to be the same as before. There was no opportunity to change (Increment2) or (Head)
-			if c.State1 == currState && c.Base == tapeSegment(tape, minPos, currPos-c.BufferSize) && c.Buffer1 == tapeSegment(tape, minPos+c.UturnLeftSideSize, currPos-1) {
+			if c.State1 == currState && c.UturnLeftSide == tapeSegment(tape, minPos, currPos-c.BufferSize) && c.Buffer1 == tapeSegment(tape, minPos+c.UturnLeftSideSize, currPos-1) {
 				c.Phase = 5
 				//fmt.Printf("finished phase 4 --- %+v\n", c)
 			} else {
