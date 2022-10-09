@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strconv"
 	"sync"
 	"time"
 
@@ -43,22 +42,6 @@ type ConfigurationAndDepth struct {
 	State      byte
 	Head       int
 	Depth      int
-}
-
-func (c ConfigurationAndDepth) tapeToString() string {
-	tapeString := ""
-
-	// Assuming that Configurations are correctly
-	// propagating the invariant that any pos
-	// between min and max are well defined
-	for pos := c.minTapePos; pos <= c.maxTapePos; pos += 1 {
-		tapeString += string('0' + c.Tape[pos])
-	}
-	return tapeString
-}
-
-func (c ConfigurationAndDepth) toString() string {
-	return c.tapeToString() + string(c.State) + strconv.Itoa(c.Head)
 }
 
 func backwardTransition(config ConfigurationAndDepth, write byte, read byte, direction byte, state byte) *ConfigurationAndDepth {
@@ -119,7 +102,7 @@ func deciderBackwardReasoning(m bbc.TM, machineId int, transitionTreeDepthLimit 
 
 	var configurationAndDepth ConfigurationAndDepth
 	var maxDepth int
-	seenConfigurations := map[string]bool{}
+
 	// continue until all configurations have contradicted or one branch is too long
 	for branches_searched := 0; len(stack) != 0; branches_searched += 1 {
 
@@ -127,7 +110,7 @@ func deciderBackwardReasoning(m bbc.TM, machineId int, transitionTreeDepthLimit 
 		depth := configurationAndDepth.Depth
 
 		if printRunInfo {
-			fmt.Println("State:", configurationAndDepth.State, ";", "Head:", configurationAndDepth.Head, ";", "Tape:", configurationAndDepth.tapeToString(), ";")
+			fmt.Println("State:", configurationAndDepth.State, ";", "Head:", configurationAndDepth.Head, ";")
 		}
 
 		if depth > maxDepth {
@@ -138,12 +121,6 @@ func deciderBackwardReasoning(m bbc.TM, machineId int, transitionTreeDepthLimit 
 		if depth > transitionTreeDepthLimit {
 			return false
 		}
-
-		if _, found := seenConfigurations[configurationAndDepth.toString()]; found {
-			continue
-		}
-
-		seenConfigurations[configurationAndDepth.toString()] = true
 
 		my_preds := predecessors[configurationAndDepth.State-1]
 
