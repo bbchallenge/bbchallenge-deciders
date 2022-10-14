@@ -36,3 +36,10 @@ Database shasum:
 ## Downloading the index of currently undecided machines
 
 The undecided index file is an ordered binary succession of uint32 (BigEndian) which corresponds to the IDs of the currently undecided machines in the above database. See https://github.com/bbchallenge/bbchallenge-deciders.
+
+## License
+
+This work is dual-licensed under Apache 2.0 and MIT.
+You can choose between one of them if you use this work.
+
+`SPDX-License-Identifier: Apache-2.0 OR MIT`
