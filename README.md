@@ -43,3 +43,9 @@ This work is dual-licensed under Apache 2.0 and MIT.
 You can choose between one of them if you use this work.
 
 `SPDX-License-Identifier: Apache-2.0 OR MIT`
+
+The output data of these program is licensed under a
+Creative Commons Attribution 4.0 International License (CC-BY).
+
+You should have received a copy of the license along with this
+work. If not, see <http://creativecommons.org/licenses/by/4.0/>.
