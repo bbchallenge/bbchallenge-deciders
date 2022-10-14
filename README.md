@@ -44,7 +44,7 @@ You can choose between one of them if you use this work.
 
 `SPDX-License-Identifier: Apache-2.0 OR MIT`
 
-The output data of these programs is licensed under a
+The output data of this collection of programs is licensed under a
 Creative Commons Attribution 4.0 International License (CC-BY).
 
 You should have received a copy of the license along with this
