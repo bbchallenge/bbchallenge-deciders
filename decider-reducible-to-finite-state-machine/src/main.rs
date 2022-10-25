@@ -8,8 +8,8 @@ use provers::{DirectProver, Prover};
 
 // TODO: Command-line: resume,
 fn main() {
-    let mut provers: Vec<DirectProver> = (1..4).map(DirectProver::new).collect();
-    if let Ok(db) = Database::open("/home/justinb/scratch/beaver/bbchallenge/bb5_undecided.db") {
+    let mut provers: Vec<DirectProver> = (1..7).map(DirectProver::new).collect();
+    if let Ok(db) = Database::open("../all_5_states_undecided_machines_with_global_header") {
         for (i, tm) in db.read(0..) {
             let mut res = None;
             for prover in &mut provers {
@@ -30,6 +30,8 @@ fn main() {
                 } else {
                     println!("{}, error", i)
                 }
+            } else {
+                println!("{}, undecided", i)
             }
         }
     }
