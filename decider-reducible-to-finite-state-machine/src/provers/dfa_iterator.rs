@@ -23,12 +23,10 @@ use crate::core::{DFAState, DFA};
 pub struct DFAPrefixIterator {
     /// The DFA under construction.
     pub dfa: DFA,
-    /// The DFA is filled in through `[q][b]`, exclusive, where `(q, b) == (qb/2, qb%2)`.
+    /// The DFA has elements `[q][b]` filled in for `2*q+b < qb`.
     qb: usize,
-    /// The number of states referenced in the DFA's transition table.
-    states_used: usize,
-    /// For each DFA state, its number of appearances in the transition table.
-    refs: Vec<usize>,
+    /// For each qb, `max{dfa.t[q][b] | 2*q+b < qb}`.
+    tmax: Vec<DFAState>,
     /// Whether we've been asked to skip everything starting with the current prefix.
     skip_current: bool,
 }
@@ -41,8 +39,7 @@ impl DFAPrefixIterator {
         Self {
             dfa: DFA::new(n),
             qb: 0,
-            states_used: 1,
-            refs: vec![0; n],
+            tmax: vec![0; 2 * n + 1],
             skip_current: false,
         }
     }
@@ -66,24 +63,22 @@ impl Iterator for DFAPrefixIterator {
     type Item = (DFAState, u8);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let n = self.dfa.len();
-        // If the table wasn't full yet, but we've promised it can be filled, the next prefix must
-        // come from filling in the next entry.
-        if self.qb < 2 * n && !self.skip_current {
+        let m = (self.dfa.len() - 1) as DFAState;
+        // If the table wasn't full yet, but we've promised it can be filled, the next prefix
+        // is the first extension of the current one.
+        if self.qb < 2 * self.dfa.len() && !self.skip_current {
             let (q, b) = self.qb_pair();
-            self.qb += 1;
             // Case 1: the next entry must be an unvisited state (thus the first one).
             // That's the case if doing otherwise would close the transition graph, early -- i.e.,
-            // states `>= states_used` exist and would become unreachable from ones `< states_used`.
-            if self.states_used < n && self.qb == 2 * self.states_used {
-                self.dfa.t[q][b] = self.states_used as DFAState;
-                self.refs[self.states_used] += 1;
-                self.states_used += 1;
+            // states `> tmax[qb]` exist and would become unreachable from ones `<= tmax[qb]`.
+            // Case 2: no such restriction, so the lex-next table fills in a 0.
+            if self.tmax[self.qb] < m && self.qb == 2 * (self.tmax[self.qb] as usize) + 1 {
+                self.dfa.t[q][b] = self.tmax[self.qb] + 1;
             } else {
-                // Case 2: no such restriction, so the lex-next table fills in a 0.
                 self.dfa.t[q][b] = 0 as DFAState;
-                self.refs[0] += 1;
             }
+            self.qb += 1;
+            self.tmax[self.qb] = std::cmp::max(self.tmax[self.qb - 1], self.dfa.t[q][b]);
             return Some((q as DFAState, b as u8));
         }
         self.skip_current = false;
@@ -93,20 +88,12 @@ impl Iterator for DFAPrefixIterator {
         while self.qb > 1 {
             self.qb -= 1;
             let (q, b) = self.qb_pair();
-            let old = self.dfa.t[q][b] as usize;
-            self.refs[old] -= 1;
-            if old == self.states_used - 1 && self.refs[old] == 0 {
-                self.states_used -= 1;
-                continue;
-            } else if old == n - 1 {
-                continue;
-            } else if old == self.states_used - 1 {
-                self.states_used += 1;
+            if self.dfa.t[q][b] <= self.tmax[self.qb] && self.dfa.t[q][b] < m {
+                self.dfa.t[q][b] += 1;
+                self.qb += 1;
+                self.tmax[self.qb] = std::cmp::max(self.tmax[self.qb - 1], self.dfa.t[q][b]);
+                return Some((q as DFAState, b as u8));
             }
-            self.dfa.t[q][b] += 1;
-            self.refs[old + 1] += 1;
-            self.qb += 1;
-            return Some((q as DFAState, b as u8));
         }
         return None;
     }
