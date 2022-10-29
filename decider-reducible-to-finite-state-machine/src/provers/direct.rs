@@ -14,8 +14,8 @@
 
 use super::{DFAPrefixIterator, Prover};
 use crate::core::{
-    col, nfa_start, row, Machine, NFAState, RowVector, Rule, Side, TapeAutomaton, DFA, NFA,
-    TM_STATES,
+    col, nfa_start, row, DFAState, Machine, NFAState, RowVector, Rule, Side, TapeAutomaton, DFA,
+    NFA, TM_STATES,
 };
 
 /// A prover which attempts a direct search for a `TapeAutomaton` meeting the proof criteria.
@@ -47,6 +47,19 @@ impl Prover for DirectProver {
 impl DirectProver {
     fn nfa_halt(&self) -> NFAState {
         (TM_STATES * self.depth) as NFAState
+    }
+
+    /// The basic algorithm: try to complete a `TapeAutomaton` from the deterministic part.
+    pub fn complete_unverified(tm: &Machine, direction: Side, dfa: DFA) -> Option<TapeAutomaton> {
+        let mut nfa = NFA::new(dfa.len() * TM_STATES + 1);
+        let halt = (dfa.len() * TM_STATES) as NFAState;
+        Self::init(&dfa, &mut nfa, tm, halt);
+        for q_new in 0..dfa.len() as DFAState {
+            for b_new in 0..2 {
+                Self::saturate(&dfa, &mut nfa, tm, direction, q_new, b_new);
+            }
+        }
+        Some(TapeAutomaton::new(direction, dfa, nfa))
     }
 
     /// Try to return a TapeAutomaton proving `tm` infinite, given the choice of scan direction.
@@ -93,7 +106,7 @@ impl DirectProver {
     /// given that `dfa` is known up to the `(q_new, b_new)` transition.
     /// The closure conditions for Move rules in the direction opposite our scan direction
     /// depend on the allowed NFA transitions, so this process repeats until there's nothing new.
-    fn saturate(dfa: &DFA, nfa: &mut NFA, tm: &Machine, a_dir: Side, q_new: NFAState, b_new: u8) {
+    fn saturate(dfa: &DFA, nfa: &mut NFA, tm: &Machine, a_dir: Side, q_new: DFAState, b_new: u8) {
         tm.rules().for_each(|rule| match rule {
             Rule::Move { f, r, w, d, t } if d == a_dir && w == b_new => {
                 nfa.t[r as usize][nfa_start(q_new, f)] |= row(nfa_start(dfa.step(q_new, w), t));

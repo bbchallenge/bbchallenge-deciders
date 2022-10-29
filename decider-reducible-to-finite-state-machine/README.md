@@ -9,3 +9,4 @@ Planned steps:
 5. Implement a CLI so provers and depth min/max are settable, maybe also proof data export.
 6. Implement parallel/distributed processing (placeholder: `node_crunch` dependency) with status display (placeholder: `indicatif` dependency).
 7. After learning from that, clean up the awkward Prover trait.
+8. If `DirectProver::complete_unverified()` is ultimately needed, optimize it. (Do the first half of saturate() for all states, then the other half once.)
