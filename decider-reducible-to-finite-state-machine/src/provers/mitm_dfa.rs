@@ -6,10 +6,8 @@
 //! This gives a `TapeAutomaton` if we build an NFA from states `nfa_start(f, r)` plus each `qR`.
 //! However, it's simpler to hand our DirectProver the left DFA and let it finish.
 
-use super::{DirectProver, Prover};
-use crate::core::{
-    DFAState, Machine, RowVector, Rule, Side, TMState, TapeAutomaton, DFA, TM_STATES,
-};
+use super::{DirectProver, Prover, ProverOptions};
+use crate::core::{DFAState, Machine, Proof, Rule, Side, TMState, DFA, TM_STATES};
 use cadical::Solver;
 use std::cmp::min;
 
@@ -21,22 +19,11 @@ pub struct MitMDFAProver {
 }
 
 impl Prover for MitMDFAProver {
-    fn name() -> &'static str {
+    fn name(&self) -> &'static str {
         "mitm_dfa"
     }
 
-    fn steady_state(depth: usize) -> RowVector {
-        DirectProver::steady_state(depth)
-    }
-
-    fn new(depth: usize) -> Self {
-        let solver = Solver::new();
-        let n = depth as V;
-        let ready = false;
-        MitMDFAProver { n, solver, ready }
-    }
-
-    fn prove(&mut self, tm: &Machine) -> Option<TapeAutomaton> {
+    fn prove(&mut self, tm: &Machine) -> Option<Proof> {
         if !self.ready {
             self.init();
         }
@@ -55,6 +42,15 @@ impl Prover for MitMDFAProver {
         } else {
             None
         }
+    }
+}
+
+impl ProverOptions for MitMDFAProver {
+    fn new(depth: usize) -> Self {
+        let solver = Solver::new();
+        let n = depth as V;
+        let ready = false;
+        MitMDFAProver { n, solver, ready }
     }
 }
 

@@ -53,8 +53,6 @@ impl TapeAutomaton {
 /// A certificate that a Turing Machine runs forever from its initial configuration.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Proof {
-    /// The machine to prove non-halting.
-    pub tm: Machine,
     /// A TapeAutomaton with the property that, if it accepts a configuration after a TM step,
     /// it accepts the preceding configuration as well.
     /// Furthermore, we require that it rejects the initial TM configuration.
@@ -67,17 +65,16 @@ pub struct Proof {
 
 impl Proof {
     /// A purported proof that `tm` is non-halting -- validate()` confirms if it works.
-    pub fn new(tm: Machine, automaton: TapeAutomaton, steady_state: RowVector) -> Proof {
+    pub fn new(direction: Side, dfa: DFA, nfa: NFA, steady_state: RowVector) -> Proof {
         Proof {
-            tm,
-            automaton,
+            automaton: TapeAutomaton::new(direction, dfa, nfa),
             steady_state,
         }
     }
 
     /// Ensure the `Proof` satisfies the invariants described in the class doc comments.
     /// (Thus, no sequence of TM steps can lead from the starting TM configuration to a halt!)
-    pub fn validate(&self) -> ProofResult<()> {
+    pub fn validate(&self, tm: &Machine) -> ProofResult<()> {
         self.automaton.validate()?;
         self.automaton
             .nfa
@@ -85,7 +82,7 @@ impl Proof {
         if row(nfa_start(0, 0)) * self.automaton.nfa.accepted {
             Err(BadProof::BadStart)
         } else {
-            self.tm.rules().try_for_each(|rule| {
+            tm.rules().try_for_each(|rule| {
                 (0..self.automaton.dfa.len() as DFAState).try_for_each(|q| {
                     if self.closed(0, &rule) {
                         Ok(())
@@ -123,13 +120,14 @@ impl Proof {
 mod tests {
     use super::*;
     use crate::core::{col, ColVector, Matrix};
+    use std::str::FromStr;
 
     #[test]
     fn test_simple_proof() {
         // Check a proof for https://bbchallenge.org/1
+        let tm = Machine::from_str("1RB---_0RC---_0RD---_0RE---_0LE1RB").unwrap();
         let mut proof: Proof = serde_json::from_str(
             r#"{
-                "tm": "1RB---_0RC---_0RD---_0RE---_0LE1RB",
                 "automaton": {
                     "direction": "R",
                     "dfa": [[0, 0]],
@@ -137,45 +135,45 @@ mod tests {
                 "steady_state": 32}"#,
         )
         .unwrap();
-        assert_eq!(proof.validate(), Ok(()));
+        assert_eq!(proof.validate(&tm), Ok(()));
         // Corrupted proof data is rejected:
         proof.automaton.dfa.t[0][0] = 42;
-        assert_eq!(proof.validate(), Err(BadProof::BadDFATransition));
+        assert_eq!(proof.validate(&tm), Err(BadProof::BadDFATransition));
         proof.automaton.dfa.t[0][0] = 0;
         proof.automaton.nfa.t[0][0] = row(7);
-        assert_eq!(proof.validate(), Err(BadProof::BadVector));
+        assert_eq!(proof.validate(&tm), Err(BadProof::BadVector));
         proof.automaton.nfa.t[0][0] = row(1);
 
         proof.automaton.nfa.accepted = col(7);
-        assert_eq!(proof.validate(), Err(BadProof::BadVector));
+        assert_eq!(proof.validate(&tm), Err(BadProof::BadVector));
         proof.automaton.nfa.accepted = col(0) | col(5);
-        assert_eq!(proof.validate(), Err(BadProof::TrailingZeroSensitivity));
+        assert_eq!(proof.validate(&tm), Err(BadProof::TrailingZeroSensitivity));
         proof.automaton.nfa.accepted = ColVector::from_iter(0..6);
-        assert_eq!(proof.validate(), Err(BadProof::BadStart));
+        assert_eq!(proof.validate(&tm), Err(BadProof::BadStart));
         proof.automaton.nfa.accepted = col(5);
 
         proof.steady_state = row(7);
-        assert_eq!(proof.validate(), Err(BadProof::BadVector));
+        assert_eq!(proof.validate(&tm), Err(BadProof::BadVector));
         proof.steady_state = row(0) | row(5);
-        assert_eq!(proof.validate(), Err(BadProof::BadSteadyState));
+        assert_eq!(proof.validate(&tm), Err(BadProof::BadSteadyState));
         proof.steady_state = RowVector::new();
-        assert_eq!(proof.validate(), Err(BadProof::RejectedSteadyState));
+        assert_eq!(proof.validate(&tm), Err(BadProof::RejectedSteadyState));
         // ... and complete demolition from here on out:
         proof.automaton.nfa.accepted = ColVector::new();
         proof.automaton.nfa.t[1] = Matrix::new(1);
-        assert_eq!(proof.validate(), Err(BadProof::BadDimensions));
+        assert_eq!(proof.validate(&tm), Err(BadProof::BadDimensions));
         proof.automaton.nfa.t[0] = Matrix::new(1);
-        assert_eq!(proof.validate(), Err(BadProof::BadNFASize));
+        assert_eq!(proof.validate(&tm), Err(BadProof::BadNFASize));
         proof.automaton.dfa.t.clear();
-        assert_eq!(proof.validate(), Err(BadProof::BadDFASize));
+        assert_eq!(proof.validate(&tm), Err(BadProof::BadDFASize));
     }
 
     #[test]
     fn test_nontrivial_mirrored_proof() {
         // Check a proof for https://bbchallenge.org/12345
+        let tm = Machine::from_str("1RB---_0RC---_1RD0RD_0LD1LE_1LC0LB").unwrap();
         let mut proof: Proof = serde_json::from_str(
             r#"{
-                "tm": "1RB---_0RC---_1RD0RD_0LD1LE_1LC0LB",
                 "automaton": {
                     "direction": "L",
                     "dfa": [[0, 1], [1, 1]],
@@ -188,15 +186,15 @@ mod tests {
                 "steady_state": 1024}"#,
         )
         .unwrap();
-        assert_eq!(proof.validate(), Ok(()));
+        assert_eq!(proof.validate(&tm), Ok(()));
         // The non-trivial closure properties are also checked:
         proof.automaton.dfa.t[0][0] = 1;
-        assert_eq!(proof.validate(), Err(BadProof::LeadingZeroSensitivity));
+        assert_eq!(proof.validate(&tm), Err(BadProof::LeadingZeroSensitivity));
         proof.automaton.dfa.t[0][0] = 0;
 
         proof.automaton.nfa.t[1][0] = row(0);
         assert_eq!(
-            proof.validate(),
+            proof.validate(&tm),
             Err(BadProof::NotClosed {
                 q: 0,
                 rule: Rule::Halt { f: 0, r: 1 }
@@ -206,7 +204,7 @@ mod tests {
 
         proof.automaton.nfa.t[0][4] = row(0);
         assert_eq!(
-            proof.validate(),
+            proof.validate(&tm),
             Err(BadProof::NotClosed {
                 q: 0,
                 rule: Rule::Move {
@@ -222,7 +220,7 @@ mod tests {
 
         proof.automaton.nfa.t[0][1] |= row(0);
         assert_eq!(
-            proof.validate(),
+            proof.validate(&tm),
             Err(BadProof::NotClosed {
                 q: 0,
                 rule: Rule::Move {

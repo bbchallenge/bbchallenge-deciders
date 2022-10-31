@@ -12,10 +12,10 @@
 //! the closure criteria we know about. This might already accept `nfa_start(0, 0)`, in which case
 //! we needn't bother to complete the DFA; otherwise, we've at least made progress building the NFA.
 
-use super::{DFAPrefixIterator, Prover};
+use super::{DFAPrefixIterator, Prover, ProverOptions};
 use crate::core::{
-    col, nfa_start, row, DFAState, Machine, NFAState, RowVector, Rule, Side, TapeAutomaton, DFA,
-    NFA, TM_STATES,
+    col, nfa_start, row, DFAState, Machine, NFAState, Proof, RowVector, Rule, Side, DFA, NFA,
+    TM_STATES,
 };
 
 /// A prover which attempts a direct search for a `TapeAutomaton` meeting the proof criteria.
@@ -26,21 +26,19 @@ pub struct DirectProver {
 }
 
 impl Prover for DirectProver {
-    fn name() -> &'static str {
+    fn name(&self) -> &'static str {
         "direct"
     }
 
-    fn steady_state(depth: usize) -> RowVector {
-        row((TM_STATES * depth) as NFAState)
-    }
-
-    fn new(depth: usize) -> Self {
-        DirectProver { depth }
-    }
-
-    fn prove(&mut self, tm: &Machine) -> Option<TapeAutomaton> {
+    fn prove(&mut self, tm: &Machine) -> Option<Proof> {
         self.prove_side(tm, Side::R)
             .or_else(|| self.prove_side(tm, Side::L))
+    }
+}
+
+impl ProverOptions for DirectProver {
+    fn new(depth: usize) -> Self {
+        DirectProver { depth }
     }
 }
 
@@ -49,8 +47,12 @@ impl DirectProver {
         (TM_STATES * self.depth) as NFAState
     }
 
+    fn steady_state(depth: usize) -> RowVector {
+        row((TM_STATES * depth) as NFAState)
+    }
+
     /// The basic algorithm: try to complete a `TapeAutomaton` from the deterministic part.
-    pub fn complete_unverified(tm: &Machine, direction: Side, dfa: DFA) -> Option<TapeAutomaton> {
+    pub fn complete_unverified(tm: &Machine, direction: Side, dfa: DFA) -> Option<Proof> {
         let mut nfa = NFA::new(dfa.len() * TM_STATES + 1);
         let halt = (dfa.len() * TM_STATES) as NFAState;
         Self::init(&dfa, &mut nfa, tm, halt);
@@ -59,11 +61,12 @@ impl DirectProver {
                 Self::saturate(&dfa, &mut nfa, tm, direction, q_new, b_new);
             }
         }
-        Some(TapeAutomaton::new(direction, dfa, nfa))
+        let steady_state = Self::steady_state(dfa.len());
+        Some(Proof::new(direction, dfa, nfa, steady_state))
     }
 
     /// Try to return a TapeAutomaton proving `tm` infinite, given the choice of scan direction.
-    fn prove_side(&mut self, tm: &Machine, direction: Side) -> Option<TapeAutomaton> {
+    fn prove_side(&mut self, tm: &Machine, direction: Side) -> Option<Proof> {
         let mut dfas = DFAPrefixIterator::new(self.depth);
         let mut nfas = vec![NFA::new(self.depth * TM_STATES + 1); 2 * self.depth];
         let halt = self.nfa_halt();
@@ -80,8 +83,10 @@ impl DirectProver {
                 dfas.skip_current_subtree();
                 continue;
             }
+            let steady_state = Self::steady_state(self.depth);
+            let nfa = nfas[ply].clone();
             if (q_new as usize, b_new) == (self.depth - 1, 1) {
-                return Some(TapeAutomaton::new(direction, dfas.dfa, nfas[ply].clone()));
+                return Some(Proof::new(direction, dfas.dfa, nfa, steady_state));
             }
         }
     }
