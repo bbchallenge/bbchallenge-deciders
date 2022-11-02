@@ -5,6 +5,10 @@
 //! Searching for useful MitM-DFA recognizers can take forever, so we make a SAT solver do it.
 //! This gives a `TapeAutomaton` if we build an NFA from states `nfa_start(f, r)` plus each `qR`.
 //! However, it's simpler to hand our DirectProver the left DFA and let it finish.
+//!
+//! The same DFA-pair/SAT technique was pioneered by others in the bbchallenge community:
+//! - @djmati1111 (https://github.com/colette-b/bbchallenge)
+//! - @Mateon1 (https://discuss.bbchallenge.org/u/mateon1)
 
 use super::{DirectProver, Prover, ProverOptions};
 use crate::core::{DFAState, Machine, Proof, Rule, Side, TMState, DFA, TM_STATES};
@@ -25,7 +29,7 @@ impl Prover for MitMDFAProver {
 
     fn prove(&mut self, tm: &Machine) -> Option<Proof> {
         if !self.ready {
-            self.init();
+            self.init(self.n);
         }
         let assumptions = tm.rules().flat_map(|rule| Self::tm_clause(rule));
         if self.solver.solve_with(assumptions) == Some(true) {
@@ -44,9 +48,7 @@ impl Prover for MitMDFAProver {
 
 impl ProverOptions for MitMDFAProver {
     fn new(depth: usize) -> Self {
-        let solver = Solver::new();
-        let n = depth as L;
-        let ready = false;
+        let (solver, n, ready) = (Solver::new(), depth as L, false);
         MitMDFAProver { n, solver, ready }
     }
 }
@@ -54,13 +56,17 @@ impl ProverOptions for MitMDFAProver {
 // SAT solvers speak CNF: *literals* are + `i32`s (variables) and their negations (-x means NOT x).
 // Lists represent disjunctions (OR); the conjunction (AND) of all added clauses must be true.
 // When it's not ludicrous, we pack the conditions of interest tightly into a sequence of variables.
+// When I represent "the" result of a TM or DFA transition, I use sequential at-most-one conditions.
+// That is, `eq`/`le` variables represent the outcome being `=`/`<=` each fixed value, with rules:
+// `x = k` implies `x <= k` implies `x <= k+1` and `x != k+1`.
+// See also: https://www.carstensinz.de/papers/CP-2005.pdf
 
 type L = i32;
 const TRUE: L = 1;
 const FALSE: L = -TRUE;
 const T: L = TM_STATES as L;
-const FROM_LEFT: i32 = 0;
-const FROM_RIGHT: i32 = 1;
+const FROM_LEFT: L = 0;
+const FROM_RIGHT: L = 1;
 
 /// Number of lattice points in the trapezoid `0 <= y < min(x, h)`, `0 <= x < b`.
 fn a(b: L, h: L) -> L {
@@ -169,12 +175,11 @@ impl MitMDFAProver {
         self.solver.value(lit).unwrap_or(lit > 0)
     }
 
-    pub fn add<I: IntoIterator<Item = L>>(&mut self, clause: I) {
+    fn add<I: IntoIterator<Item = L>>(&mut self, clause: I) {
         self.solver.add_clause(clause.into_iter())
     }
 
-    fn init(&mut self) {
-        let n = self.n;
+    fn init(&mut self, n: L) {
         self.ready = true;
         self.add([TRUE]);
         // TM transition outcomes are mutually exclusive.
@@ -251,9 +256,14 @@ impl MitMDFAProver {
         }
         // DFA ordering criteria: as in dfa_iterator.rs, we impose an ordering criterion, which
         // forces the states to appear in order in each DFA's transition table.
-        // As in that file, for each qb>0, define `tmax[qb] = max{dfa.t[q][b] | 2*q+b < qb}`.
+        // This saves the solver from considering DFAs with unused states or relabels of prior DFAs.
+        // (See also a simpler version in z3py by colette-b/@djmati1111:
+        // https://github.com/colette-b/bbchallenge/blob/main/sat2_cfl.py#L64 plus chat explanation
+        // https://discord.com/channels/960643023006490684/1028746861395316776/1030907938249912431.)
+        // As in dfa_iterator.rs, for each qb>0, define `tmax[qb] = max{dfa.t[q][b] | 2*q+b < qb}`.
         // `tmax[qb]` is `>= qb/2` (this state must be reachable) and `< min(n, qb)`
         // (transition values can't go out of bounds or increase at a rate above 1).
+
         // Let's set up variables for the L/R `tmax[qb] == m`, with index base[qb]+lr+2*m.
         let mut base = vec![Self::_aux_var0(n); 2 * n as usize];
         for qb in 1..(2 * n as usize) {
