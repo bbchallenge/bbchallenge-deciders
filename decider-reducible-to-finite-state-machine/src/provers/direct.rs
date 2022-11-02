@@ -14,8 +14,7 @@
 
 use super::{DFAPrefixIterator, Prover, ProverOptions};
 use crate::core::{
-    col, nfa_start, row, DFAState, Machine, NFAState, Proof, RowVector, Rule, Side, DFA, NFA,
-    TM_STATES,
+    col, nfa_start, row, DFAState, Machine, NFAState, Proof, Rule, Side, DFA, NFA, TM_STATES,
 };
 
 /// A prover which attempts a direct search for a `TapeAutomaton` meeting the proof criteria.
@@ -43,14 +42,6 @@ impl ProverOptions for DirectProver {
 }
 
 impl DirectProver {
-    fn nfa_halt(&self) -> NFAState {
-        (TM_STATES * self.depth) as NFAState
-    }
-
-    fn steady_state(depth: usize) -> RowVector {
-        row((TM_STATES * depth) as NFAState)
-    }
-
     /// The basic algorithm: try to complete a `TapeAutomaton` from the deterministic part.
     pub fn complete_unverified(tm: &Machine, direction: Side, dfa: DFA) -> Option<Proof> {
         let mut nfa = NFA::new(dfa.len() * TM_STATES + 1);
@@ -61,15 +52,15 @@ impl DirectProver {
                 Self::saturate(&dfa, &mut nfa, tm, direction, q_new, b_new);
             }
         }
-        let steady_state = Self::steady_state(dfa.len());
+        let steady_state = row(halt);
         Some(Proof::new(direction, dfa, nfa, steady_state))
     }
 
-    /// Try to return a TapeAutomaton proving `tm` infinite, given the choice of scan direction.
+    /// Try to return a Proof for `tm`, given the choice of scan direction.
     fn prove_side(&mut self, tm: &Machine, direction: Side) -> Option<Proof> {
         let mut dfas = DFAPrefixIterator::new(self.depth);
         let mut nfas = vec![NFA::new(self.depth * TM_STATES + 1); 2 * self.depth];
-        let halt = self.nfa_halt();
+        let halt = (TM_STATES * self.depth) as NFAState;
         loop {
             let (q_new, b_new) = dfas.next()?;
             let ply = (2 * q_new + b_new) as usize;
@@ -83,7 +74,7 @@ impl DirectProver {
                 dfas.skip_current_subtree();
                 continue;
             }
-            let steady_state = Self::steady_state(self.depth);
+            let steady_state = row(halt);
             let nfa = nfas[ply].clone();
             if (q_new as usize, b_new) == (self.depth - 1, 1) {
                 return Some(Proof::new(direction, dfas.dfa, nfa, steady_state));
