@@ -3,11 +3,12 @@
 use super::MachineID;
 use crate::core::{Machine, TM_STATES};
 use std::fs::File;
-use std::io::{self, BufReader, Read, Seek, SeekFrom};
+use std::io::{self, BufReader, Read};
 use std::path::Path;
 use zerocopy::FromBytes;
 
-const HEADER_SIZE: usize = 30;
+const HEADER_SIZE: i64 = 30;
+const RECORD_SIZE: i64 = 6 * TM_STATES as i64;
 
 pub struct Database {
     file: File,
@@ -33,7 +34,7 @@ impl Database {
     }
 
     pub fn len(&self) -> usize {
-        (self.file.metadata().unwrap().len() as usize - HEADER_SIZE) / (6 * TM_STATES)
+        ((self.file.metadata().unwrap().len() as i64 - HEADER_SIZE) / RECORD_SIZE) as usize
     }
 }
 
@@ -42,19 +43,15 @@ pub struct Reader<'a, I: Iterator<Item = MachineID> + 'a> {
     reader: BufReader<&'a File>,
     ids: I,
     bytes: [u8; 6 * TM_STATES],
-    pos: MachineID,
+    pos: i64,
 }
 
 impl<'a, I: Iterator<Item = MachineID> + 'a> Reader<'a, I> {
     fn try_seek(&mut self, i: MachineID) -> std::io::Result<()> {
-        let pos = self.pos;
-        self.pos = i + 2;
-        if i + 1 != pos {
-            self.reader.seek(SeekFrom::Start(
-                (HEADER_SIZE + 6 * TM_STATES * (i as usize)) as u64,
-            ))?;
-        }
-        Ok(())
+        let old = self.pos;
+        let new = HEADER_SIZE + (i as i64) * RECORD_SIZE;
+        self.pos = new + RECORD_SIZE;
+        self.reader.seek_relative(new - old)
     }
 }
 
