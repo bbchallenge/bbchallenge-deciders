@@ -3,7 +3,7 @@
 //! and try to merge any checkpoint files left behind.
 
 use super::{timestamp, MachineID};
-use std::fs::File;
+use std::fs::{create_dir_all, File};
 use std::io::{self, BufWriter, Write};
 
 pub struct OutputFile {
@@ -21,7 +21,9 @@ impl OutputFile {
             Some(w) => w,
             None => {
                 let path = format!("output/decided.{}", timestamp());
-                self.out.insert(BufWriter::new(File::create(path)?))
+                create_dir_all("output")?;
+                self.out
+                    .insert(BufWriter::with_capacity(512, File::create(path)?))
             }
         }
         .write(&id.to_be_bytes())

@@ -4,7 +4,7 @@
 
 use super::{timestamp, MachineID};
 use itertools::{EitherOrBoth, Itertools};
-use std::fs::{read, read_dir, remove_file, File};
+use std::fs::{create_dir_all, read, read_dir, remove_file, File};
 use std::io::{self, BufWriter, Write};
 use std::iter::Copied;
 use std::path::{Path, PathBuf};
@@ -44,6 +44,7 @@ impl Index {
     /// Populate the negative entries from our own output directory.
     pub fn resume(&mut self) -> io::Result<()> {
         let dir_path = "output";
+        create_dir_all(dir_path)?;
         let in_paths: Vec<PathBuf> = read_dir(dir_path)?
             .flat_map(|e| e.ok())
             .map(|e| e.path())
