@@ -3,6 +3,7 @@ pub mod io;
 pub mod provers;
 
 use argh::FromArgs;
+use indicatif::{MultiProgress, ProgressBar, ProgressFinish, ProgressIterator, ProgressStyle};
 use io::{Database, Index, OutputFile};
 use provers::{DirectProver, MitMDFAProver, Prover, ProverOptions};
 
@@ -25,10 +26,6 @@ struct DeciderArgs {
     #[argh(switch, short = 'm')]
     merge_only: bool,
 
-    /// force a fresh calculation, ignoring output from earlier sessions
-    #[argh(switch, short = 'f')]
-    fresh: bool,
-
     /// a prover to use: "direct" or "mitm_dfa". -l/-x options correspond to -p's in the same order
     #[argh(option, short = 'p')]
     prover: Vec<String>,
@@ -46,10 +43,6 @@ fn main() -> std::io::Result<()> {
     let mut args: DeciderArgs = argh::from_env();
     let db = Database::open(&args.db)?;
     let mut index = Index::open(&args.index).unwrap_or_else(|_| Index::new(db.len()));
-    let mut out = OutputFile::new();
-    if !args.fresh {
-        index.resume()?;
-    }
     let mut provers: ProverList = vec![];
     if args.prover.is_empty() && !args.merge_only {
         args.prover.extend(["direct", "mitm_dfa"].map(String::from));
@@ -61,20 +54,33 @@ fn main() -> std::io::Result<()> {
             _ => {}
         }
     }
-    for (i, tm) in db.read(index.iter()) {
-        for prover in provers.iter_mut() {
+
+    let progress = MultiProgress::new();
+    progress.set_move_cursor(true);
+    let index_progress = progress.add(ProgressBar::new(index.len_initial() as u64));
+    let prover_style =
+        ProgressStyle::with_template("{wide_bar} {pos:>7}/{len:7} ~{eta_precise:8} {msg} ")
+            .unwrap();
+
+    for prover in provers.iter_mut() {
+        let mut out = OutputFile::new();
+        index.resume()?;
+        index_progress.set_position(index.len_solved() as u64);
+        let prover_progress = progress
+            .add(ProgressBar::new(index.len_unsolved() as u64))
+            .with_style(prover_style.clone())
+            .with_message(prover.name())
+            .with_finish(ProgressFinish::AndLeave);
+        for (i, tm) in db.read(index.iter().progress_with(prover_progress)) {
             match prover.prove(&tm).map(|proof| proof.validate(&tm)) {
                 Some(Ok(())) => {
                     out.insert(i)?;
-                    println!("{}, infinite", i);
-                    break;
+                    index_progress.inc(1);
                 }
                 Some(Err(e)) => {
                     println!("{}, error, {:?}", i, e);
                 }
-                None => {
-                    println!("{}, undecided", i);
-                }
+                None => {}
             }
         }
     }

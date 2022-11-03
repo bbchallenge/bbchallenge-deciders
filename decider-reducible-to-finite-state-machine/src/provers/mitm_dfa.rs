@@ -23,8 +23,8 @@ pub struct MitMDFAProver {
 }
 
 impl Prover for MitMDFAProver {
-    fn name(&self) -> &'static str {
-        "mitm_dfa"
+    fn name(&self) -> String {
+        format!("mitm_dfa({})", self.n)
     }
 
     fn prove(&mut self, tm: &Machine) -> Option<Proof> {

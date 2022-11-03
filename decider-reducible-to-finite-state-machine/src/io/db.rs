@@ -3,7 +3,7 @@
 use super::MachineID;
 use crate::core::{Machine, TM_STATES};
 use std::fs::File;
-use std::io::{self, BufReader, Read};
+use std::io::{self, BufReader, Read, Seek};
 use std::path::Path;
 use zerocopy::FromBytes;
 
@@ -25,11 +25,13 @@ impl Database {
         &'a self,
         ids: I,
     ) -> impl Iterator<Item = (MachineID, Machine)> + 'a {
+        let mut reader = BufReader::new(&self.file);
+        let pos = reader.seek(std::io::SeekFrom::Current(0)).unwrap() as i64;
         Reader {
-            reader: BufReader::new(&self.file),
+            reader,
             ids,
             bytes: [0u8; 6 * TM_STATES],
-            pos: 0,
+            pos,
         }
     }
 
@@ -47,7 +49,7 @@ pub struct Reader<'a, I: Iterator<Item = MachineID> + 'a> {
 }
 
 impl<'a, I: Iterator<Item = MachineID> + 'a> Reader<'a, I> {
-    fn try_seek(&mut self, i: MachineID) -> std::io::Result<()> {
+    fn try_seek(&mut self, i: MachineID) -> io::Result<()> {
         let old = self.pos;
         let new = HEADER_SIZE + (i as i64) * RECORD_SIZE;
         self.pos = new + RECORD_SIZE;

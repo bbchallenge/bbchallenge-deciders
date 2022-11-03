@@ -6,7 +6,7 @@ use std::ops::Range;
 /// At this level, `Prover`s are object-oriented. An instance provides:
 pub trait Prover {
     /// An identifier for the proof strategy -- may be used in output file names or status displays.
-    fn name(&self) -> &'static str;
+    fn name(&self) -> String;
 
     /// Either return a `Proof` for `tm` -- should be valid, but caller must verify -- or give up.
     fn prove(&mut self, tm: &Machine) -> Option<Proof>;
