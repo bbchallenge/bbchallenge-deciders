@@ -226,7 +226,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "decider-reducible-to-finite-state-machine"
+name = "decider-finite-automata-reduction"
 version = "0.1.0"
 dependencies = [
  "argh",

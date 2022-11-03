@@ -1,5 +1,5 @@
 [package]
-name = "decider-reducible-to-finite-state-machine"
+name = "decider-finite-automata-reduction"
 version = "0.1.0"
 authors = ["Justin Blanchard <UncombedCoconut@gmail.com>"]
 edition = "2021"
