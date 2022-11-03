@@ -6,9 +6,7 @@ use super::{timestamp, MachineID};
 use itertools::{EitherOrBoth, Itertools};
 use std::fs::{create_dir_all, read, read_dir, remove_file, File};
 use std::io::{self, BufWriter, Write};
-use std::iter::Copied;
 use std::path::{Path, PathBuf};
-use std::slice::Iter;
 use zerocopy::{BigEndian, LayoutVerified, U32};
 
 type IndexFile<B> = LayoutVerified<B, [U32<BigEndian>]>;
@@ -62,7 +60,7 @@ impl Index {
     }
 
     /// Yield all unsolved `MachineID`s.
-    pub fn iter(&self) -> Copied<Iter<'_, MachineID>> {
+    pub fn iter(&self) -> impl Iterator<Item = MachineID> + ExactSizeIterator + '_ {
         self.yes.iter().copied()
     }
 
