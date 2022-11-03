@@ -48,11 +48,18 @@ impl DeciderProgress {
         }
     }
 
+    /// Print a log line above all progress bars.
+    pub fn println<I: AsRef<str>>(&self, msg: I) -> std::io::Result<()> {
+        self.multi.println(msg)
+    }
+
+    /// Update the overall (index) progress with a count of solved machines.
     pub fn set_solved(&self, solved: usize) {
         self.for_index.set_position(solved as u64);
     }
 
-    pub fn solve(&self, solved: usize) {
-        self.for_index.inc(solved as u64);
+    /// Update the overall (index) progress after we find `n` solutions.
+    pub fn solve(&self, n: usize) {
+        self.for_index.inc(n as u64);
     }
 }

@@ -69,7 +69,9 @@ fn main() -> std::io::Result<()> {
                     progress.solve(1);
                 }
                 Some(Err(e)) => {
-                    println!("{}, error, {:?}", i, e);
+                    let name = prover.name();
+                    let msg = format!("Rejected {} proof of {} ({}): {:?}", name, i, &tm, e);
+                    progress.println(msg)?;
                 }
                 None => {}
             }
