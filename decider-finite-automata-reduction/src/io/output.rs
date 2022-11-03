@@ -1,11 +1,10 @@
-//! An undecided index -- or output file -- as in https://bbchallenge.org/method.
-//! Warning: this implementation is meant for use in the decider; it it'll assume an output path
-//! and try to merge any checkpoint files left behind.
+//! An output index file -- as in https://bbchallenge.org/method.
 
 use super::{timestamp, MachineID};
 use std::fs::{create_dir_all, File};
 use std::io::{self, BufWriter, Write};
 
+/// An output file listing decided machine indexes.
 pub struct OutputFile {
     out: Option<BufWriter<File>>,
 }
