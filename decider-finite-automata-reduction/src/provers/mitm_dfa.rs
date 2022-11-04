@@ -24,7 +24,7 @@ pub struct MitMDFAProver {
 
 impl Prover for MitMDFAProver {
     fn name(&self) -> String {
-        format!("mitm_dfa({})", self.n)
+        format!("mitm_dfa-{}", self.n)
     }
 
     fn prove(&mut self, tm: &Machine) -> Option<Proof> {

@@ -26,7 +26,7 @@ pub struct DirectProver {
 
 impl Prover for DirectProver {
     fn name(&self) -> String {
-        format!("direct({})", self.depth)
+        format!("direct-{}", self.depth)
     }
 
     fn prove(&mut self, tm: &Machine) -> Option<Proof> {
