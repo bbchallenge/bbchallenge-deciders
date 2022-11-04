@@ -2,9 +2,10 @@
 
 use super::{DirectProver, MitMDFAProver};
 use crate::core::{Machine, Proof, MAX_DFA};
+use std::cmp::{max, min};
 use std::ops::Range;
 
-pub type ProverList = Vec<Box<dyn Prover>>;
+pub type ProverBox = Box<dyn Prover + Send>;
 
 /// At this level, `Prover`s are object-oriented. An instance provides:
 pub trait Prover {
@@ -25,13 +26,12 @@ pub trait ProverOptions {
     }
 
     /// Return a vector of Provers, for whichever of the given depths are valid.
-    fn new_range<I: Iterator<Item = usize>>(range: I) -> ProverList
+    fn new_range(range: Range<usize>) -> Vec<ProverBox>
     where
-        Self: Prover + Sized + 'static,
+        Self: Prover + Sized + Send + 'static,
     {
         let legal = Self::depths();
-        range
-            .filter(|depth| legal.contains(depth))
+        ((max(range.start, legal.start))..min(range.end, legal.end))
             .map(|depth| Box::new(Self::new(depth)) as _)
             .collect()
     }
@@ -42,13 +42,16 @@ pub fn prover_names() -> impl Iterator<Item = String> {
 }
 
 /// Return a vector of Provers, for whichever of the given depths are valid.
-pub fn prover_range_by_name<I: Iterator<Item = usize>, S: AsRef<str>>(
-    name: S,
-    range: I,
-) -> ProverList {
+pub fn prover_range_by_name<S: AsRef<str>>(name: S, range: Range<usize>) -> Vec<ProverBox> {
     match name.as_ref() {
         "direct" => DirectProver::new_range(range),
         "mitm_dfa" => MitMDFAProver::new_range(range),
         _ => vec![],
     }
+}
+
+pub fn prover_by_name<S: AsRef<str>>(name: S) -> Option<ProverBox> {
+    let (class, depth_str) = name.as_ref().rsplit_once('-')?;
+    let depth = depth_str.parse::<usize>().ok()?;
+    prover_range_by_name(class, depth..depth + 1).pop()
 }

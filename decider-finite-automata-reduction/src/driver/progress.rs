@@ -21,13 +21,8 @@ where
         progress: &DeciderProgress,
         name: impl Into<Cow<'static, str>>,
     ) -> ProgressBarIter<Self> {
-        let prover_progress = progress
-            .multi
-            .add(ProgressBar::new(self.len() as u64))
-            .with_style(progress.prover_style.clone())
-            .with_message(name)
-            .with_finish(ProgressFinish::AndLeave);
-        self.progress_with(prover_progress)
+        let len = self.len();
+        self.progress_with(progress.prover_progress(len, name))
     }
 }
 
@@ -46,6 +41,14 @@ impl DeciderProgress {
             for_index,
             prover_style,
         }
+    }
+
+    pub fn prover_progress(&self, len: usize, name: impl Into<Cow<'static, str>>) -> ProgressBar {
+        self.multi
+            .add(ProgressBar::new(len as u64))
+            .with_style(self.prover_style.clone())
+            .with_message(name)
+            .with_finish(ProgressFinish::AndLeave)
     }
 
     /// Print a log line above all progress bars.

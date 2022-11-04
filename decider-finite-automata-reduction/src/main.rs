@@ -4,16 +4,16 @@ pub mod io;
 pub mod provers;
 
 use argh::FromArgs;
-use driver::{DeciderProgress, DeciderProgressIterator};
+use driver::{process_remote, run_node, DeciderProgress, DeciderProgressIterator};
 use io::{Database, DeciderVerificationFile, Index, OutputFile};
-use provers::{prover_names, prover_range_by_name, ProverList};
+use provers::{prover_names, prover_range_by_name, ProverBox};
 
 const DEFAULT_DB: &str = "../all_5_states_undecided_machines_with_global_header";
 const DEFAULT_INDEX: &str = "../bb5_undecided_index";
 
 #[derive(FromArgs)]
 /// Find non-halting TMs, as witnessed by finite-state recognizers for their halting configurations.
-struct DeciderArgs {
+pub struct DeciderArgs {
     /// path to the DB file
     #[argh(option, short = 'd', default = "String::from(DEFAULT_DB)")]
     db: String,
@@ -37,13 +37,29 @@ struct DeciderArgs {
     /// excluded search depth (DFA size) for corresponding prover: assume it's already done
     #[argh(option, short = 'x')]
     exclude: Vec<usize>,
+
+    /// run as a server -- wait for you to start corresponding clients and run in parallel
+    #[argh(switch, short = 's')]
+    server: bool,
+
+    /// server IP address
+    #[argh(option, default = "String::new()")]
+    ip: String,
+
+    /// server port
+    #[argh(option, default = "25122")]
+    port: u16,
 }
 
 fn main() -> std::io::Result<()> {
     let mut args: DeciderArgs = argh::from_env();
     let db = Database::open(&args.db)?;
+    if !args.ip.is_empty() && !args.server {
+        run_node(args, db);
+        return Ok(());
+    }
     let mut index = Index::open(&args.index).unwrap_or_else(|_| Index::new(db.len()));
-    let mut provers: ProverList = vec![];
+    let mut provers: Vec<ProverBox> = vec![];
     if args.prover.is_empty() && !args.merge_only {
         args.prover.extend(prover_names());
     }
@@ -54,24 +70,39 @@ fn main() -> std::io::Result<()> {
     }
 
     let progress = DeciderProgress::new(index.len_initial());
-    for prover in provers.iter_mut() {
-        index.read_decided("output", false)?;
-        progress.set_solved(index.len_solved());
-        let mut out = OutputFile::append(format!("output/{}.ind", prover.name()))?;
-        let mut dvf = DeciderVerificationFile::append(format!("output/{}.dvf", prover.name()))?;
-        for (i, tm) in db.read(index.iter().decider_progress_with(&progress, prover.name())) {
-            if let Some(proof) = prover.prove(&tm) {
-                match proof.validate(&tm) {
-                    Ok(()) => {
-                        out.insert(i)?;
-                        dvf.insert(i, proof.automaton.direction, &proof.automaton.dfa)?;
-                        progress.solve(1);
-                    }
-                    Err(e) => {
-                        let name = prover.name();
-                        let msg = format!("Rejected {} proof of {} ({}): {:?}", name, i, &tm, e);
-                        progress.println(msg)?;
-                    }
+    if !args.server {
+        for prover in provers.iter_mut() {
+            process_local(&db, &mut index, &progress, prover)?;
+        }
+    } else {
+        let prover_names = provers.into_iter().map(|p| p.name()).collect();
+        process_remote(args, index, progress, prover_names);
+    }
+    Ok(())
+}
+
+fn process_local(
+    db: &Database,
+    index: &mut Index,
+    progress: &DeciderProgress,
+    prover: &mut ProverBox,
+) -> std::io::Result<()> {
+    index.read_decided("output", false)?;
+    progress.set_solved(index.len_solved());
+    let mut out = OutputFile::append(format!("output/{}.ind", prover.name()))?;
+    let mut dvf = DeciderVerificationFile::append(format!("output/{}.dvf", prover.name()))?;
+    for (i, tm) in db.read(index.iter().decider_progress_with(&progress, prover.name())) {
+        if let Some(proof) = prover.prove(&tm) {
+            match proof.validate(&tm) {
+                Ok(()) => {
+                    out.insert(i)?;
+                    dvf.insert(i, proof.automaton.direction, &proof.automaton.dfa)?;
+                    progress.solve(1);
+                }
+                Err(e) => {
+                    let name = prover.name();
+                    let msg = format!("Rejected {} proof of {} ({}): {:?}", name, i, &tm, e);
+                    progress.println(msg)?;
                 }
             }
         }

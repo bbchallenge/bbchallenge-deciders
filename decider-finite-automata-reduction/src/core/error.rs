@@ -1,9 +1,10 @@
 //! Error/Result definitions for the outcomes of checking a proof.
 use super::{DFAState, Rule};
 use custom_error::custom_error;
+use serde::{Deserialize, Serialize};
 
 custom_error! {
-    #[derive(Eq, PartialEq)]
+    #[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
     pub BadProof
     /// A reason for rejecting a proof.
 

@@ -84,7 +84,7 @@ impl Display for Side {
 }
 
 /// An higher-level transition, as a tagged enum. Conventions: "f"rom, "r"ead, "t"o, "w"rite.
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub enum Rule {
     Move {
         f: TMState,
