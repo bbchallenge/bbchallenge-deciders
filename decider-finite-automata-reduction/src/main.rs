@@ -5,11 +5,12 @@ pub mod provers;
 
 use argh::FromArgs;
 use driver::{DeciderProgress, DeciderProgressIterator};
-use io::{Database, Index, OutputFile};
+use io::{Database, DeciderVerificationFile, Index, OutputFile};
 use provers::{DirectProver, MitMDFAProver, Prover, ProverOptions};
 
 const DEFAULT_DB: &str = "../all_5_states_undecided_machines_with_global_header";
 const DEFAULT_INDEX: &str = "../bb5_undecided_index";
+
 type ProverList = Vec<Box<dyn Prover>>;
 
 #[derive(FromArgs)]
@@ -57,23 +58,25 @@ fn main() -> std::io::Result<()> {
     }
 
     let progress = DeciderProgress::new(index.len_initial());
-
     for prover in provers.iter_mut() {
-        let mut out = OutputFile::new();
-        index.resume()?;
+        index.read_decided("output", false)?;
         progress.set_solved(index.len_solved());
+        let mut out = OutputFile::append(format!("output/{}.ind", prover.name()))?;
+        let mut dvf = DeciderVerificationFile::append(format!("output/{}.dvf", prover.name()))?;
         for (i, tm) in db.read(index.iter().decider_progress_with(&progress, prover.name())) {
-            match prover.prove(&tm).map(|proof| proof.validate(&tm)) {
-                Some(Ok(())) => {
-                    out.insert(i)?;
-                    progress.solve(1);
+            if let Some(proof) = prover.prove(&tm) {
+                match proof.validate(&tm) {
+                    Ok(()) => {
+                        out.insert(i)?;
+                        dvf.insert(i, proof.automaton.direction, &proof.automaton.dfa)?;
+                        progress.solve(1);
+                    }
+                    Err(e) => {
+                        let name = prover.name();
+                        let msg = format!("Rejected {} proof of {} ({}): {:?}", name, i, &tm, e);
+                        progress.println(msg)?;
+                    }
                 }
-                Some(Err(e)) => {
-                    let name = prover.name();
-                    let msg = format!("Rejected {} proof of {} ({}): {:?}", name, i, &tm, e);
-                    progress.println(msg)?;
-                }
-                None => {}
             }
         }
     }

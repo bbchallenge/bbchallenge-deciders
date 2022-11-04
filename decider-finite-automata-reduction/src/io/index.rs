@@ -2,9 +2,9 @@
 //! Warning: this implementation is meant for use in the decider; it it'll assume an output path
 //! and try to merge any checkpoint files left behind.
 
-use super::{timestamp, MachineID};
+use super::MachineID;
 use itertools::{EitherOrBoth, Itertools};
-use std::fs::{create_dir_all, read, read_dir, remove_file, File};
+use std::fs::{read, read_dir, remove_file, rename, File};
 use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
 use zerocopy::{BigEndian, LayoutVerified, U32};
@@ -40,21 +40,22 @@ impl Index {
     }
 
     /// Populate the negative entries from our own output directory.
-    pub fn resume(&mut self) -> io::Result<()> {
-        let dir_path = "output";
-        create_dir_all(dir_path)?;
-        let in_paths: Vec<PathBuf> = read_dir(dir_path)?
+    pub fn read_decided<P: AsRef<Path>>(&mut self, dir_path: P, merge: bool) -> io::Result<()> {
+        let in_paths: Vec<PathBuf> = read_dir(&dir_path)?
             .flat_map(|e| e.ok())
-            .map(|e| e.path())
+            .filter_map(|e| match e.path() {
+                p if p.extension().map(|x| x == "ind") == Some(true) => Some(p),
+                _ => None,
+            })
             .collect();
         for path in in_paths.iter() {
             Self::extend_from(&mut self.no, path)?;
         }
         self.clean();
-        if in_paths.len() <= 1 {
+        if !merge {
             Ok(())
         } else {
-            self.save(Path::new(dir_path).join(format!("merge.{}", timestamp())))?;
+            self.save(dir_path.as_ref().join("verified.ind"))?;
             in_paths.into_iter().try_for_each(|path| remove_file(path))
         }
     }
@@ -105,10 +106,13 @@ impl Index {
 
     /// Save the "no" list as a decided index at the given path.
     fn save<P: AsRef<Path>>(&self, path: P) -> io::Result<()> {
+        let backup_path = path.as_ref().with_extension("backup");
+        let _ = rename(&path, &backup_path);
         let mut w = BufWriter::new(File::create(&path)?);
         for i in self.no.iter() {
             w.write(&i.to_be_bytes())?;
         }
+        let _ = remove_file(backup_path);
         Ok(())
     }
 }
