@@ -5,6 +5,8 @@ use indicatif::{
 };
 use std::borrow::Cow;
 
+const TEMPLATE: &str = "{pos:>7}/{len:7} ~{eta_precise:8} {wide_bar} {msg:12}: {elapsed_precise:8}";
+
 pub struct DeciderProgress {
     multi: MultiProgress,
     for_index: ProgressBar,
@@ -33,9 +35,7 @@ impl DeciderProgress {
         let multi = MultiProgress::new();
         multi.set_move_cursor(true);
         let for_index = multi.add(ProgressBar::new(len as u64));
-        let prover_style =
-            ProgressStyle::with_template("{wide_bar} {pos:>7}/{len:7} ~{eta_precise:8} {msg} ")
-                .unwrap();
+        let prover_style = ProgressStyle::with_template(TEMPLATE).unwrap();
         DeciderProgress {
             multi,
             for_index,

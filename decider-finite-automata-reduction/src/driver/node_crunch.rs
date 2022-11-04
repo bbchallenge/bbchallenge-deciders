@@ -53,7 +53,7 @@ impl NCServer for Server {
         loop {
             if let Some(stage) = self.stage.as_mut() {
                 // TODO: Fixed batch size of 100 is stupid!
-                let len = min(stage.ids.len(), 100);
+                let len = min(stage.ids.len(), 10000);
                 if len > 0 {
                     self.in_flight += 1;
                     stage.bar.inc(len as u64);
@@ -114,9 +114,11 @@ impl NCServer for Server {
     }
 
     fn heartbeat_timeout(&mut self, nodes: Vec<NodeID>) {
-        let oh_no = format!("Heartbeat timeout from nodes: {:?}", nodes);
-        let _ = self.progress.println(oh_no); // TODO: Retry logic
-        self.in_flight -= nodes.len();
+        if !nodes.is_empty() {
+            let oh_no = format!("Heartbeat timeout from nodes: {:?}", nodes);
+            let _ = self.progress.println(oh_no); // TODO: Retry logic
+            self.in_flight -= nodes.len();
+        }
     }
 
     fn finish_job(&mut self) {}
