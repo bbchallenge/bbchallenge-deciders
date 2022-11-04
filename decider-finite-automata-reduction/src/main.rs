@@ -6,12 +6,10 @@ pub mod provers;
 use argh::FromArgs;
 use driver::{DeciderProgress, DeciderProgressIterator};
 use io::{Database, DeciderVerificationFile, Index, OutputFile};
-use provers::{DirectProver, MitMDFAProver, Prover, ProverOptions};
+use provers::{prover_names, prover_range_by_name, ProverList};
 
 const DEFAULT_DB: &str = "../all_5_states_undecided_machines_with_global_header";
 const DEFAULT_INDEX: &str = "../bb5_undecided_index";
-
-type ProverList = Vec<Box<dyn Prover>>;
 
 #[derive(FromArgs)]
 /// Find non-halting TMs, as witnessed by finite-state recognizers for their halting configurations.
@@ -47,14 +45,12 @@ fn main() -> std::io::Result<()> {
     let mut index = Index::open(&args.index).unwrap_or_else(|_| Index::new(db.len()));
     let mut provers: ProverList = vec![];
     if args.prover.is_empty() && !args.merge_only {
-        args.prover.extend(["direct", "mitm_dfa"].map(String::from));
+        args.prover.extend(prover_names());
     }
     for (i, name) in args.prover.iter().enumerate() {
-        match name.as_str() {
-            "direct" => provers_from_args::<DirectProver>(&mut provers, &args, i),
-            "mitm_dfa" => provers_from_args::<MitMDFAProver>(&mut provers, &args, i),
-            _ => {}
-        }
+        let lo = args.exclude.get(i).map_or(usize::MIN, |x| x + 1);
+        let hi = args.limit.get(i).map_or(usize::MAX, |l| l + 1);
+        provers.extend(prover_range_by_name(name, lo..hi));
     }
 
     let progress = DeciderProgress::new(index.len_initial());
@@ -81,16 +77,4 @@ fn main() -> std::io::Result<()> {
         }
     }
     Ok(())
-}
-
-fn provers_from_args<T>(provers: &mut ProverList, args: &DeciderArgs, i: usize)
-where
-    T: Prover + ProverOptions + 'static,
-{
-    let range = T::depths();
-    let lo = args.exclude.get(i).map_or(range.start, |x| x + 1);
-    let hi = args.limit.get(i).map_or(range.end, |l| l + 1);
-    for depth in lo..hi {
-        provers.push(Box::new(T::new(depth)));
-    }
 }

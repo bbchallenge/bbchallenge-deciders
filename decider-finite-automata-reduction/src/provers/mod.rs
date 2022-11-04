@@ -11,4 +11,4 @@ mod prover;
 pub use dfa_iterator::{DFAIterator, DFAPrefixIterator};
 pub use direct::DirectProver;
 pub use mitm_dfa::MitMDFAProver;
-pub use prover::{Prover, ProverOptions};
+pub use prover::{prover_names, prover_range_by_name, Prover, ProverList, ProverOptions};
