@@ -1,11 +1,14 @@
 //! Track progress of the current prover and overall machine index.
 
 use indicatif::{
-    MultiProgress, ProgressBar, ProgressBarIter, ProgressFinish, ProgressIterator, ProgressStyle,
+    MultiProgress, ProgressBar, ProgressBarIter, ProgressFinish, ProgressIterator, ProgressState,
+    ProgressStyle,
 };
-use std::borrow::Cow;
+use std::{borrow::Cow, fmt::Write};
 
-const TEMPLATE: &str = "{pos:>7}/{len:7} ~{eta_precise:8} {wide_bar} {msg:12}: {elapsed_precise:8}";
+const INDEX: &str =
+    "{pos:>7}+{left}           {wide_bar:.green/red} All Deciders: {elapsed_precise:8}";
+const PROVER: &str = "{pos:>7}/{len:>7} ~{eta_precise:8} {wide_bar} {msg:12}: {elapsed_precise:8}";
 
 pub struct DeciderProgress {
     multi: MultiProgress,
@@ -34,8 +37,14 @@ impl DeciderProgress {
     pub fn new(len: usize) -> DeciderProgress {
         let multi = MultiProgress::new();
         multi.set_move_cursor(true);
-        let for_index = multi.add(ProgressBar::new(len as u64));
-        let prover_style = ProgressStyle::with_template(TEMPLATE).unwrap();
+        let index_style = ProgressStyle::with_template(INDEX).unwrap().with_key(
+            "left",
+            |state: &ProgressState, w: &mut dyn Write| {
+                write!(w, "{:>7}", state.len().unwrap_or(state.pos()) - state.pos()).unwrap()
+            },
+        );
+        let prover_style = ProgressStyle::with_template(PROVER).unwrap();
+        let for_index = multi.add(ProgressBar::new(len as u64).with_style(index_style));
         DeciderProgress {
             multi,
             for_index,
