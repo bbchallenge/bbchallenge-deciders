@@ -134,13 +134,13 @@ impl NCServer for Server {
     }
 
     fn heartbeat_timeout(&mut self, nodes: Vec<NodeID>) {
-        if !nodes.is_empty() {
-            let oh_no = format!("Heartbeat timeout from nodes: {:?}", nodes);
-            let _ = self.progress.println(oh_no); // TODO: Retry logic
-        }
-        for node_id in nodes {
-            self.stats.entry(node_id).and_modify(|s| {
-                self.retries.extend(std::mem::take(&mut s.todo).into_iter());
+        for id in nodes {
+            self.stats.entry(id).and_modify(|s| {
+                if let Some(new_data) = std::mem::take(&mut s.todo) {
+                    let msg = format!("{:?} died. Retrying {} TMs.", id, new_data.ids.len());
+                    let _ = self.progress.println(msg);
+                    self.retries.push(new_data);
+                }
             });
         }
     }
