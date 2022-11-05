@@ -8,8 +8,9 @@ use node_crunch::{
     NCConfiguration, NCError, NCJobStatus, NCNode, NCNodeStarter, NCServer, NCServerStarter, NodeID,
 };
 use serde::{Deserialize, Serialize};
-use std::cmp::min;
-use std::collections::VecDeque;
+use std::cmp::{max, min};
+use std::collections::{HashMap, VecDeque};
+use std::time::Instant;
 
 type DeciderResult = Result<(Side, DFA), BadProof>;
 
@@ -24,6 +25,26 @@ pub struct ProcessedData {
     results: Vec<(MachineID, DeciderResult)>,
 }
 
+struct WorkStats {
+    target_size: usize,
+    last_send: Instant,
+    todo: Option<NewData>,
+}
+
+impl Default for WorkStats {
+    fn default() -> Self {
+        Self {
+            target_size: 16,
+            last_send: Instant::now(),
+            todo: None,
+        }
+    }
+}
+
+fn update(s: &mut WorkStats) {
+    s.last_send = Instant::now();
+}
+
 struct Server {
     index: Index,
     progress: DeciderProgress,
@@ -32,7 +53,9 @@ struct Server {
     dvf: DeciderVerificationFile,
     current_prover: String,
     ids: VecDeque<MachineID>,
+    retries: Vec<NewData>,
     bar: ProgressBar,
+    stats: HashMap<NodeID, WorkStats>,
 }
 
 impl NCServer for Server {
@@ -43,8 +66,13 @@ impl NCServer for Server {
 
     fn prepare_data_for_node(
         &mut self,
-        _id: NodeID,
+        node_id: NodeID,
     ) -> Result<NCJobStatus<Self::NewDataT>, NCError> {
+        let entry = self.stats.entry(node_id).and_modify(update).or_default();
+        if let Some(new_data) = self.retries.pop() {
+            entry.todo = Some(new_data.clone());
+            return Ok(NCJobStatus::Unfinished(new_data));
+        }
         while self.ids.is_empty() {
             if let Some(prover) = self.prover_names.pop_front() {
                 self.current_prover = prover;
@@ -58,20 +86,37 @@ impl NCServer for Server {
                 return Ok(NCJobStatus::Finished);
             }
         }
-        // TODO: Using a fixed batch size is stupid!
-        let len = min(self.ids.len(), 10000);
+        let len = min(self.ids.len(), entry.target_size);
         self.bar.inc(len as u64);
-        Ok(NCJobStatus::Unfinished(NewData {
+        let new_data = NewData {
             prover_name: self.current_prover.clone(),
             ids: self.ids.drain(0..len).collect(),
-        }))
+        };
+        entry.todo = Some(new_data.clone());
+        Ok(NCJobStatus::Unfinished(new_data))
     }
 
     fn process_data_from_node(
         &mut self,
-        _id: NodeID,
+        node_id: NodeID,
         node_data: &Self::ProcessedDataT,
     ) -> Result<(), NCError> {
+        self.stats.entry(node_id).and_modify(|s| {
+            let sent = std::mem::take(&mut s.todo);
+            // Adapt the batch size with target of 1s. (Exact value barely matters.)
+            let size_out = match sent {
+                Some(data) => data.ids.len(),
+                None => s.target_size,
+            };
+            s.target_size = match s.last_send.elapsed().as_millis() {
+                0..=250 => max(s.target_size, size_out * 4),
+                251..=500 => max(s.target_size, size_out * 2),
+                501..=2000 => s.target_size,
+                2001..=4000 => min(s.target_size, size_out / 2),
+                _ => min(s.target_size, size_out / 4),
+            };
+            s.target_size = max(1, min(s.target_size, 8192));
+        });
         for (i, result) in node_data.results.iter() {
             match &result {
                 Ok((direction, dfa)) => {
@@ -92,6 +137,11 @@ impl NCServer for Server {
         if !nodes.is_empty() {
             let oh_no = format!("Heartbeat timeout from nodes: {:?}", nodes);
             let _ = self.progress.println(oh_no); // TODO: Retry logic
+        }
+        for node_id in nodes {
+            self.stats.entry(node_id).and_modify(|s| {
+                self.retries.extend(std::mem::take(&mut s.todo).into_iter());
+            });
         }
     }
 
@@ -178,7 +228,9 @@ pub fn process_remote(
             dvf,
             current_prover: String::new(),
             ids: VecDeque::new(),
+            retries: Vec::new(),
             bar: ProgressBar::hidden(),
+            stats: HashMap::new(),
         })
         .expect("Quit due to server error!");
 }
