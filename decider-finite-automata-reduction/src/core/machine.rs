@@ -46,7 +46,7 @@ impl FromStr for Trans {
 impl Display for Trans {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         if self.new == 0 {
-            write!(f, "{}", "---")
+            write!(f, "---")
         } else {
             write!(
                 f,

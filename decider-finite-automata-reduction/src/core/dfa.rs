@@ -27,7 +27,7 @@ impl DFA {
 
     /// Ensure the data define a valid DFA.
     pub fn validate(&self) -> ProofResult<()> {
-        if self.t.len() == 0 {
+        if self.t.is_empty() {
             Err(BadProof::BadDFASize)
         } else if self.t.iter().flatten().any(|&v| (v as usize) >= self.len()) {
             Err(BadProof::BadDFATransition)

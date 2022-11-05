@@ -209,7 +209,7 @@ impl<'a> IntoIterator for &'a Matrix {
     type Item = &'a RowVector;
     type IntoIter = std::slice::Iter<'a, RowVector>;
     fn into_iter(self) -> Self::IntoIter {
-        (&self.rows).into_iter()
+        self.rows.iter()
     }
 }
 

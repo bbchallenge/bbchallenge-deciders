@@ -20,11 +20,8 @@ pub struct Index {
 impl Index {
     /// Initialize an index where everything is considered unsolved.
     pub fn new(size: usize) -> Index {
-        let mut yes = vec![0; size];
-        let no = vec![0; 0];
-        for i in 0..size {
-            yes[i] = i as MachineID;
-        }
+        let yes = (0..size as MachineID).collect();
+        let no = vec![];
         Index { yes, no, size }
     }
 
@@ -72,7 +69,7 @@ impl Index {
     fn extend_from<P: AsRef<Path>>(v: &mut Vec<MachineID>, path: P) -> io::Result<()> {
         let file = read(path)?;
         let slice = IndexFile::new_slice_unaligned(file.as_slice()).unwrap();
-        v.extend(slice.into_iter().copied().map(U32::get));
+        v.extend(slice.iter().copied().map(U32::get));
         Ok(())
     }
 

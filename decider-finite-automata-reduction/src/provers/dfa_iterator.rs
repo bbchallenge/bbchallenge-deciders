@@ -95,7 +95,7 @@ impl Iterator for DFAPrefixIterator {
                 return Some((q as DFAState, b as u8));
             }
         }
-        return None;
+        None
     }
 }
 

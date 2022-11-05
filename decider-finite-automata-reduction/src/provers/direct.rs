@@ -88,13 +88,12 @@ impl DirectProver {
         for b in 0..2 {
             nfa.t[b][halt] = row(halt);
         }
-        tm.rules().for_each(|rule| match rule {
-            Rule::Halt { f, r } => {
+        tm.rules().for_each(|rule| {
+            if let Rule::Halt { f, r } = rule {
                 for q in 0..dfa.len() {
                     nfa.t[r as usize][nfa_start(q as NFAState, f)] |= row(halt);
                 }
             }
-            _ => {}
         })
     }
 

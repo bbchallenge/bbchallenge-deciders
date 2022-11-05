@@ -1,3 +1,4 @@
+#![allow(clippy::len_without_is_empty)]
 pub mod core;
 pub mod driver;
 pub mod io;
@@ -93,7 +94,7 @@ fn process_local(
 ) -> std::io::Result<()> {
     index.read_decided()?;
     progress.set_solved(index.len_solved());
-    for (i, tm) in db.read(index.iter().decider_progress_with(&progress, prover.name())) {
+    for (i, tm) in db.read(index.iter().decider_progress_with(progress, prover.name())) {
         if let Some(proof) = prover.prove(&tm) {
             match proof.validate(&tm) {
                 Ok(()) => {

@@ -40,7 +40,8 @@ impl DeciderProgress {
         let index_style = ProgressStyle::with_template(INDEX).unwrap().with_key(
             "left",
             |state: &ProgressState, w: &mut dyn Write| {
-                write!(w, "{:>7}", state.len().unwrap_or(state.pos()) - state.pos()).unwrap()
+                let pos = state.pos();
+                write!(w, "{:>7}", state.len().unwrap_or(pos) - pos).unwrap()
             },
         );
         let prover_style = ProgressStyle::with_template(PROVER).unwrap();

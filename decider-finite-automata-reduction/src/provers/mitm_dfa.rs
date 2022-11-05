@@ -31,7 +31,7 @@ impl Prover for MitMDFAProver {
         if !self.ready {
             self.init(self.n);
         }
-        let assumptions = tm.rules().flat_map(|rule| Self::tm_clause(rule));
+        let assumptions = tm.rules().flat_map(Self::tm_clause);
         if self.solver.solve_with(assumptions) == Some(true) {
             let mut dfa = DFA::new(self.n as usize);
             for q in 0..dfa.len() {
@@ -39,7 +39,7 @@ impl Prover for MitMDFAProver {
                     dfa.t[q][b] = self.dfa_eval(FROM_LEFT, q as DFAState, b as u8);
                 }
             }
-            DirectProver::complete_unverified(&tm, Side::R, dfa)
+            DirectProver::complete_unverified(tm, Side::R, dfa)
         } else {
             None
         }
@@ -113,7 +113,7 @@ impl MitMDFAProver {
     }
 
     fn tm_to(&self, f: TMState, r: u8, t: L) -> L {
-        if 0 <= t && t <= T {
+        if (0..=T).contains(&t) {
             Self::_tm_to_eq(f as L, r as L, t)
         } else {
             FALSE
@@ -273,7 +273,7 @@ impl MitMDFAProver {
             }
             base[qb] -= 2 * (qb as L / 2);
         }
-        fn tmax_eq(n: L, lr: L, qb: L, m: L, base: &Vec<L>) -> L {
+        fn tmax_eq(n: L, lr: L, qb: L, m: L, base: &[L]) -> L {
             if (qb, m) == (2 * n, n - 1) {
                 TRUE
             } else if m < (qb / 2) || m >= min(n, qb) {
