@@ -75,4 +75,9 @@ impl DeciderProgress {
     pub fn solve(&self, n: usize) {
         self.for_index.inc(n as u64);
     }
+
+    /// Finish everything.
+    pub fn finish(&self) {
+        self.for_index.finish();
+    }
 }
