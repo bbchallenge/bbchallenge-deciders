@@ -24,20 +24,15 @@ pub struct ProcessedData {
     results: Vec<(MachineID, DeciderResult)>,
 }
 
-struct ProofStage {
-    prover: ProverBox,
-    out: OutputFile,
-    dvf: DeciderVerificationFile,
-    ids: VecDeque<MachineID>,
-    bar: ProgressBar,
-}
-
 struct Server {
     index: Index,
     progress: DeciderProgress,
     prover_names: VecDeque<String>,
-    stage: Option<ProofStage>,
-    in_flight: usize,
+    out: OutputFile,
+    dvf: DeciderVerificationFile,
+    current_prover: String,
+    ids: VecDeque<MachineID>,
+    bar: ProgressBar,
 }
 
 impl NCServer for Server {
@@ -50,40 +45,26 @@ impl NCServer for Server {
         &mut self,
         _id: NodeID,
     ) -> Result<NCJobStatus<Self::NewDataT>, NCError> {
-        loop {
-            if let Some(stage) = self.stage.as_mut() {
-                // TODO: Fixed batch size of 100 is stupid!
-                let len = min(stage.ids.len(), 10000);
-                if len > 0 {
-                    self.in_flight += 1;
-                    stage.bar.inc(len as u64);
-                    return Ok(NCJobStatus::Unfinished(NewData {
-                        prover_name: stage.prover.name(),
-                        ids: stage.ids.drain(0..len).collect(),
-                    }));
-                } else if self.in_flight > 0 {
-                    return Ok(NCJobStatus::Waiting);
-                }
-            }
-            if let Some(prover) = self.prover_names.pop_front().and_then(prover_by_name) {
-                let out = OutputFile::append(format!("output/{}.ind", prover.name()))?;
-                let dvf = DeciderVerificationFile::append(format!("output/{}.dvf", prover.name()))?;
-                self.index.read_decided("output", false)?;
-                let ids: VecDeque<MachineID> = self.index.iter().collect();
-                let bar = self.progress.prover_progress(ids.len(), prover.name());
+        while self.ids.is_empty() {
+            if let Some(prover) = self.prover_names.pop_front() {
+                self.current_prover = prover;
+                self.index.read_decided()?;
+                self.ids = self.index.iter().collect();
+                self.bar = self
+                    .progress
+                    .prover_progress(self.ids.len(), self.current_prover.clone());
                 self.progress.set_solved(self.index.len_solved());
-                self.stage = Some(ProofStage {
-                    prover,
-                    out,
-                    dvf,
-                    ids,
-                    bar,
-                });
             } else {
-                self.stage = None;
                 return Ok(NCJobStatus::Finished);
             }
         }
+        // TODO: Using a fixed batch size is stupid!
+        let len = min(self.ids.len(), 10000);
+        self.bar.inc(len as u64);
+        Ok(NCJobStatus::Unfinished(NewData {
+            prover_name: self.current_prover.clone(),
+            ids: self.ids.drain(0..len).collect(),
+        }))
     }
 
     fn process_data_from_node(
@@ -91,33 +72,26 @@ impl NCServer for Server {
         _id: NodeID,
         node_data: &Self::ProcessedDataT,
     ) -> Result<(), NCError> {
-        if let Some(stage) = self.stage.as_mut() {
-            self.in_flight -= 1;
-            for (i, result) in node_data.results.iter() {
-                match &result {
-                    Ok((direction, dfa)) => {
-                        stage.out.insert(*i)?;
-                        stage.dvf.insert(*i, *direction, dfa)?;
-                        self.progress.solve(1);
-                    }
-                    Err(e) => {
-                        let name = stage.prover.name();
-                        let msg = format!("Rejected {} proof of {}: {:?}", name, i, e);
-                        self.progress.println(msg)?;
-                    }
+        for (i, result) in node_data.results.iter() {
+            match &result {
+                Ok((direction, dfa)) => {
+                    self.out.insert(*i)?;
+                    self.dvf.insert(*i, *direction, dfa)?;
+                    self.progress.solve(1);
+                }
+                Err(e) => {
+                    let msg = format!("Rejected proof of {}: {:?}", i, e);
+                    self.progress.println(msg)?;
                 }
             }
-            Ok(())
-        } else {
-            Err(NCError::NodeMsgMismatch)
         }
+        Ok(())
     }
 
     fn heartbeat_timeout(&mut self, nodes: Vec<NodeID>) {
         if !nodes.is_empty() {
             let oh_no = format!("Heartbeat timeout from nodes: {:?}", nodes);
             let _ = self.progress.println(oh_no); // TODO: Retry logic
-            self.in_flight -= nodes.len();
         }
     }
 
@@ -192,14 +166,19 @@ pub fn process_remote(
     index: Index,
     progress: DeciderProgress,
     prover_names: VecDeque<String>,
+    out: OutputFile,
+    dvf: DeciderVerificationFile,
 ) {
     NCServerStarter::new(config_from_args(args))
         .start(Server {
             index,
             progress,
             prover_names,
-            stage: None,
-            in_flight: 0,
+            out,
+            dvf,
+            current_prover: String::new(),
+            ids: VecDeque::new(),
+            bar: ProgressBar::hidden(),
         })
         .expect("Quit due to server error!");
 }

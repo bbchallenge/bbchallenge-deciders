@@ -5,7 +5,7 @@ pub mod provers;
 
 use argh::FromArgs;
 use driver::{process_remote, run_node, DeciderProgress, DeciderProgressIterator};
-use io::{Database, DeciderVerificationFile, Index, OutputFile};
+use io::{Database, DeciderVerificationFile, Index, OutputFile, OWN_DVF, OWN_INDEX};
 use provers::{prover_names, prover_range_by_name, ProverBox};
 
 const DEFAULT_DB: &str = "../all_5_states_undecided_machines_with_global_header";
@@ -69,14 +69,16 @@ fn main() -> std::io::Result<()> {
         provers.extend(prover_range_by_name(name, lo..hi));
     }
 
+    let mut out = OutputFile::append(OWN_INDEX)?;
+    let mut dvf = DeciderVerificationFile::append(OWN_DVF)?;
     let progress = DeciderProgress::new(index.len_initial());
     if !args.server {
         for prover in provers.iter_mut() {
-            process_local(&db, &mut index, &progress, prover)?;
+            process_local(&db, &mut index, &progress, prover, &mut out, &mut dvf)?;
         }
     } else {
         let prover_names = provers.into_iter().map(|p| p.name()).collect();
-        process_remote(args, index, progress, prover_names);
+        process_remote(args, index, progress, prover_names, out, dvf);
     }
     Ok(())
 }
@@ -86,11 +88,11 @@ fn process_local(
     index: &mut Index,
     progress: &DeciderProgress,
     prover: &mut ProverBox,
+    out: &mut OutputFile,
+    dvf: &mut DeciderVerificationFile,
 ) -> std::io::Result<()> {
-    index.read_decided("output", false)?;
+    index.read_decided()?;
     progress.set_solved(index.len_solved());
-    let mut out = OutputFile::append(format!("output/{}.ind", prover.name()))?;
-    let mut dvf = DeciderVerificationFile::append(format!("output/{}.dvf", prover.name()))?;
     for (i, tm) in db.read(index.iter().decider_progress_with(&progress, prover.name())) {
         if let Some(proof) = prover.prove(&tm) {
             match proof.validate(&tm) {

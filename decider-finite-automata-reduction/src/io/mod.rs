@@ -11,3 +11,5 @@ pub use index::Index;
 pub use output::OutputFile;
 
 pub type MachineID = u32;
+pub const OWN_INDEX: &str = "output/finite_automata_reduction.index";
+pub const OWN_DVF: &str = "output/finite_automata_reduction.dvf";

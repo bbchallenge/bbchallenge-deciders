@@ -1,12 +1,11 @@
 //! An undecided index -- or output file -- as in https://bbchallenge.org/method.
-//! Warning: this implementation is meant for use in the decider; it it'll assume an output path
-//! and try to merge any checkpoint files left behind.
+//! We assume it's allowed to be an unsorted mess.
 
-use super::MachineID;
+use super::{MachineID, OWN_INDEX};
 use itertools::{EitherOrBoth, Itertools};
-use std::fs::{read, read_dir, remove_file, rename, File};
-use std::io::{self, BufWriter, Write};
-use std::path::{Path, PathBuf};
+use std::fs::read;
+use std::io::{self, ErrorKind};
+use std::path::Path;
 use zerocopy::{BigEndian, LayoutVerified, U32};
 
 type IndexFile<B> = LayoutVerified<B, [U32<BigEndian>]>;
@@ -40,23 +39,12 @@ impl Index {
     }
 
     /// Populate the negative entries from our own output directory.
-    pub fn read_decided<P: AsRef<Path>>(&mut self, dir_path: P, merge: bool) -> io::Result<()> {
-        let in_paths: Vec<PathBuf> = read_dir(&dir_path)?
-            .flat_map(|e| e.ok())
-            .filter_map(|e| match e.path() {
-                p if p.extension().map(|x| x == "ind") == Some(true) => Some(p),
-                _ => None,
-            })
-            .collect();
-        for path in in_paths.iter() {
-            Self::extend_from(&mut self.no, path)?;
-        }
+    pub fn read_decided(&mut self) -> io::Result<()> {
+        let result = Self::extend_from(&mut self.no, OWN_INDEX);
         self.clean();
-        if !merge {
-            Ok(())
-        } else {
-            self.save(dir_path.as_ref().join("verified.ind"))?;
-            in_paths.into_iter().try_for_each(|path| remove_file(path))
+        match result {
+            Err(e) if e.kind() == ErrorKind::NotFound => Ok(()),
+            other => other,
         }
     }
 
@@ -102,17 +90,5 @@ impl Index {
                 _ => None,
             })
             .collect();
-    }
-
-    /// Save the "no" list as a decided index at the given path.
-    fn save<P: AsRef<Path>>(&self, path: P) -> io::Result<()> {
-        let backup_path = path.as_ref().with_extension("backup");
-        let _ = rename(&path, &backup_path);
-        let mut w = BufWriter::new(File::create(&path)?);
-        for i in self.no.iter() {
-            w.write(&i.to_be_bytes())?;
-        }
-        let _ = remove_file(backup_path);
-        Ok(())
     }
 }
