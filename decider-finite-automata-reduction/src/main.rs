@@ -69,7 +69,6 @@ fn main() -> std::io::Result<()> {
         run_node(args, db);
         return Ok(());
     }
-    let mut index = Index::open(&args.index).unwrap_or_else(|_| Index::new(db.len()));
     let mut provers: Vec<ProverBox> = vec![];
     if args.prover.is_empty() {
         args.prover.extend(prover_names());
@@ -80,12 +79,15 @@ fn main() -> std::io::Result<()> {
         provers.extend(prover_range_by_name(name, lo..hi));
     }
 
+    if !args.ad_hoc.is_empty() {
+        return process_ad_hoc(args.ad_hoc, db, provers);
+    }
+
+    let mut index = Index::open(&args.index).unwrap_or_else(|_| Index::new(db.len()));
     let mut out = OutputFile::append(OWN_INDEX)?;
     let mut dvf = DeciderVerificationFile::append(OWN_DVF)?;
     let progress = DeciderProgress::new(index.len_initial());
-    if !args.ad_hoc.is_empty() {
-        process_ad_hoc(args.ad_hoc, db, progress, provers)?;
-    } else if !args.server {
+    if !args.server {
         for prover in provers.iter_mut() {
             process_local(&db, &mut index, &progress, prover, &mut out, &mut dvf)?;
         }
@@ -128,7 +130,6 @@ fn process_local(
 fn process_ad_hoc(
     tm_specs: Vec<String>,
     db: Database,
-    progress: DeciderProgress,
     mut provers: Vec<ProverBox>,
 ) -> std::io::Result<()> {
     let mut proofs: Vec<Option<Proof>> = vec![None; tm_specs.len()];
@@ -149,6 +150,7 @@ fn process_ad_hoc(
         unsolved_pos.push(pos);
         tms[pos] = tm;
     }
+    let progress = DeciderProgress::new(unsolved_pos.len());
     for (pos, tm_spec) in tm_specs.iter().enumerate() {
         if !unsolved_pos.contains(&pos) {
             progress.println(format!("Could not understand '{}'. Ignoring.", tm_spec))?;
