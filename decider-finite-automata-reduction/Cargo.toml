@@ -5,6 +5,10 @@ authors = ["Justin Blanchard <UncombedCoconut@gmail.com>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
 
+[features]
+# Double the bit-vector size to 128, allowing BB5 search depths up to .
+u128 = []
+
 [profile.release]
 debug = 1
 lto = "thin"

@@ -3,9 +3,9 @@
 /// The exact number of states we expect from Turing Machines.
 pub const TM_STATES: usize = 5;
 /// The maximum number of states in a Proof's DFA.
-pub const MAX_DFA: usize = 12;
+pub const MAX_DFA: usize = if cfg!(feature = "u128") { 25 } else { 12 };
 /// The maximum number of states in a Proof's NFA.
-pub const MAX_NFA: usize = 64;
+pub const MAX_NFA: usize = if cfg!(feature = "u128") { 128 } else { 64 };
 
 /// A number indexing a TM state.
 pub type TMState = u8;
@@ -14,6 +14,10 @@ pub type DFAState = u8;
 /// A number indexing an NFA state.
 pub type NFAState = u8;
 /// A number indexing a set of NFA states: state i is included if bit `1<<i` is set.
+#[cfg(feature = "u128")]
+pub type NFAStateMask = u128;
+/// A number indexing a set of NFA states: state i is included if bit `1<<i` is set.
+#[cfg(not(feature = "u128"))]
 pub type NFAStateMask = u64;
 
 #[cfg(test)]
