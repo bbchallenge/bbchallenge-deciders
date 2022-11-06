@@ -92,9 +92,9 @@ Now for the definitions. The below is also expressed as commented Rust code, in 
 2. Also designate a *steady state* S⊆Q', i.e., a set of states such that δ(S, 0)⊇S and δ(S, 1)⊇S, which furthermore contains at least one state from F.
    In other words, if at any step the NFA could have reached all of S, that's also true on the next step and the configuration will ultimately be recognized.
 3. Define the *closure* properties which effectively say, if the configuration after a TM step is recognized, the configuration before it is too:
-    - In case of a right transition (r, F) ↦ (w, **R**, T), whose effect on the tape is to change the sequence "F@r" to "w, F@":
+    - In case of a right transition (r, F) ↦ (w, **R**, T), whose effect on the tape is to change the sequence `F@r` to `w F@`:
       ∀q∈Q: δ'((q, F), r) ∋ (δ(q, w), t).
-    - In case of a left transition (r, F) ↦ (w, **L**, T), whose effect on the tape is to change the sequence "b, F@r" to "F@b, w":
+    - In case of a left transition (r, F) ↦ (w, **L**, T), whose effect on the tape is to change the sequence `b F@r` to `F@b w`:
       ∀(q,b)∈Q×Σ: δ'((δ(q, b), F), r) ⊇ δ'(δ'((q, t), b), w).
 4. In case of a halt rule for (r, F), require an NFA transition to the steady state (thus guaranteeing recognition): 
    ∀q∈Q: δ'((q, F), r) ⊇ S.
@@ -181,23 +181,22 @@ Let \~ be the [left syntactic equivalence](https://en.wikipedia.org/wiki/Syntact
 
 Let [u] denote the \~-equivalence class of a bit-string u, and v be another bit-string.
 
-Define TM/\~ as a machine with configurations `[u] S@v`, and transitions `[u] S@v` ↦ [u'] S'@v' for each valid TM step 0̅0 u S@v 0̅0 ↦ 0̅0 u S@v' 0̅0.
+Define TM/\~ as a machine with configurations `[u] S@v`, and transitions `[u] S@v` ↦ `[u'] S'@v'` for each valid TM step `0̅0 u S@v 0̅0` ↦ `0̅0 u S@v' 0̅0`.
 
 Define halting for TM/\~ as for TM, and L(TM/\~) -- the language TM/\~ accepts -- to contain the configurations from which a halt is reachable.
 
-When we view the "[u] S>" as states and the "v" as a stack, [BEM97] says TM/\~ is a "pushdown system" and L(TM/\~) is recognized by a certain finite automaton.
+When we view the `[u] S@` as states and the `v` as a stack, [BEM97] says TM/\~ is a "pushdown system" and L(TM/\~) is recognized by a certain finite automaton.
 
-Thus, L' = { u S@v | TM/\~ may accept [u] S@v 0^n for some n } is a regular language we can recognize.
+Thus, L' = { `u S@v` | TM/\~ may accept `[u] S@v 0^n` for some n } is a regular language we can recognize.
 
-L' is also a co-CTL: if it accepts u S@v after one step, then TM/\~ accepts it after one step (and zero-padding), so ditto before the one step, so L' accepts u S@v.
+L' is also a co-CTL: if it accepts `u S@v` after one step, then TM/\~ accepts it after one step (and zero-padding), so ditto before the one step, so L' accepts `u S@v`.
 
 L' accepts halting words. If L does too, then L'⊆L, so we've recovered an equal or finer co-CTL.
 
 ### Direct recognizer for TM/\~
 [BEM97] is a nice black box, but it's simpler to recognize L(TM/\~) directly.
 
-This is what `direct.rs` does.
-(TODO: more details?)
+This is what `direct.rs` does. (I'll let the code speak for itself.)
 
 Consequently, direct.rs is also able to complete a proof from just the DFA side.
 This makes it a useful partner to the verifier, even if it's untrusted: if someone claims a DFA works in a proof, the verifier can ask this algorithm to complete it, then check the completed proof.
