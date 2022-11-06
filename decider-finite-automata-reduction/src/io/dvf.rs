@@ -6,6 +6,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{self, BufWriter, Write};
 use std::path::Path;
 
+/// Magic value for specifying the "VerificationEntry" is from this program.
 const DECIDER_TYPE: u32 = 5;
 
 /// An output file listing decided machine indexes.

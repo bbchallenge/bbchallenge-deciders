@@ -22,7 +22,7 @@ const DEFAULT_INDEX: &str = "../bb5_undecided_index";
     # Parallel processing:\n\
     $ {command_name} --server --ip 10.0.0.1 -p direct -x 0 -l 8 -p mitm_dfa -x 8\n\
     # And in other terminal tabs and/or computers on the network, once per CPU\n\
-    $ {command_name} --ip 10.0.0.1"
+    $ {command_name} --ip 10.0.0.1 &"
 )]
 pub struct DeciderArgs {
     /// prover(s) to use: see example
