@@ -27,7 +27,7 @@ impl DeciderVerificationFile {
 
     /// Mark the given machine as solved.
     pub fn insert(&mut self, id: MachineID, direction: Side, dfa: &DFA) -> io::Result<()> {
-        for int in [id, DECIDER_TYPE, (1 + dfa.len()) as u32] {
+        for int in [id, DECIDER_TYPE, (1 + 2 * dfa.len()) as u32] {
             self.out.write_all(&int.to_be_bytes())?;
         }
         let dir = match direction {
