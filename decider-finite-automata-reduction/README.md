@@ -92,10 +92,10 @@ Now for the definitions. The below is also expressed as commented Rust code, in 
 2. Also designate a *steady state* S⊆Q', i.e., a set of states such that δ(S, 0)⊇S and δ(S, 1)⊇S, which furthermore contains at least one state from F.
    In other words, if at any step the NFA could have reached all of S, that's also true on the next step and the configuration will ultimately be recognized.
 3. Define the *closure* properties which effectively say, if the configuration after a TM step is recognized, the configuration before it is too:
-    - In case of a right transition (r, F) ↦ (w, **R**, T), whose effect on the tape is to change the sequence `F@r` to `w F@`:
-      ∀q∈Q: δ'((q, F), r) ∋ (δ(q, w), t).
-    - In case of a left transition (r, F) ↦ (w, **L**, T), whose effect on the tape is to change the sequence `b F@r` to `F@b w`:
-      ∀(q,b)∈Q×Σ: δ'((δ(q, b), F), r) ⊇ δ'(δ'((q, t), b), w).
+    - In case of a right transition (r, F) ↦ (w, **R**, T), whose effect on the tape is to change the sequence `F@r` to `w T@`:
+      ∀q∈Q: δ'((q, F), r) ∋ (δ(q, w), T).
+    - In case of a left transition (r, F) ↦ (w, **L**, T), whose effect on the tape is to change the sequence `b F@r` to `T@b w`:
+      ∀(q,b)∈Q×Σ: δ'((δ(q, b), F), r) ⊇ δ'(δ'((q, T), b), w).
 4. In case of a halt rule for (r, F), require an NFA transition to the steady state (thus guaranteeing recognition): 
    ∀q∈Q: δ'((q, F), r) ⊇ S.
 5. Finally, require the initial configuration not to be recognized: (q₀, A)∉F.
