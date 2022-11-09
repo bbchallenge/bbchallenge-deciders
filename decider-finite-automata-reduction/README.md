@@ -80,7 +80,7 @@ The BB Challenge community sometimes calls this a "co-CTL" proof. More on that l
 Now for the definitions. The below is also expressed as commented Rust code, in `src/proof.rs`.
 
 1. Define a finite-state machine of the following form, whose job is to scan TM configurations (WLOG left to right) and "recognize" some of them:
-    1. Start "at the end" -- on an infinite, this means an arbitrary position left of the head and the tape's finite non-zero-filled part.
+    1. Start "at the end" — on an infinite, this means an arbitrary position left of the head and the tape's finite non-zero-filled part.
     2. Read the tape as a [DFA (Q, Σ={0,1}, δ, q₀)](https://en.wikipedia.org/wiki/Deterministic_finite_automaton) up to (but excluding) the head position.
        To ensure the end state is well-defined, we require the DFA to ignore leading zeros, i.e., that δ(q₀, 0) = q₀.
     3. Transition to an [NFA (Q', Σ'={0,1}, δ', F)](https://en.wikipedia.org/wiki/Nondeterministic_finite_automata) whose state space Q' includes QˣQ™,
@@ -105,7 +105,7 @@ Now for the definitions. The below is also expressed as commented Rust code, in 
 In a computer representation of the above, we number the DFA states, identifying q₀ with 0, and number the NFA states, identifying (q, F) with 5q+f
 (in the BB(5) case, of course; and similarly for other values of 5.)
 
-We represent a DFA as a simple nested list, [[δ(0, 0), δ(0, 1)], [δ(1, 0), δ(1, 1)], ..., [δ(n, 0), δ(n, 1)]].
+We represent a DFA as a simple nested list, [[δ(0, 0), δ(0, 1)], [δ(1, 0), δ(1, 1)], …, [δ(n, 0), δ(n, 1)]].
 
 In a [Decider Verification File](https://github.com/TonyGuil/bbchallenge/blob/main/README), this is flattened to a sequence of 2n bytes.
 
@@ -130,7 +130,7 @@ The program's code is divided into four modules:
 - driver: utility code for handling such concerns as distributed processing and progress monitoring.
 
 In terms of correctness, the most important part is `core/proof.rs`.
-As usual for Rust programs -- unit tests are in-line, so `core/proof.rs` also has the tests that bad proofs are rejected.
+As usual for Rust programs — unit tests are in-line, so `core/proof.rs` also has the tests that bad proofs are rejected.
 
 ### Verification File
 
@@ -174,16 +174,16 @@ Its exact solution is again a regular co-CTL, so these characterizations are als
 ### Quotients of Turing Machines
 Let L be a co-CTL for a TM.
 
-As mentioned in the "Proof Template" section -- for a *tape* language to make sense we must require it to be (reverse) closed under TM transitions *and*
+As mentioned in the "Proof Template" section — for a *tape* language to make sense we must require it to be (reverse) closed under TM transitions *and*
 invariant under zero-padding.
 
 Let \~ be the [left syntactic equivalence](https://en.wikipedia.org/wiki/Syntactic_monoid#Syntactic_equivalence) relation it induces on bit-strings.
 
-Let [u] denote the \~-equivalence class of a bit-string u, and v be another bit-string.
+Let `[u]` denote the \~-equivalence class of a bit-string u, and v be another bit-string.
 
 Define TM/\~ as a machine with configurations `[u] S@v`, and transitions `[u] S@v` ↦ `[u'] S'@v'` for each valid TM step `0̅0 u S@v 0̅0` ↦ `0̅0 u S@v' 0̅0`.
 
-Define halting for TM/\~ as for TM, and L(TM/\~) -- the language TM/\~ accepts -- to contain the configurations from which a halt is reachable.
+Define halting for TM/\~ as for TM, and L(TM/\~) — the language TM/\~ accepts — to contain the configurations from which a halt is reachable.
 
 When we view the `[u] S@` as states and the `v` as a stack, [BEM97] says TM/\~ is a "pushdown system" and L(TM/\~) is recognized by a certain finite automaton.
 
@@ -193,10 +193,24 @@ L' is also a co-CTL: if it accepts `u S@v` after one step, then TM/\~ accepts it
 
 L' accepts halting words. If L does too, then L'⊆L, so we've recovered an equal or finer co-CTL.
 
-### Direct recognizer for TM/\~
-[BEM97] is a nice black box, but it's simpler to recognize L(TM/\~) directly.
+### Direct recognizer for L(TM/\~)
+While [BEM97] is a nice tool, it's helpful to derive the L(TM/\~) recognizer directly.
+So: let’s decide if a configuration starting with `[u] S@b₀` can lead to a halt, by considering how:
+it would via a finite transition sequence, which either reads the next bit b₁ at some point or first hits a halt-transition.
+If the former is possible, that’s an unconditional yes;
+the latter is possible iff `[u] S@b₀v` may lead to some `[u'] S'@v` (via transitions which ignore the `v`) and `[u'] S@b₁b₂…` can lead to a halt.
+This gives an inductively defined recognizer, which operates as an NFA on the state space {HALT} ∪ Q×Q™.
+That last paragraph defines its transitions mathematically. We can make the definition effective by defining *them* inductively:
 
-This is what `direct.rs` does. (I'll let the code speak for itself.)
+* In case of a halt rule for (r, F): for any `[u]`, `[u] F@, r`↦`HALT` is an `r`-transition. (`HALT` simply transitions to itself.)
+* In case of a right transition (r, F) ↦ (w, **R**, T), whose effect on the tape is to change the sequence `F@r` to `w T@`:
+  for any `[u]`, `[u] F@, r`↦`[uw] T@` is an `r`-transition.
+* In case of a left transition (r, F) ↦ (w, **L**, T), whose effect on the tape is to change the sequence `b₀ F@r` to `T@b₀ w`:
+  whenever `[u] T@, b₀, w`↦`[u'] T'@` is a composition of `b₀`- and `w`-transitions, there’s an `r`-transition from `[ub₀] F@, r`↦`[u'] T'@`.
+
+To compute the recognizing NFA’s transition relation, we may close an initially empty relation under these rules.
+
+This is what `direct.rs` does.
 
 Consequently, direct.rs is also able to complete a proof from just the DFA side.
 This makes it a useful partner to the verifier, even if it's untrusted: if someone claims a DFA works in a proof, the verifier can ask this algorithm to complete it, then check the completed proof.
@@ -210,12 +224,12 @@ If we delete everything except the `0`- and `1`-transitions, we get finite-state
 Here, too, we can consider the connection between DFAs and semantic equivalence:
 we see that any tape configuration's membership in the language is determined by what the left-tape DFA does, what the right-tape DFA does, and the head configuration (state and bit underneath).
 
-If we define a finite-state recognizer which operates this way -- runs both tape halves through a DFA, and checks this triple against an accepted set --
+If we define a finite-state recognizer which operates this way — runs both tape halves through a DFA, and checks this triple against an accepted set —
 we see that the relevant closure conditions are fairly easy to formulate.
 
 There are two ways to connect this construction back to the DFA+NFA constructions discussed above: either reverse the arrows on the right-tape DFA (making it nondeterministic) and change the accept states into a bunch of transitions, or simply throw away the right-tape DFA and apply the TM/~ construction.
 
-The decider in `mitm_dfa.rs` follows on a path first set by others -- see there for details -- and sets up the closure conditions for the MitM-DFA as a boolean satisfiability problem.
+The decider in `mitm_dfa.rs` follows on a path first set by others — see there for details — and sets up the closure conditions for the MitM-DFA as a boolean satisfiability problem.
 Thanks and credit go to:
 
 - @djmati1111 (https://github.com/colette-b/bbchallenge)
