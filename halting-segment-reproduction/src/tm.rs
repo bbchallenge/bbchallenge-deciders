@@ -81,7 +81,7 @@ impl TM {
         let mut goto: HaltOrGoto = HaltOrGoto::Halt;
         let mut i_state = 0;
 
-        for (i, byte) in buf.iter().enumerate() {
+        for (i, &byte) in buf.iter().enumerate() {
             i_state = i / 6;
 
             if i % 6 == 0 {
@@ -89,18 +89,18 @@ impl TM {
             }
 
             if i % 3 == 0 {
-                write = *byte;
+                write = byte;
             } else if i % 3 == 1 {
-                hmove = if *byte == 0 {
+                hmove = if byte == 0 {
                     HeadMove::Right
                 } else {
                     HeadMove::Left
                 };
             } else {
-                if *byte == 0 {
+                if byte == 0 {
                     goto = HaltOrGoto::Halt;
                 } else {
-                    goto = HaltOrGoto::Goto(*byte - 1);
+                    goto = HaltOrGoto::Goto(byte - 1);
                 }
                 transitions[i_state].push(Transition { write, hmove, goto })
             }
@@ -111,5 +111,31 @@ impl TM {
             n_symbols: 2,
             transitions: transitions,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const PATH_TO_BBCHALLENGE_DB: &str = "../all_5_states_undecided_machines_with_global_header";
+
+    #[test]
+    fn bbchallenge_format() {
+        let ids_and_format = [
+            (234, "1RB---_0RC---_0RD---_1LE---_0RE1LE"),
+            (2847516, "1RB---_1LC0RD_1LE1RD_0RB0RD_0LC---"),
+            (14156519, "1RB1LE_1LC0RA_1LA1LD_0RE---_1RA0LB"),
+            (9881807, "1RB1RD_1LC---_0RD0LC_0RE1RA_1LB1LB"),
+        ];
+
+        for (id, format) in ids_and_format {
+            assert_eq!(
+                format,
+                TM::from_bbchallenge_id(id, PATH_TO_BBCHALLENGE_DB)
+                    .unwrap()
+                    .to_string()
+            )
+        }
     }
 }
