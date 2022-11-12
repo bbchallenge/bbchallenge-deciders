@@ -1,5 +1,7 @@
 use std::fmt;
 
+mod tm;
+
 enum SegmentPos {
     Unallocated,
     Bit(u8),
@@ -19,12 +21,13 @@ impl fmt::Display for Node {
         */
         let mut segment_string: String = String::new();
 
-        let mut state_string: char = '*';
-        if !self.is_outside_segment {
-            state_string = (b'A' + self.state - 1) as char
-        }
+        let mut state_char: char = if self.is_outside_segment {
+            '*'
+        } else {
+            ('A' as u8 + self.state - 1) as char
+        };
 
-        write!(f, "State: {} ; ", state_string)?;
+        write!(f, "State: {} ; ", state_char)?;
         write!(f, "_")?;
         for (i, segment_pos) in self.segment.iter().enumerate() {
             match segment_pos {
@@ -55,6 +58,8 @@ fn main() {
         ],
         pos_in_segment: 2,
     };
+
+    let tm: tm::TM;
 
     println!("{}", n);
 }
