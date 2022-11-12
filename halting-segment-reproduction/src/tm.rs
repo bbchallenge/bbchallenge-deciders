@@ -1,6 +1,12 @@
-
 use std::fmt;
-enum HeadMove {
+
+use std::fs::File;
+use std::io;
+use std::io::prelude::*;
+use std::io::SeekFrom;
+
+#[derive(Copy, Clone)]
+pub enum HeadMove {
     Right,
     Left,
 }
@@ -14,15 +20,17 @@ impl fmt::Display for HeadMove {
     }
 }
 
-enum HaltOrGoto {
+#[derive(Copy, Clone)]
+pub enum HaltOrGoto {
     Halt,
     Goto(u8),
 }
 
-struct Transition {
-    write: u8,
-    hmove: HeadMove,
-    goto: HaltOrGoto,
+#[derive(Copy, Clone)]
+pub struct Transition {
+    pub write: u8,
+    pub hmove: HeadMove,
+    pub goto: HaltOrGoto,
 }
 
 impl fmt::Display for Transition {
@@ -36,17 +44,18 @@ impl fmt::Display for Transition {
     }
 }
 
+#[derive(Clone)]
 pub struct TM {
-    n_states: u8,
-    n_symbol: u8,
-    transitions: Vec<Vec<Transition>>,
+    pub n_states: u8,
+    pub n_symbols: u8,
+    pub transitions: Vec<Vec<Transition>>,
 }
 
 impl fmt::Display for TM {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Cf. https://discuss.bbchallenge.org/t/standard-tm-text-format
         for i in 0..self.n_states {
-            for j in 0..self.n_symbol {
+            for j in 0..self.n_symbols {
                 write!(f, "{}", self.transitions[i as usize][j as usize])?;
             }
             if i != self.n_states - 1 {
@@ -54,5 +63,53 @@ impl fmt::Display for TM {
             }
         }
         write!(f, "")
+    }
+}
+
+impl TM {
+    pub fn from_bbchallenge_id(machine_id: u32, path_to_bbchallenge_db: &str) -> io::Result<TM> {
+        let mut file = File::open(path_to_bbchallenge_db)?;
+        let mut buf = vec![0u8; 30];
+
+        file.seek(SeekFrom::Start(((machine_id + 1) * 30) as u64))?;
+        file.read_exact(&mut buf)?;
+
+        let mut transitions: Vec<Vec<Transition>> = vec![];
+
+        let mut write: u8 = 0;
+        let mut hmove: HeadMove = HeadMove::Right;
+        let mut goto: HaltOrGoto = HaltOrGoto::Halt;
+        let mut i_state = 0;
+
+        for (i, byte) in buf.iter().enumerate() {
+            i_state = i / 6;
+
+            if i % 6 == 0 {
+                transitions.push(vec![]);
+            }
+
+            if i % 3 == 0 {
+                write = *byte;
+            } else if i % 3 == 1 {
+                hmove = if *byte == 0 {
+                    HeadMove::Right
+                } else {
+                    HeadMove::Left
+                };
+            } else {
+                if *byte == 0 {
+                    goto = HaltOrGoto::Halt;
+                } else {
+                    goto = HaltOrGoto::Goto(*byte - 1);
+                }
+                transitions[i_state].push(Transition { write, hmove, goto })
+            }
+        }
+
+        Ok(TM {
+            n_states: 5,
+            n_symbols: 2,
+            transitions: transitions,
+        })
     }
 }

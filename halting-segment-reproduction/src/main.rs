@@ -2,6 +2,8 @@ use std::fmt;
 
 mod tm;
 
+use tm::{HaltOrGoto, HeadMove, Transition, TM};
+
 enum SegmentPos {
     Unallocated,
     Bit(u8),
@@ -13,6 +15,8 @@ struct Node {
     segment: Vec<SegmentPos>,
     pos_in_segment: usize,
 }
+
+const PATH_TO_BBCHALLENGE_DB: &str = "../all_5_states_undecided_machines_with_global_header";
 
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -59,7 +63,9 @@ fn main() {
         pos_in_segment: 2,
     };
 
-    let tm: tm::TM;
-
     println!("{}", n);
+
+    let tm: TM = TM::from_bbchallenge_id(234, PATH_TO_BBCHALLENGE_DB).unwrap();
+
+    println!("{}", tm);
 }
