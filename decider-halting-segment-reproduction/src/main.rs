@@ -107,7 +107,7 @@ fn halting_segment_decider(
     let mut node_queue: Vec<Node> = initial_nodes;
     let mut node_seen: HashSet<Node> = HashSet::new();
 
-    while !node_queue.is_empty() && node_seen.len() <= node_limit {
+    while !node_queue.is_empty() && node_seen.len() < node_limit {
         let curr_node = node_queue.pop().unwrap();
 
         if node_seen.contains(&curr_node) {
@@ -170,7 +170,7 @@ fn Iijil_strategy(machine_id: u32, node_limit: usize, print_run_info: bool) -> b
                 if print_run_info {
                     println!(
                         "Machine {} proved nonhalting with segment size {} and initial position {} after expanding {} nodes, and cumulatively {} nodes in search", machine_id,
-                        segment_size, initial_pos_in_segment, nb_nodes, total_nodes_consumed
+                        segment_size, initial_pos_in_segment, nb_nodes, nb_nodes+total_nodes_consumed
                     );
                 }
                 return true;
@@ -291,8 +291,8 @@ mod tests {
     }
 
     #[test]
-    fn Iijil_strategy_29713() {
-        Iijil_strategy(29713, 10000, true);
+    fn Iijil_strategy_3802378() {
+        Iijil_strategy(3802378, 10001, true);
         assert_eq!(true, true);
     }
 }
