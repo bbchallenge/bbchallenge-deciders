@@ -1,9 +1,4 @@
-use std::{
-    collections::{HashSet, VecDeque},
-    fmt,
-    fs::File,
-    io::Read,
-};
+use std::{collections::HashSet, fmt, fs::File, io::Read};
 
 use std::io::prelude::*;
 
@@ -78,9 +73,9 @@ struct Nodes(pub Vec<Node>);
 
 #[derive(Debug, PartialEq, Eq)]
 enum HaltingSegmentResult {
-    MACHINE_DOES_NOT_HALT(usize),
-    CANNOT_CONCLUDE(usize),
-    NODE_LIMIT_EXCEED,
+    MachineDoesNotHalt(usize),
+    CannotConclude(usize),
+    NodeLimitExceeded,
 }
 
 fn get_initial_nodes(tm: &TM, segment_size: u8, initial_pos_in_segment: usize) -> Vec<Node> {
@@ -124,7 +119,7 @@ fn halting_segment_decider(
         }
 
         if curr_node.is_fatal() {
-            return HaltingSegmentResult::CANNOT_CONCLUDE(node_seen.len() + 1);
+            return HaltingSegmentResult::CannotConclude(node_seen.len() + 1);
         }
 
         node_queue.append(&mut curr_node.get_neighbours(&tm));
@@ -136,9 +131,9 @@ fn halting_segment_decider(
     }
 
     if node_queue.is_empty() {
-        HaltingSegmentResult::MACHINE_DOES_NOT_HALT(node_seen.len())
+        HaltingSegmentResult::MachineDoesNotHalt(node_seen.len())
     } else {
-        HaltingSegmentResult::NODE_LIMIT_EXCEED
+        HaltingSegmentResult::NodeLimitExceeded
     }
 }
 
@@ -175,7 +170,7 @@ fn Iijil_strategy(machine_id: u32, node_limit: usize, print_run_info: bool) -> b
         );
 
         match result {
-            HaltingSegmentResult::MACHINE_DOES_NOT_HALT(nb_nodes) => {
+            HaltingSegmentResult::MachineDoesNotHalt(nb_nodes) => {
                 if print_run_info {
                     println!(
                         "Proved nonhalting with segment size {} and initial position {} after expanding {} nodes",
@@ -185,14 +180,14 @@ fn Iijil_strategy(machine_id: u32, node_limit: usize, print_run_info: bool) -> b
                 return true;
             }
 
-            HaltingSegmentResult::CANNOT_CONCLUDE(nb_nodes) => {
+            HaltingSegmentResult::CannotConclude(nb_nodes) => {
                 if print_run_info {
                     println!("Cannot conclude with segment size {} and initial position {}, {} nodes expanded",
                     segment_size, initial_pos_in_segment, nb_nodes);
                 }
                 total_nodes_consumed += nb_nodes;
             }
-            HaltingSegmentResult::NODE_LIMIT_EXCEED => {
+            HaltingSegmentResult::NodeLimitExceeded => {
                 if print_run_info {
                     println!("Node limit exceeded");
                 }
@@ -269,7 +264,7 @@ mod tests {
         assert_eq!(
             halting_segment_decider(&tm, 5, 2, 1000, false),
             // 7 nodes expanded, cross checked with @Iijil
-            HaltingSegmentResult::MACHINE_DOES_NOT_HALT(7)
+            HaltingSegmentResult::MachineDoesNotHalt(7)
         );
     }
 
@@ -282,7 +277,7 @@ mod tests {
         assert_eq!(
             halting_segment_decider(&tm, 7, 3, 1000, false),
             // 38 nodes expanded, cross checked with @Iijil
-            HaltingSegmentResult::MACHINE_DOES_NOT_HALT(38)
+            HaltingSegmentResult::MachineDoesNotHalt(38)
         );
     }
 
@@ -295,7 +290,7 @@ mod tests {
         assert_eq!(
             halting_segment_decider(&tm, 3, 1, 1000, false),
             // 18 nodes expanded, cross checked with @Iijil
-            HaltingSegmentResult::MACHINE_DOES_NOT_HALT(18)
+            HaltingSegmentResult::MachineDoesNotHalt(18)
         );
     }
 
