@@ -291,8 +291,8 @@ mod tests {
     }
 
     #[test]
-    fn Iijil_strategy_9414822() {
-        Iijil_strategy(9414822, 10000, true);
+    fn Iijil_strategy_23367211() {
+        Iijil_strategy(23367211, 200000, true);
     }
 
     #[test]
@@ -325,9 +325,12 @@ mod tests {
         ];
 
         for id in &missing {
-            let r = Iijil_strategy(*id, 50000, false);
-            if !r {
-                println!("{}", id);
+            let mut node_limit = 20000;
+            let mut r = Iijil_strategy(*id, node_limit, false);
+            while !r && node_limit < 200000000 {
+                node_limit *= 10;
+                println!("Machine {} up {}", id, node_limit);
+                r = Iijil_strategy(*id, node_limit, false);
             }
             assert!(r);
         }
