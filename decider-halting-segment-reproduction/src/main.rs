@@ -113,11 +113,11 @@ fn halting_segment_decider(
 ) -> HaltingSegmentResult {
     let initial_nodes = get_initial_nodes(&tm, segment_size, initial_pos_in_segment);
 
-    let mut node_queue: VecDeque<Node> = VecDeque::from(initial_nodes);
+    let mut node_queue: Vec<Node> = initial_nodes;
     let mut node_seen: HashSet<Node> = HashSet::new();
 
     while !node_queue.is_empty() && node_seen.len() <= node_limit {
-        let curr_node = node_queue.pop_front().unwrap();
+        let curr_node = node_queue.pop().unwrap();
 
         if node_seen.contains(&curr_node) {
             continue;
@@ -127,7 +127,7 @@ fn halting_segment_decider(
             return HaltingSegmentResult::CANNOT_CONCLUDE(node_seen.len() + 1);
         }
 
-        node_queue.append(&mut VecDeque::from(curr_node.get_neighbours(&tm)));
+        node_queue.append(&mut curr_node.get_neighbours(&tm));
         node_seen.insert(curr_node.clone());
 
         if print_run_info {
