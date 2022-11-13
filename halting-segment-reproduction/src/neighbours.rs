@@ -23,7 +23,6 @@ impl Node {
            that are inside and make us leave again.
         */
         let mut to_return: Vec<Node> = vec![];
-
         for i_state in 0..tm.n_states {
             for read_symbol in 0..tm.n_symbols {
                 let transition = tm.transitions[i_state as usize][read_symbol as usize];
@@ -54,11 +53,18 @@ impl Node {
                 // Then, add neighbouring node
                 let mut new_segment = self.segment.clone();
                 new_segment.0[self.pos_in_segment] = SegmentCell::Bit(read_symbol);
-                to_return.push(Node {
+
+                let node_to_add = Node {
                     pos_in_segment: self.pos_in_segment,
                     segment: new_segment,
                     state: OutsideSegmentOrState::State(i_state),
-                });
+                };
+
+                // Avoid double add
+                if to_return.contains(&node_to_add) {
+                    continue;
+                }
+                to_return.push(node_to_add);
             }
         }
 
@@ -122,11 +128,17 @@ impl Node {
                 let mut new_segment = self.segment.clone();
                 new_segment.0[new_position] = SegmentCell::Bit(read_symbol);
 
-                to_return.push(Node {
+                let node_to_add = Node {
                     pos_in_segment: new_position,
                     segment: new_segment,
                     state: OutsideSegmentOrState::State(i_state),
-                });
+                };
+
+                // Avoid double add
+                if to_return.contains(&node_to_add) {
+                    continue;
+                }
+                to_return.push(node_to_add);
             }
         }
 
