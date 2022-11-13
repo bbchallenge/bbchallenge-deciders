@@ -13,35 +13,42 @@ impl fmt::Display for Node {
         write!(f, "State: {} ; ", state_char)?;
 
         if let OutsideSegmentOrState::State(_) = self.state {
-            write!(f, "_")?;
+            write!(f, " _")?;
         } else if self.pos_in_segment == 0 {
-            write!(f, "[_]")?;
+            write!(f, "[_")?;
+        } else {
+            write!(f, " _")?;
         }
 
         for (i, segment_pos) in self.segment.0.iter().enumerate() {
-            match segment_pos {
-                SegmentCell::Unallocated => write!(f, " . ")?,
-                SegmentCell::Bit(bit) => {
-                    if let OutsideSegmentOrState::State(_) = self.state {
-                        if i == self.pos_in_segment {
-                            write!(f, "[{}]", bit)?;
-                        } else {
-                            write!(f, "{}", bit)?;
-                        }
-                    } else {
+            if i == self.pos_in_segment + 1 {
+                write!(f, "]")?;
+            } else {
+                if i == self.pos_in_segment {
+                    write!(f, "[")?;
+                } else {
+                    write!(f, " ")?;
+                }
+
+                match segment_pos {
+                    SegmentCell::Unallocated => write!(f, ".")?,
+                    SegmentCell::Bit(bit) => {
                         write!(f, "{}", bit)?;
                     }
                 }
             }
         }
 
-        if let OutsideSegmentOrState::State(_) = self.state {
-            write!(f, "_")
-        } else if self.pos_in_segment + 1 == self.segment.0.len() {
-            write!(f, "[_]")
+        if self.pos_in_segment + 1 == self.segment.0.len() {
+            write!(f, "]_")?;
         } else {
-            write!(f, "_")
+            if let OutsideSegmentOrState::State(_) = self.state {
+                write!(f, " _ ")?;
+            } else {
+                write!(f, "[_]")?;
+            }
         }
+        write!(f, "")
     }
 }
 
