@@ -195,7 +195,7 @@ fn main() {
     .unwrap()
     .progress_chars("##-");
 
-    let mut decided_ids: Vec<&u32> = undecided_ids[..1000]
+    let mut decided_ids: Vec<&u32> = undecided_ids
         .par_iter()
         .progress_with_style(style)
         .filter(|&id| Iijil_strategy(*id, NODE_LIMIT))
