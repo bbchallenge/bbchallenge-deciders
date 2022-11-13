@@ -10,7 +10,6 @@ use rayon::prelude::*;
 use std::convert::TryInto;
 
 mod display_nodes;
-mod hash_nodes;
 mod neighbours;
 mod tm;
 mod utils;
@@ -30,18 +29,15 @@ enum OutsideSegmentOrState {
     State(u8),
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 struct SegmentCells(pub Vec<SegmentCell>);
 
 impl SegmentCells {
     fn are_there_no_ones(&self) -> bool {
-        for cell in self.0.iter() {
-            match cell {
-                SegmentCell::Bit(true) => return false,
-                _ => continue,
-            }
-        }
-        true
+        !self
+            .0
+            .iter()
+            .any(|cell| matches!(cell, SegmentCell::Bit(true)))
     }
 }
 
