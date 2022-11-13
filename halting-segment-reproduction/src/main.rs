@@ -19,7 +19,7 @@ enum OutsideSegmentOrState {
     State(u8),
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 struct SegmentCells(pub Vec<SegmentCell>);
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -32,6 +32,10 @@ struct Node {
 struct Nodes(pub Vec<Node>);
 
 const PATH_TO_BBCHALLENGE_DB: &str = "../all_5_states_undecided_machines_with_global_header";
+
+fn halting_segment_decider(tm: TM, segment_size: u8, node_limit: u32) -> bool {
+    true
+}
 
 fn main() {
     let n: Node = Node {
