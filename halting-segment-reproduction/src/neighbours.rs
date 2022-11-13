@@ -36,7 +36,7 @@ impl Node {
 
                 // Check that transition makes us leave segment
                 if !((self.pos_in_segment == 0 && transition.hmove == HeadMove::Left)
-                    || (self.pos_in_segment + 1 == self.segment.len()
+                    || (self.pos_in_segment + 1 == self.segment.0.len()
                         && transition.hmove == HeadMove::Right))
                 {
                     continue;
@@ -44,7 +44,7 @@ impl Node {
 
                 // Check that backward transition write is consistent with current segment
                 // (which is the future of that transition)
-                let curr_segment_cell = &self.segment[self.pos_in_segment];
+                let curr_segment_cell = &self.segment.0[self.pos_in_segment];
                 if let SegmentCell::Bit(bit) = curr_segment_cell {
                     if *bit != transition.write {
                         continue;
@@ -53,7 +53,7 @@ impl Node {
 
                 // Then, add neighbouring node
                 let mut new_segment = self.segment.clone();
-                new_segment[self.pos_in_segment] = SegmentCell::Bit(read_symbol);
+                new_segment.0[self.pos_in_segment] = SegmentCell::Bit(read_symbol);
                 to_return.push(Node {
                     pos_in_segment: self.pos_in_segment,
                     segment: new_segment,
@@ -88,7 +88,7 @@ impl Node {
                 // Then, two cases:
                 // Case 1: backward transition makes us leave segment
                 if (self.pos_in_segment == 0 && transition.hmove == HeadMove::Right)
-                    || (self.pos_in_segment + 1 == self.segment.len()
+                    || (self.pos_in_segment + 1 == self.segment.0.len()
                         && transition.hmove == HeadMove::Left)
                 {
                     // Note that we do not update pos_in_segment when getting outside of segment
@@ -110,7 +110,7 @@ impl Node {
 
                 // Check that backward transition write is consistent with current segment
                 // (which is the future of that transition)
-                let new_segment_cell = &self.segment[new_position];
+                let new_segment_cell = &self.segment.0[new_position];
                 if let SegmentCell::Bit(bit) = new_segment_cell {
                     if *bit != transition.write {
                         continue;
@@ -120,7 +120,7 @@ impl Node {
                 // We can now construct the neighbouring Node
                 // First, we update the segment with read symbol
                 let mut new_segment = self.segment.clone();
-                new_segment[new_position] = SegmentCell::Bit(read_symbol);
+                new_segment.0[new_position] = SegmentCell::Bit(read_symbol);
 
                 to_return.push(Node {
                     pos_in_segment: new_position,

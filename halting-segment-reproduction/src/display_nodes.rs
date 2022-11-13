@@ -18,7 +18,7 @@ impl fmt::Display for Node {
             write!(f, "[_]")?;
         }
 
-        for (i, segment_pos) in self.segment.iter().enumerate() {
+        for (i, segment_pos) in self.segment.0.iter().enumerate() {
             match segment_pos {
                 SegmentCell::Unallocated => write!(f, " . ")?,
                 SegmentCell::Bit(bit) => {
@@ -37,7 +37,7 @@ impl fmt::Display for Node {
 
         if let OutsideSegmentOrState::State(_) = self.state {
             write!(f, "_")
-        } else if self.pos_in_segment + 1 == self.segment.len() {
+        } else if self.pos_in_segment + 1 == self.segment.0.len() {
             write!(f, "[_]")
         } else {
             write!(f, "_")

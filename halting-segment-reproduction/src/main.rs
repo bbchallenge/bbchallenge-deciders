@@ -1,27 +1,31 @@
 use std::fmt;
 
 mod display_nodes;
+mod hash_nodes;
 mod neighbours;
 mod tm;
 
 use tm::{HaltOrGoto, HeadMove, TM};
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 enum SegmentCell {
     Unallocated,
     Bit(u8),
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 enum OutsideSegmentOrState {
     OutsideSegment,
     State(u8),
 }
 
 #[derive(Clone)]
+struct SegmentCells(pub Vec<SegmentCell>);
+
+#[derive(Clone, PartialEq, Eq, Hash)]
 struct Node {
     state: OutsideSegmentOrState,
-    segment: Vec<SegmentCell>,
+    segment: SegmentCells,
     pos_in_segment: usize,
 }
 
@@ -32,13 +36,13 @@ const PATH_TO_BBCHALLENGE_DB: &str = "../all_5_states_undecided_machines_with_gl
 fn main() {
     let n: Node = Node {
         state: OutsideSegmentOrState::State(4),
-        segment: vec![
+        segment: SegmentCells(vec![
             SegmentCell::Unallocated,
             SegmentCell::Unallocated,
             SegmentCell::Bit(0),
             SegmentCell::Unallocated,
             SegmentCell::Unallocated,
-        ],
+        ]),
         pos_in_segment: 2,
     };
 
