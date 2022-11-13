@@ -40,7 +40,13 @@ impl fmt::Display for Transition {
         match self.goto {
             HaltOrGoto::Halt => write!(f, "---"),
             HaltOrGoto::Goto(state) => {
-                write!(f, "{}{}{}", self.write, self.hmove, (b'A' + state) as char)
+                write!(
+                    f,
+                    "{}{}{}",
+                    self.write as u8,
+                    self.hmove,
+                    (b'A' + state) as char
+                )
             }
         }
     }
@@ -136,12 +142,11 @@ mod tests {
         ];
 
         for (id, format) in ids_and_format {
-            assert_eq!(
-                format,
-                TM::from_bbchallenge_id(id, PATH_TO_BBCHALLENGE_DB)
-                    .unwrap()
-                    .to_string()
-            )
+            let computed = TM::from_bbchallenge_id(id, PATH_TO_BBCHALLENGE_DB)
+                .unwrap()
+                .to_string();
+            println!("{}", computed);
+            assert_eq!(format, computed)
         }
     }
 }
