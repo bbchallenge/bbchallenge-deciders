@@ -5,7 +5,7 @@ use std::io;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum HeadMove {
     Right,
     Left,
