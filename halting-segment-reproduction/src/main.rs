@@ -38,20 +38,37 @@ impl fmt::Display for Node {
         };
 
         write!(f, "State: {} ; ", state_char)?;
-        write!(f, "_")?;
+
+        if let OutsideSegmentOrState::State(_) = self.state {
+            write!(f, "_")?;
+        } else if self.pos_in_segment == 0 {
+            write!(f, "[_]")?;
+        }
+
         for (i, segment_pos) in self.segment.iter().enumerate() {
             match segment_pos {
                 SegmentCell::Unallocated => segment_string += " . ",
                 SegmentCell::Bit(bit) => {
-                    if i == self.pos_in_segment {
-                        write!(f, "[{}]", bit)?;
+                    if let OutsideSegmentOrState::State(_) = self.state {
+                        if i == self.pos_in_segment {
+                            write!(f, "[{}]", bit)?;
+                        } else {
+                            write!(f, "{}", bit)?;
+                        }
                     } else {
                         write!(f, "{}", bit)?;
                     }
                 }
             }
         }
-        write!(f, "_")
+
+        if let OutsideSegmentOrState::State(_) = self.state {
+            write!(f, "_")
+        } else if self.pos_in_segment + 1 == self.segment.len() {
+            write!(f, "[_]")
+        } else {
+            write!(f, "_")
+        }
     }
 }
 
@@ -74,15 +91,25 @@ impl Node {
     }
 
     fn get_neighbours_when_outside_segment(&self, tm: &TM) -> Vec<Node> {
-        vec![]
+        /* When we are outside of the segment, neighbouring nodes are those
+           that are inside and make us leave again.
+        */
+        let mut to_return: Vec<Node> = vec![];
+
+        to_return
     }
 
     fn get_neighbours_when_inside_segment(&self, state: u8, tm: &TM) -> Vec<Node> {
+        /* When we are inside of the segment, neighbouring nodes are those that correspond
+        to valid backward transitions.
+        */
         let mut to_return: Vec<Node> = vec![];
 
         for i_state in 0..tm.n_states {
             for read_symbol in 0..tm.n_symbols {
                 let transition = tm.transitions[i_state as usize][read_symbol as usize];
+
+                // If transition halts, its not valid for backward
                 match transition.goto {
                     HaltOrGoto::Halt => continue,
                     HaltOrGoto::Goto(goto_state) => {
@@ -92,19 +119,23 @@ impl Node {
                     }
                 }
 
+                // Check that backward transition write is consistent with current segment
+                // (which is the future of that transition)
                 let curr_segment_cell = &self.segment[self.pos_in_segment];
-
                 if let SegmentCell::Bit(bit) = curr_segment_cell {
-                    // Backward transition write is not consistent with future
                     if *bit != transition.write {
                         continue;
                     }
                 }
 
+                // We can now construct the neighbouring Node
+                // First, we update the segment with read symbol
                 let mut new_segment = self.segment.clone();
                 new_segment[self.pos_in_segment] = SegmentCell::Bit(read_symbol);
 
-                // Case where backward transition makes us leave segment
+                // Then, two cases:
+                // Case 1: backward transition makes us leave segment
+                // Case 2: backward transition does not make us leave segment
                 if (self.pos_in_segment == 0 && transition.hmove == HeadMove::Right)
                     || (self.pos_in_segment + 1 == self.segment.len()
                         && transition.hmove == HeadMove::Left)
