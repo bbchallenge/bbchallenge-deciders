@@ -1,14 +1,18 @@
 use std::{
     collections::{HashSet, VecDeque},
     fmt,
+    fs::File,
     io::Read,
 };
+
+use std::io::prelude::*;
+
+use rand::{distributions::Alphanumeric, Rng};
 
 use indicatif::{ParallelProgressIterator, ProgressStyle};
 
 use rayon::prelude::*;
 use std::convert::TryInto;
-use std::fs::File;
 
 mod display_nodes;
 mod hash_nodes;
@@ -165,6 +169,7 @@ fn Iijil_strategy(machine_id: u32, node_limit: usize) -> bool {
             }
             HaltingSegmentResult::NODE_LIMIT_EXCEED => return false,
         }
+        distance_to_segment_end += 1;
     }
 
     false
@@ -190,16 +195,33 @@ fn main() {
     .unwrap()
     .progress_chars("##-");
 
-    let decided_ids: Vec<&u32> = undecided_ids
+    let mut decided_ids: Vec<&u32> = undecided_ids[..1000]
         .par_iter()
         .progress_with_style(style)
         .filter(|&id| Iijil_strategy(*id, NODE_LIMIT))
         .collect();
 
+    decided_ids.sort();
+
     println!(
         "{} machines decided by halting segment (using @Iijil's strategy)",
         decided_ids.len()
     );
+
+    let mut random_id: String = rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(12)
+        .map(char::from)
+        .collect();
+    random_id = random_id.to_ascii_lowercase();
+
+    let output_file =
+        format!("output/halting-segment-reproduction-run-{random_id}-nodes-{NODE_LIMIT}");
+
+    let mut file = File::create(output_file).unwrap();
+    for id in decided_ids {
+        file.write_all(&u32::to_be_bytes(*id)).unwrap();
+    }
 }
 
 #[cfg(test)]

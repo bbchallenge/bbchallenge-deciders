@@ -8,3 +8,4 @@ version = "0.1.0"
 [dependencies]
 indicatif = {version = "*", features = ["rayon"]}
 rayon = "1.5"
+rand = "*"
