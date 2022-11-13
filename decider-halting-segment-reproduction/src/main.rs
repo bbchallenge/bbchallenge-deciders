@@ -104,11 +104,11 @@ fn halting_segment_decider(
 ) -> HaltingSegmentResult {
     let initial_nodes = get_initial_nodes(&tm, segment_size, initial_pos_in_segment);
 
-    let mut node_queue: Vec<Node> = initial_nodes;
+    let mut node_stack: Vec<Node> = initial_nodes;
     let mut node_seen: HashSet<Node> = HashSet::new();
 
-    while !node_queue.is_empty() && node_seen.len() < node_limit {
-        let curr_node = node_queue.pop().unwrap();
+    while !node_stack.is_empty() && node_seen.len() < node_limit {
+        let curr_node = node_stack.pop().unwrap();
 
         if node_seen.contains(&curr_node) {
             continue;
@@ -118,7 +118,7 @@ fn halting_segment_decider(
             return HaltingSegmentResult::CannotConclude(node_seen.len() + 1);
         }
 
-        node_queue.append(&mut curr_node.get_neighbours(&tm));
+        node_stack.append(&mut curr_node.get_neighbours(&tm));
         node_seen.insert(curr_node.clone());
 
         if print_run_info {
@@ -126,7 +126,7 @@ fn halting_segment_decider(
         }
     }
 
-    if node_queue.is_empty() {
+    if node_stack.is_empty() {
         HaltingSegmentResult::MachineDoesNotHalt(node_seen.len())
     } else {
         HaltingSegmentResult::NodeLimitExceeded
