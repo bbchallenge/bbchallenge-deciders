@@ -1,7 +1,12 @@
 use std::{
     collections::{HashSet, VecDeque},
     fmt,
+    io::Read,
 };
+
+use rayon::prelude::*;
+use std::convert::TryInto;
+use std::fs::File;
 
 mod display_nodes;
 mod hash_nodes;
@@ -65,8 +70,6 @@ impl Node {
 
 struct Nodes(pub Vec<Node>);
 
-const PATH_TO_BBCHALLENGE_DB: &str = "../all_5_states_undecided_machines_with_global_header";
-
 #[derive(Debug, PartialEq, Eq)]
 enum HaltingSegmentResult {
     MACHINE_DOES_NOT_HALT(usize),
@@ -80,17 +83,14 @@ fn get_initial_nodes(tm: &TM, segment_size: u8, initial_pos_in_segment: usize) -
     for i_state in 0..tm.n_states {
         for symbol in 0..tm.n_symbols {
             let transition = tm.transitions[i_state as usize][symbol as usize];
-            match transition.goto {
-                HaltOrGoto::Halt => {
-                    let mut initial_segment = vec![SegmentCell::Unallocated; segment_size as usize];
-                    initial_segment[initial_pos_in_segment] = SegmentCell::Bit(symbol);
-                    to_return.push(Node {
-                        state: OutsideSegmentOrState::State(i_state),
-                        segment: SegmentCells(initial_segment),
-                        pos_in_segment: initial_pos_in_segment,
-                    })
-                }
-                _ => {}
+            if let HaltOrGoto::Halt = transition.goto {
+                let mut initial_segment = vec![SegmentCell::Unallocated; segment_size as usize];
+                initial_segment[initial_pos_in_segment] = SegmentCell::Bit(symbol);
+                to_return.push(Node {
+                    state: OutsideSegmentOrState::State(i_state),
+                    segment: SegmentCells(initial_segment),
+                    pos_in_segment: initial_pos_in_segment,
+                })
             }
         }
     }
@@ -136,41 +136,64 @@ fn halting_segment_decider(
     }
 }
 
-fn main() {
-    let machine_id = 2492003;
+const PATH_TO_BBCHALLENGE_DB: &str = "../all_5_states_undecided_machines_with_global_header";
+const PATH_TO_UNDECIDED_INDEX: &str = "../bb5_undecided_index";
 
-    println!("Machine ID: {}", machine_id);
+fn Iijil_strategy(machine_id: u32, node_limit: usize) -> bool {
+    /* Implements @Iijil's strategy for running the backward halting segment decider:
+        - The decider is run with all odd segment length until success or cumulative node limit is reached
+        - Initial position in the segment is middle of it
+    */
+    let mut distance_to_segment_end: u8 = 1;
+    let mut total_nodes_consumed = 0;
 
-    let tm: TM = TM::from_bbchallenge_id(machine_id, PATH_TO_BBCHALLENGE_DB).unwrap();
+    let tm = TM::from_bbchallenge_id(machine_id, PATH_TO_BBCHALLENGE_DB).unwrap();
 
-    println!("{}", tm);
+    while total_nodes_consumed < node_limit {
+        let segment_size = 2 * distance_to_segment_end + 1;
+        let initial_pos_in_segment = distance_to_segment_end as usize;
+        let result =
+            halting_segment_decider(&tm, segment_size, initial_pos_in_segment, node_limit, false);
 
-    let segment_size = 10;
-
-    let node_limit = 150000;
-    let print_run_info = false;
-    let initial_pos_in_segment = 9;
-
-    match halting_segment_decider(
-        &tm,
-        segment_size,
-        initial_pos_in_segment as usize,
-        node_limit,
-        print_run_info,
-    ) {
-        HaltingSegmentResult::MACHINE_DOES_NOT_HALT(nb_nodes) => {
-            println!(
-                "Proved nonhalting with segment size {} at initial position {} after expanding {} nodes",
-                segment_size, initial_pos_in_segment, nb_nodes
-            )
-        }
-        HaltingSegmentResult::CANNOT_CONCLUDE(_) => {
-            println!("Cannot conclude")
-        }
-        HaltingSegmentResult::NODE_LIMIT_EXCEED => {
-            println!("Node limit exceeded")
+        match result {
+            HaltingSegmentResult::MACHINE_DOES_NOT_HALT(_) => {
+                return true;
+            }
+            HaltingSegmentResult::CANNOT_CONCLUDE(nb_nodes) => {
+                total_nodes_consumed += nb_nodes;
+            }
+            HaltingSegmentResult::NODE_LIMIT_EXCEED => {
+                return false;
+            }
         }
     }
+
+    false
+}
+
+fn main() {
+    const NODE_LIMIT: usize = 10000;
+
+    let mut undecided_index_file = File::open(PATH_TO_UNDECIDED_INDEX).unwrap();
+    let mut raw_data: Vec<u8> = Vec::new();
+
+    undecided_index_file.read_to_end(&mut raw_data).unwrap();
+
+    let undecided_ids: Vec<u32> = raw_data
+        .chunks_exact(4)
+        .map(|s| s.try_into().unwrap())
+        .map(u32::from_be_bytes)
+        .collect();
+
+    let decided_ids: Vec<&u32> = undecided_ids
+        .par_iter()
+        .filter(|&id| Iijil_strategy(*id, NODE_LIMIT))
+        .collect();
+
+    println!(
+        "{} machines decided by halting segment (using @Iijil's strategy)",
+        decided_ids.len()
+    );
 }
 
 #[cfg(test)]

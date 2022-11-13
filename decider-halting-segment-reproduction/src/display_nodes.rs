@@ -7,7 +7,7 @@ impl fmt::Display for Node {
         */
         let state_char: char = match self.state {
             OutsideSegmentOrState::OutsideSegment => '*',
-            OutsideSegmentOrState::State(state) => ('A' as u8 + state) as char,
+            OutsideSegmentOrState::State(state) => (b'A' + state) as char,
         };
 
         write!(f, "State: {} ; ", state_char)?;
@@ -41,13 +41,12 @@ impl fmt::Display for Node {
 
         if self.pos_in_segment + 1 == self.segment.0.len() {
             write!(f, "]_")?;
+        } else if let OutsideSegmentOrState::State(_) = self.state {
+            write!(f, " _ ")?;
         } else {
-            if let OutsideSegmentOrState::State(_) = self.state {
-                write!(f, " _ ")?;
-            } else {
-                write!(f, "[_]")?;
-            }
+            write!(f, "[_]")?;
         }
+
         write!(f, "")
     }
 }
@@ -55,7 +54,7 @@ impl fmt::Display for Node {
 impl fmt::Display for Nodes {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for (i, node) in self.0.iter().enumerate() {
-            write!(f, "{}: {}\n", i, node)?;
+            writeln!(f, "{}: {}", i, node)?;
         }
         write!(f, "")
     }

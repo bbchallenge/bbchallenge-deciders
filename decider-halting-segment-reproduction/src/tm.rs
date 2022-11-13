@@ -109,7 +109,7 @@ impl TM {
         Ok(TM {
             n_states: 5,
             n_symbols: 2,
-            transitions: transitions,
+            transitions,
         })
     }
 }

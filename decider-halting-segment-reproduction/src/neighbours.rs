@@ -142,6 +142,6 @@ impl Node {
             }
         }
 
-        return to_return;
+        to_return
     }
 }
