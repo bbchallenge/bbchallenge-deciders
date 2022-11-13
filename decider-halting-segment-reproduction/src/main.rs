@@ -156,15 +156,12 @@ fn Iijil_strategy(machine_id: u32, node_limit: usize) -> bool {
             halting_segment_decider(&tm, segment_size, initial_pos_in_segment, node_limit, false);
 
         match result {
-            HaltingSegmentResult::MACHINE_DOES_NOT_HALT(_) => {
-                return true;
-            }
+            HaltingSegmentResult::MACHINE_DOES_NOT_HALT(_) => return true,
+
             HaltingSegmentResult::CANNOT_CONCLUDE(nb_nodes) => {
                 total_nodes_consumed += nb_nodes;
             }
-            HaltingSegmentResult::NODE_LIMIT_EXCEED => {
-                return false;
-            }
+            HaltingSegmentResult::NODE_LIMIT_EXCEED => return false,
         }
     }
 
