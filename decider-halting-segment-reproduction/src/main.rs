@@ -37,15 +37,11 @@ enum OutsideSegmentOrState {
 struct SegmentCells(pub Vec<SegmentCell>);
 
 impl SegmentCells {
-    fn is_all_zero(&self) -> bool {
+    fn are_there_no_ones(&self) -> bool {
         for cell in self.0.iter() {
             match cell {
-                SegmentCell::Unallocated => return false,
-                SegmentCell::Bit(b) => {
-                    if *b != 0 {
-                        return false;
-                    }
-                }
+                SegmentCell::Bit(1) => return false,
+                _ => continue,
             }
         }
         true
@@ -61,15 +57,17 @@ struct Node {
 
 impl Node {
     fn is_fatal(&self) -> bool {
-        /* Fatal nodes are nodes whose segment is all-0 and:
+        /* Fatal nodes are nodes whose segment contain no 1s and:
            - head is outside segment
            - Or, state is A
         Detecting these nodes is important because when the decider meets one, we know
         that we cannot conclude that the machine does not halt.
         */
         match self.state {
-            OutsideSegmentOrState::OutsideSegment => self.segment.is_all_zero(),
-            OutsideSegmentOrState::State(state) => state == 0 && self.segment.is_all_zero(),
+            OutsideSegmentOrState::OutsideSegment | OutsideSegmentOrState::State(0) => {
+                self.segment.are_there_no_ones()
+            }
+            _ => false,
         }
     }
 }
