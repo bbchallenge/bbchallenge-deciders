@@ -135,7 +135,7 @@ As usual for Rust programs — unit tests are in-line, so `core/proof.rs` also h
 ### Verification File
 
 In our [Decider Verification Files](https://github.com/TonyGuil/bbchallenge/blob/main/README), we specify the following:
-- `DeciderType` = 5
+- `DeciderType` = 6
 - `InfoLength` is variable, but corresponds to
 - `DeciderSpecificInfo` contains 1 byte for the direction (0 if as above the FSM is to scan left-to-right, 1 if reversed),
   then 2n bytes for a DFA transition table as described above
