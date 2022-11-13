@@ -169,8 +169,8 @@ fn Iijil_strategy(machine_id: u32, node_limit: usize, print_run_info: bool) -> b
             HaltingSegmentResult::MachineDoesNotHalt(nb_nodes) => {
                 if print_run_info {
                     println!(
-                        "Proved nonhalting with segment size {} and initial position {} after expanding {} nodes",
-                        segment_size, initial_pos_in_segment, nb_nodes
+                        "Machine {} proved nonhalting with segment size {} and initial position {} after expanding {} nodes, and cumulatively {} nodes in search", machine_id,
+                        segment_size, initial_pos_in_segment, nb_nodes, total_nodes_consumed
                     );
                 }
                 return true;
@@ -291,8 +291,8 @@ mod tests {
     }
 
     #[test]
-    fn Iijil_strategy_324() {
-        Iijil_strategy(324, 10000, true);
+    fn Iijil_strategy_29713() {
+        Iijil_strategy(29713, 10000, true);
         assert_eq!(true, true);
     }
 }
