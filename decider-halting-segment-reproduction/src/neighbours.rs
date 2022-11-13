@@ -52,7 +52,7 @@ impl Node {
 
                 // Then, add neighbouring node
                 let mut new_segment = self.segment.clone();
-                new_segment.0[self.pos_in_segment] = SegmentCell::Bit(read_symbol);
+                new_segment.0[self.pos_in_segment] = SegmentCell::Bit(u8_to_bool(read_symbol));
 
                 let node_to_add = Node {
                     pos_in_segment: self.pos_in_segment,
@@ -126,7 +126,7 @@ impl Node {
                 // We can now construct the neighbouring Node
                 // First, we update the segment with read symbol
                 let mut new_segment = self.segment.clone();
-                new_segment.0[new_position] = SegmentCell::Bit(read_symbol);
+                new_segment.0[new_position] = SegmentCell::Bit(u8_to_bool(read_symbol));
 
                 let node_to_add = Node {
                     pos_in_segment: new_position,

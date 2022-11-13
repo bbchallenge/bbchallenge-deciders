@@ -18,13 +18,15 @@ mod display_nodes;
 mod hash_nodes;
 mod neighbours;
 mod tm;
+mod utils;
 
 use tm::{HaltOrGoto, HeadMove, TM};
+use utils::u8_to_bool;
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 enum SegmentCell {
     Unallocated,
-    Bit(u8),
+    Bit(bool),
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
@@ -40,7 +42,7 @@ impl SegmentCells {
     fn are_there_no_ones(&self) -> bool {
         for cell in self.0.iter() {
             match cell {
-                SegmentCell::Bit(1) => return false,
+                SegmentCell::Bit(true) => return false,
                 _ => continue,
             }
         }
@@ -89,7 +91,7 @@ fn get_initial_nodes(tm: &TM, segment_size: u8, initial_pos_in_segment: usize) -
             let transition = tm.transitions[i_state as usize][symbol as usize];
             if let HaltOrGoto::Halt = transition.goto {
                 let mut initial_segment = vec![SegmentCell::Unallocated; segment_size as usize];
-                initial_segment[initial_pos_in_segment] = SegmentCell::Bit(symbol);
+                initial_segment[initial_pos_in_segment] = SegmentCell::Bit(u8_to_bool(symbol));
                 to_return.push(Node {
                     state: OutsideSegmentOrState::State(i_state),
                     segment: SegmentCells(initial_segment),

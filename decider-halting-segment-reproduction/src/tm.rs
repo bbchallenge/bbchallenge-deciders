@@ -5,6 +5,8 @@ use std::io;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 
+use crate::utils::u8_to_bool;
+
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum HeadMove {
     Right,
@@ -28,7 +30,7 @@ pub enum HaltOrGoto {
 
 #[derive(Copy, Clone)]
 pub struct Transition {
-    pub write: u8,
+    pub write: bool,
     pub hmove: HeadMove,
     pub goto: HaltOrGoto,
 }
@@ -102,7 +104,11 @@ impl TM {
                 } else {
                     goto = HaltOrGoto::Goto(byte - 1);
                 }
-                transitions[i_state].push(Transition { write, hmove, goto })
+                transitions[i_state].push(Transition {
+                    write: u8_to_bool(write),
+                    hmove,
+                    goto,
+                })
             }
         }
 
