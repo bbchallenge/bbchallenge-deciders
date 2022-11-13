@@ -4,6 +4,8 @@ use std::{
     io::Read,
 };
 
+use indicatif::{ParallelProgressIterator, ProgressStyle};
+
 use rayon::prelude::*;
 use std::convert::TryInto;
 use std::fs::File;
@@ -182,8 +184,15 @@ fn main() {
         .map(u32::from_be_bytes)
         .collect();
 
+    let style = ProgressStyle::with_template(
+        "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
+    )
+    .unwrap()
+    .progress_chars("##-");
+
     let decided_ids: Vec<&u32> = undecided_ids
         .par_iter()
+        .progress_with_style(style)
         .filter(|&id| Iijil_strategy(*id, NODE_LIMIT))
         .collect();
 
