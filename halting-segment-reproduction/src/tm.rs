@@ -78,8 +78,8 @@ impl TM {
 
         let mut write: u8 = 0;
         let mut hmove: HeadMove = HeadMove::Right;
-        let mut goto: HaltOrGoto = HaltOrGoto::Halt;
-        let mut i_state = 0;
+        let mut goto: HaltOrGoto;
+        let mut i_state;
 
         for (i, &byte) in buf.iter().enumerate() {
             i_state = i / 6;

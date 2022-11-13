@@ -85,10 +85,33 @@ impl Node {
                     }
                 }
 
+                // Then, two cases:
+                // Case 1: backward transition makes us leave segment
+                if (self.pos_in_segment == 0 && transition.hmove == HeadMove::Right)
+                    || (self.pos_in_segment + 1 == self.segment.len()
+                        && transition.hmove == HeadMove::Left)
+                {
+                    // Note that we do not update pos_in_segment when getting outside of segment
+                    to_return.push(Node {
+                        pos_in_segment: self.pos_in_segment,
+                        segment: self.segment.clone(),
+                        state: OutsideSegmentOrState::OutsideSegment,
+                    });
+                    continue;
+                }
+
+                // Case 2: backward transition does not make us leave segment
+
+                let new_position = if transition.hmove == HeadMove::Right {
+                    self.pos_in_segment - 1
+                } else {
+                    self.pos_in_segment + 1
+                };
+
                 // Check that backward transition write is consistent with current segment
                 // (which is the future of that transition)
-                let curr_segment_cell = &self.segment[self.pos_in_segment];
-                if let SegmentCell::Bit(bit) = curr_segment_cell {
+                let new_segment_cell = &self.segment[new_position];
+                if let SegmentCell::Bit(bit) = new_segment_cell {
                     if *bit != transition.write {
                         continue;
                     }
@@ -97,34 +120,13 @@ impl Node {
                 // We can now construct the neighbouring Node
                 // First, we update the segment with read symbol
                 let mut new_segment = self.segment.clone();
-                new_segment[self.pos_in_segment] = SegmentCell::Bit(read_symbol);
+                new_segment[new_position] = SegmentCell::Bit(read_symbol);
 
-                // Then, two cases:
-                // Case 1: backward transition makes us leave segment
-                // Case 2: backward transition does not make us leave segment
-                if (self.pos_in_segment == 0 && transition.hmove == HeadMove::Right)
-                    || (self.pos_in_segment + 1 == self.segment.len()
-                        && transition.hmove == HeadMove::Left)
-                {
-                    // Note that we do not update pos_in_segment when getting outside of segment
-                    to_return.push(Node {
-                        pos_in_segment: self.pos_in_segment,
-                        segment: new_segment,
-                        state: OutsideSegmentOrState::OutsideSegment,
-                    });
-                } else {
-                    let new_position = if transition.hmove == HeadMove::Right {
-                        self.pos_in_segment + 1
-                    } else {
-                        self.pos_in_segment - 1
-                    };
-
-                    to_return.push(Node {
-                        pos_in_segment: new_position,
-                        segment: new_segment,
-                        state: OutsideSegmentOrState::State(i_state),
-                    });
-                }
+                to_return.push(Node {
+                    pos_in_segment: new_position,
+                    segment: new_segment,
+                    state: OutsideSegmentOrState::State(i_state),
+                });
             }
         }
 

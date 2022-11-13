@@ -4,7 +4,7 @@ mod display_nodes;
 mod neighbours;
 mod tm;
 
-use tm::{HaltOrGoto, HeadMove, Transition, TM};
+use tm::{HaltOrGoto, HeadMove, TM};
 
 #[derive(Copy, Clone)]
 enum SegmentCell {
@@ -31,7 +31,7 @@ const PATH_TO_BBCHALLENGE_DB: &str = "../all_5_states_undecided_machines_with_gl
 
 fn main() {
     let n: Node = Node {
-        state: OutsideSegmentOrState::OutsideSegment,
+        state: OutsideSegmentOrState::State(4),
         segment: vec![
             SegmentCell::Unallocated,
             SegmentCell::Unallocated,
@@ -44,9 +44,28 @@ fn main() {
 
     println!("{}", n);
 
-    let tm: TM = TM::from_bbchallenge_id(234, PATH_TO_BBCHALLENGE_DB).unwrap();
+    let tm: TM = TM::from_bbchallenge_id(76708232, PATH_TO_BBCHALLENGE_DB).unwrap();
 
     println!("{}", tm);
 
-    println!("{}", Nodes(n.get_neighbours(&tm)));
+    println!(
+        "{}\n{}\n\n{}\n\n{}\n\n{}\n\n{}",
+        n.get_neighbours(&tm)[0],
+        Nodes(n.get_neighbours(&tm)[0].get_neighbours(&tm)),
+        Nodes(n.get_neighbours(&tm)[0].get_neighbours(&tm)[0].get_neighbours(&tm)),
+        Nodes(
+            n.get_neighbours(&tm)[0].get_neighbours(&tm)[0].get_neighbours(&tm)[0]
+                .get_neighbours(&tm)
+        ),
+        Nodes(
+            n.get_neighbours(&tm)[0].get_neighbours(&tm)[0].get_neighbours(&tm)[0]
+                .get_neighbours(&tm)[0]
+                .get_neighbours(&tm)
+        ),
+        Nodes(
+            n.get_neighbours(&tm)[0].get_neighbours(&tm)[0].get_neighbours(&tm)[0]
+                .get_neighbours(&tm)[1]
+                .get_neighbours(&tm)
+        )
+    );
 }

@@ -5,11 +5,9 @@ impl fmt::Display for Node {
         /*
             State: E ;  _ . .[0]. . _  ;
         */
-        let mut segment_string: String = String::new();
-
         let state_char: char = match self.state {
             OutsideSegmentOrState::OutsideSegment => '*',
-            OutsideSegmentOrState::State(state) => ('A' as u8 + state - 1) as char,
+            OutsideSegmentOrState::State(state) => ('A' as u8 + state) as char,
         };
 
         write!(f, "State: {} ; ", state_char)?;
@@ -22,7 +20,7 @@ impl fmt::Display for Node {
 
         for (i, segment_pos) in self.segment.iter().enumerate() {
             match segment_pos {
-                SegmentCell::Unallocated => segment_string += " . ",
+                SegmentCell::Unallocated => write!(f, " . ")?,
                 SegmentCell::Bit(bit) => {
                     if let OutsideSegmentOrState::State(_) = self.state {
                         if i == self.pos_in_segment {
