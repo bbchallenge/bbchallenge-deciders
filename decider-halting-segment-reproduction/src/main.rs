@@ -275,7 +275,7 @@ fn Iijil_strategy_updated(
 
 fn main() {
     // Corresponds to max segment size 2*5 + 1 = 11
-    const DISTANCE_TO_END_LIMIT: u8 = 5;
+    const DISTANCE_TO_END_LIMIT: u8 = 10;
 
     let mut undecided_index_file = File::open(PATH_TO_UNDECIDED_INDEX).unwrap();
     let mut raw_data: Vec<u8> = Vec::new();
@@ -303,8 +303,8 @@ fn main() {
     decided_ids.sort();
 
     println!(
-        "{} machines decided by halting segment (using @Iijil's updated strategy)",
-        decided_ids.len()
+        "{} machines decided by halting segment, starting from center of odd-size segments up to size {} (using @Iijil's updated strategy)",
+        decided_ids.len(), 2*DISTANCE_TO_END_LIMIT+1
     );
 
     let mut random_id: String = rand::thread_rng()
