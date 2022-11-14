@@ -273,9 +273,22 @@ fn Iijil_strategy_updated(
     false
 }
 
+use argh::FromArgs;
+
+fn default_distance_to_end_limit() -> u8 {
+    5
+}
+
+#[derive(FromArgs)]
+/// Halting segment deciders using @Iijil's updated search strategy.
+struct SearchArgs {
+    /// maximum size from center of segment to extremity, i.e. total size of segment is 2x+1
+    #[argh(option, short = 'n', default = "default_distance_to_end_limit()")]
+    distance_to_end_limit: u8,
+}
+
 fn main() {
-    // Corresponds to max segment size 2*6 + 1 = 13
-    const DISTANCE_TO_END_LIMIT: u8 = 6;
+    let searchArgs: SearchArgs = argh::from_env();
 
     let mut undecided_index_file = File::open(PATH_TO_UNDECIDED_INDEX).unwrap();
     let mut raw_data: Vec<u8> = Vec::new();
@@ -297,14 +310,14 @@ fn main() {
     let mut decided_ids: Vec<&u32> = undecided_ids
         .par_iter()
         .progress_with_style(style)
-        .filter(|&id| Iijil_strategy_updated(*id, DISTANCE_TO_END_LIMIT, false))
+        .filter(|&id| Iijil_strategy_updated(*id, searchArgs.distance_to_end_limit, false))
         .collect();
 
     decided_ids.sort();
 
     println!(
         "{} machines decided by halting segment, starting from center of odd-size segments up to size {} (using @Iijil's updated strategy)",
-        decided_ids.len(), 2*DISTANCE_TO_END_LIMIT+1
+        decided_ids.len(), 2*searchArgs.distance_to_end_limit+1
     );
 
     let mut random_id: String = rand::thread_rng()
@@ -314,8 +327,9 @@ fn main() {
         .collect();
     random_id = random_id.to_ascii_lowercase();
 
+    let d = searchArgs.distance_to_end_limit;
     let output_file =
-        format!("output/halting-segment-reproduction-run-{random_id}-max-distance-to-end-{DISTANCE_TO_END_LIMIT}");
+        format!("output/halting-segment-reproduction-run-{random_id}-max-distance-to-end-{d}");
 
     let mut file = File::create(output_file).unwrap();
     for id in decided_ids {
