@@ -135,13 +135,12 @@ As usual for Rust programs — unit tests are in-line, so `core/proof.rs` also h
 ### Verification File
 
 In our [Decider Verification Files](https://github.com/TonyGuil/bbchallenge/blob/main/README), we specify the following:
-- `DeciderType` = 6
+- `DeciderType` = 10
 - `InfoLength` is variable, but corresponds to
 - `DeciderSpecificInfo` contains 1 byte for the direction (0 if as above the FSM is to scan left-to-right, 1 if reversed),
   then 2n bytes for a DFA transition table as described above
-- Warning: The DVF spec mentions an `nEntries` field. This decider operates in append mode, and leaves `nEntries` as 0 instead of keeping it accurate.
-- Warning: The decider won't necessarily avoid duplicate DVF entries (2 records with equal `SeedDatabaseIndex`, let alone sort them.
-  A program mode for checking and cleaning my DVF files is likely in the future, but the higher priority is *independent* review of them.
+- Warning: The DVF format has an `nEntries` header. This decider operates in append mode and lets that become stale.
+  It may also write multiple proof records for the same `SeedDatabaseIndex`. These are quirks to fix in post-processing.
 
 ## How it works: theory
 
