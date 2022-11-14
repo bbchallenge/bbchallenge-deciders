@@ -275,7 +275,7 @@ fn Iijil_strategy_updated(
 
 fn main() {
     // Corresponds to max segment size 2*5 + 1 = 11
-    const DISTANCE_TO_END_LIMIT: u8 = 10;
+    const DISTANCE_TO_END_LIMIT: u8 = 7;
 
     let mut undecided_index_file = File::open(PATH_TO_UNDECIDED_INDEX).unwrap();
     let mut raw_data: Vec<u8> = Vec::new();
