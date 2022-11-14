@@ -144,6 +144,8 @@ fn Iijil_strategy(machine_id: u32, node_limit: usize, print_run_info: bool) -> b
     /* Implements @Iijil's strategy for running the backward halting segment decider:
         - The decider is run with all odd segment length until success or cumulative node limit is reached
         - Initial position in the segment is middle of it
+
+        UPDATE: the issue of this strategy is that results depend on the order used to add neighbours to the DFS stack. This hurts reproducibility so we are updating the strategy, see `Iijil_strategy_updated`.
     */
     let mut distance_to_segment_end: u8 = 1;
     let mut total_nodes_consumed = 0;

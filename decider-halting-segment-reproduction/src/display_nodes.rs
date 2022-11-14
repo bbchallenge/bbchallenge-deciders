@@ -12,39 +12,40 @@ impl fmt::Display for Node {
 
         write!(f, "State: {} ; ", state_char)?;
 
-        if let OutsideSegmentOrState::State(_) = self.state {
-            write!(f, " _")?;
-        } else if self.pos_in_segment == 0 {
-            write!(f, "[_")?;
+        let is_outside = matches!(self.state, OutsideSegmentOrState::OutsideSegment);
+
+        if is_outside && self.pos_in_segment == 0 {
+            write!(f, "[_]")?;
         } else {
             write!(f, " _")?;
         }
 
-        for (i, segment_pos) in self.segment.0.iter().enumerate() {
-            if i == self.pos_in_segment + 1 {
-                write!(f, "]")?;
-            } else {
-                if i == self.pos_in_segment {
-                    write!(f, "[")?;
-                } else {
-                    write!(f, " ")?;
-                }
+        for i in 0..self.segment.0.len() {
+            if i == 0 && (i != self.pos_in_segment && !is_outside) {
+                write!(f, " ")?;
+            }
 
-                match segment_pos {
-                    SegmentCell::Unallocated => write!(f, ".")?,
-                    SegmentCell::Bit(bit) => {
-                        write!(f, "{}", bit)?;
+            let mut space_after = true;
+            match self.segment.0[i] {
+                SegmentCell::Unallocated => write!(f, ".")?,
+                SegmentCell::Bit(bit) => {
+                    if i != self.pos_in_segment || is_outside {
+                        write!(f, "{}", bit as u8)?;
+                    } else {
+                        write!(f, "[{}]", bit as u8)?;
+                        space_after = false;
                     }
                 }
             }
+            if space_after && (i + 1 != self.pos_in_segment || is_outside) {
+                write!(f, " ")?;
+            }
         }
 
-        if self.pos_in_segment + 1 == self.segment.0.len() {
-            write!(f, "]_")?;
-        } else if let OutsideSegmentOrState::State(_) = self.state {
-            write!(f, " _ ")?;
-        } else {
+        if is_outside && self.pos_in_segment + 1 == self.segment.0.len() {
             write!(f, "[_]")?;
+        } else {
+            write!(f, " _")?;
         }
 
         write!(f, "")
@@ -57,5 +58,17 @@ impl fmt::Display for Nodes {
             writeln!(f, "{}: {}", i, node)?;
         }
         write!(f, "")
+    }
+}
+
+mod tests {
+    use super::*;
+
+    #[test]
+    fn machine_324_trace() {
+        let chaotic_machine_id = 324;
+        let tm: TM = TM::from_bbchallenge_id(chaotic_machine_id, PATH_TO_BBCHALLENGE_DB).unwrap();
+
+        halting_segment_decider(&tm, 5, 2, NodeLimit::NodeLimit(1000), true);
     }
 }
