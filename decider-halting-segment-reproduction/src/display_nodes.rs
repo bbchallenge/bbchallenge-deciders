@@ -71,4 +71,13 @@ mod tests {
 
         halting_segment_decider(&tm, 5, 2, NodeLimit::NodeLimit(1000), true);
     }
+
+    #[test]
+    fn machine_chaotic_trace() {
+        // Chaotic Machine [Marxen & Buntrock, 1990]
+        let chaotic_machine_id = 76708232;
+        let tm: TM = TM::from_bbchallenge_id(chaotic_machine_id, PATH_TO_BBCHALLENGE_DB).unwrap();
+
+        halting_segment_decider(&tm, 5, 2, NodeLimit::NodeLimit(1000), true);
+    }
 }
