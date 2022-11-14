@@ -147,7 +147,7 @@ func backwardTransition(config Configuration, changeFromState byte, read byte, w
 	return &previousConfiguration
 }
 
-func deciderHaltingSegment(m bbc.TM, maxDistance int, nodeLimit int, recursiveMode bool, printRunInfo bool) bool {
+func deciderHaltingSegment(m bbc.TM, maxDistance int, distanceLimit int, recursiveMode bool, printRunInfo bool) bool {
 	var stack []Configuration
 	var seenConfigurations = make(map[string]int)
 
@@ -169,7 +169,7 @@ func deciderHaltingSegment(m bbc.TM, maxDistance int, nodeLimit int, recursiveMo
 	var configuration Configuration
 	var maxDepth int
 	// continue until we had to check too many nodes
-	for nodes := 1; nodes <= nodeLimit; nodes += 1 {
+	for nodes := 1; true; nodes += 1 {
 
 		//we have found a nonhalting machine if all configurations have been successfully checked, i.e. all possible predecessors are in the list of seenConfigurations
 		if len(stack) == 0 {
@@ -203,16 +203,22 @@ func deciderHaltingSegment(m bbc.TM, maxDistance int, nodeLimit int, recursiveMo
 					if printRunInfo {
 						fmt.Println("Start configuration possible with path of length", depth+1, "with segment size", maxDistance*2+1)
 					}
-					if recursiveMode {
-						return deciderHaltingSegment(m, maxDistance+1, nodeLimit-nodes, recursiveMode, printRunInfo)
+					if recursiveMode && maxDistance < distanceLimit {
+						return deciderHaltingSegment(m, maxDistance+1, distanceLimit, recursiveMode, printRunInfo)
 					} else {
 						return false
 					}
 				}
-				// add the predecessor configuration to the stack if it wasn't seen before
-				if _, exists := seenConfigurations[try_backwards.toIndexString()]; !exists {
+				// add the predecessor configuration to the stack.
+				// if the position is outside of the considered segment only do so if it wasn't seen before
+				// (checking for loops at the outside positions is sufficient)
+				if try_backwards.Head >= try_backwards.minTapePos && try_backwards.Head <= try_backwards.maxTapePos {
 					stack = append(stack, *try_backwards)
-					seenConfigurations[try_backwards.toIndexString()] = depth + 1
+				} else {
+					if _, exists := seenConfigurations[try_backwards.toIndexString()]; !exists {
+						stack = append(stack, *try_backwards)
+						seenConfigurations[try_backwards.toIndexString()] = depth + 1
+					}
 				}
 			}
 		}
@@ -238,7 +244,7 @@ func main() {
 	DB_SIZE := (len(DB) / 30) - 1
 	fmt.Println(DB_SIZE)
 
-	argNodeLimit := flag.Int("t", 100, "number of nodes of the backwards tree to examine")
+	argDistanceLimit := flag.Int("d", 4, "maximum distance from the halting node")
 	argMinIndex := flag.Int("m", 0, "min machine index to consider in seed database")
 	argMaxIndex := flag.Int("M", bbc.TOTAL_UNDECIDED, "max machine index to consider in seed database")
 	argNWorkers := flag.Int("n", 4, "workers")
@@ -249,10 +255,10 @@ func main() {
 	minIndex := *argMinIndex
 	maxIndex := *argMaxIndex
 	indexFileName := *argIndexFile
-	nodeLimit := *argNodeLimit
+	distanceLimit := *argDistanceLimit
 	nWorkers := *argNWorkers
 
-	runName := "output/halting-segment-" + bbc.GetRunName() + "-nodes-" + fmt.Sprintf("%d", nodeLimit) + "-minIndex-" + fmt.Sprintf("%d", minIndex) + "-maxIndex-" + fmt.Sprintf("%d", maxIndex)
+	runName := "output/halting-segment-" + bbc.GetRunName() + "-distanceLimit-" + fmt.Sprintf("%d", distanceLimit) + "-minIndex-" + fmt.Sprintf("%d", minIndex) + "-maxIndex-" + fmt.Sprintf("%d", maxIndex)
 	f, _ := os.OpenFile(runName,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 
@@ -283,7 +289,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if deciderHaltingSegment(m, 0, nodeLimit, true, false) {
+					if deciderHaltingSegment(m, 0, distanceLimit, true, false) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], uint32(n))
 						f.Write(arr[:])
@@ -306,7 +312,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Err:", err, n)
 					}
-					if deciderHaltingSegment(m, 0, nodeLimit, true, false) {
+					if deciderHaltingSegment(m, 0, distanceLimit, true, false) {
 						var arr [4]byte
 						binary.BigEndian.PutUint32(arr[0:4], indexInDb)
 						f.Write(arr[:])

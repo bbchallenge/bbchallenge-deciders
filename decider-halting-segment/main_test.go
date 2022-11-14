@@ -23,7 +23,7 @@ func TestIndividualMachine(t *testing.T) {
 			t.Fail()
 		}
 		fmt.Println(tm.ToAsciiTable(5))
-		if !deciderHaltingSegment(tm, 1, 1000, true, true) {
+		if !deciderHaltingSegment(tm, 1, 3, true, true) {
 			t.Fail()
 		}
 	}
@@ -44,7 +44,7 @@ func TestChaosMachine(t *testing.T) {
 			t.Fail()
 		}
 		fmt.Println(tm.ToAsciiTable(5))
-		if !deciderHaltingSegment(tm, 2, 1000, false, true) {
+		if !deciderHaltingSegment(tm, 1, 2, true, true) {
 			t.Fail()
 		}
 	}
@@ -65,7 +65,7 @@ func TestComplexCounter(t *testing.T) {
 			t.Fail()
 		}
 		fmt.Println(tm.ToAsciiTable(5))
-		if !deciderHaltingSegment(tm, 3, 1000, false, true) {
+		if !deciderHaltingSegment(tm, 3, 3, false, true) {
 			t.Fail()
 		}
 	}
@@ -80,7 +80,7 @@ func TestArgumentHaltingSegment(t *testing.T) {
 	t.Run(fmt.Sprintf("decider_not-halting-segment_bb5_winner"), func(t *testing.T) {
 		tm := bbc.GetBB5Winner()
 
-		if deciderHaltingSegment(tm, 1, 1000, true, false) {
+		if deciderHaltingSegment(tm, 1, 5, true, false) {
 			fmt.Println(tm.ToAsciiTable(5))
 			fmt.Println(tm)
 			fmt.Println("Uh oh, expected false but got true")
@@ -97,7 +97,7 @@ func TestArgumentHaltingSegment(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if deciderHaltingSegment(tm, 1, 1000, true, false) {
+			if deciderHaltingSegment(tm, 1, 5, true, false) {
 				fmt.Println(tm.ToAsciiTable(5))
 				fmt.Println(tm)
 				fmt.Println("Uh oh, expected false but got true: ", index)
@@ -116,7 +116,7 @@ func TestArgumentHaltingSegment(t *testing.T) {
 			if err != nil {
 				t.Fail()
 			}
-			if !deciderHaltingSegment(tm, 1, 1000, true, false) {
+			if !deciderHaltingSegment(tm, 1, 5, true, false) {
 				fmt.Println("Uh oh, expected true but got false: ", index)
 				t.Fail()
 			}
