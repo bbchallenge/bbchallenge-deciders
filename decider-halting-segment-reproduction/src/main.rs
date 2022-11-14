@@ -1,7 +1,8 @@
-use std::{collections::HashSet, fmt, fs::File, io::Read};
+use std::{fmt, fs::File, io::Read};
 
 use std::io::prelude::*;
 
+use indexmap::IndexSet;
 use rand::{distributions::Alphanumeric, Rng};
 
 use indicatif::{ParallelProgressIterator, ProgressStyle};
@@ -16,6 +17,9 @@ mod utils;
 
 use tm::{HaltOrGoto, HeadMove, TM};
 use utils::u8_to_bool;
+
+#[global_allocator]
+static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 enum SegmentCell {
@@ -74,20 +78,20 @@ enum HaltingSegmentResult {
     NodeLimitExceeded,
 }
 
-fn get_initial_nodes(tm: &TM, segment_size: u8, initial_pos_in_segment: usize) -> Vec<Node> {
+fn get_initial_nodes(tm: &TM, segment_size: u8, initial_pos_in_segment: usize) -> IndexSet<Node> {
     assert!(initial_pos_in_segment < segment_size as usize);
-    let mut to_return: Vec<Node> = Vec::new();
+    let mut to_return: IndexSet<Node> = IndexSet::new();
     for i_state in 0..tm.n_states {
         for symbol in 0..tm.n_symbols {
             let transition = tm.transitions[i_state as usize][symbol as usize];
             if let HaltOrGoto::Halt = transition.goto {
                 let mut initial_segment = vec![SegmentCell::Unallocated; segment_size as usize];
                 initial_segment[initial_pos_in_segment] = SegmentCell::Bit(u8_to_bool(symbol));
-                to_return.push(Node {
+                to_return.insert(Node {
                     state: OutsideSegmentOrState::State(i_state),
                     segment: SegmentCells(initial_segment),
                     pos_in_segment: initial_pos_in_segment,
-                })
+                });
             }
         }
     }
@@ -95,42 +99,42 @@ fn get_initial_nodes(tm: &TM, segment_size: u8, initial_pos_in_segment: usize) -
     to_return
 }
 
+enum NodeLimit {
+    NoLimit,
+    NodeLimit(usize),
+}
+
 fn halting_segment_decider(
     tm: &TM,
     segment_size: u8,
     initial_pos_in_segment: usize,
-    node_limit: usize,
+    node_limit: NodeLimit,
     print_run_info: bool,
 ) -> HaltingSegmentResult {
-    let initial_nodes = get_initial_nodes(&tm, segment_size, initial_pos_in_segment);
+    let mut nodes = get_initial_nodes(&tm, segment_size, initial_pos_in_segment);
+    let mut idx_seen = 0;
 
-    let mut node_stack: Vec<Node> = initial_nodes;
-    let mut node_seen: HashSet<Node> = HashSet::new();
+    while let Some(node) = nodes.get_index(idx_seen) {
+        idx_seen += 1;
 
-    while !node_stack.is_empty() && node_seen.len() < node_limit {
-        let curr_node = node_stack.pop().unwrap();
-
-        if node_seen.contains(&curr_node) {
-            continue;
+        if node.is_fatal() {
+            return HaltingSegmentResult::CannotConclude(idx_seen);
         }
-
-        if curr_node.is_fatal() {
-            return HaltingSegmentResult::CannotConclude(node_seen.len() + 1);
-        }
-
-        node_stack.append(&mut curr_node.get_neighbours(&tm));
-        node_seen.insert(curr_node.clone());
 
         if print_run_info {
-            println!("{} ; Node: {}", curr_node, node_seen.len());
+            println!("{} ; Node: {}", node, idx_seen);
         }
+
+        if let NodeLimit::NodeLimit(limit) = node_limit {
+            if idx_seen > limit {
+                return HaltingSegmentResult::NodeLimitExceeded;
+            }
+        }
+
+        nodes.extend(node.get_neighbours(&tm));
     }
 
-    if node_stack.is_empty() {
-        HaltingSegmentResult::MachineDoesNotHalt(node_seen.len())
-    } else {
-        HaltingSegmentResult::NodeLimitExceeded
-    }
+    HaltingSegmentResult::MachineDoesNotHalt(idx_seen)
 }
 
 const PATH_TO_BBCHALLENGE_DB: &str = "../all_5_states_undecided_machines_with_global_header";
@@ -161,7 +165,7 @@ fn Iijil_strategy(machine_id: u32, node_limit: usize, print_run_info: bool) -> b
             &tm,
             segment_size,
             initial_pos_in_segment,
-            node_limit,
+            NodeLimit::NodeLimit(node_limit),
             print_run_info,
         );
 
@@ -258,7 +262,7 @@ mod tests {
         let chaotic_machine_id = 76708232;
         let tm: TM = TM::from_bbchallenge_id(chaotic_machine_id, PATH_TO_BBCHALLENGE_DB).unwrap();
         assert_eq!(
-            halting_segment_decider(&tm, 5, 2, 1000, false),
+            halting_segment_decider(&tm, 5, 2, NodeLimit::NodeLimit(1000), false),
             // 7 nodes expanded, cross checked with @Iijil
             HaltingSegmentResult::MachineDoesNotHalt(7)
         );
@@ -271,7 +275,7 @@ mod tests {
         let tm: TM = TM::from_bbchallenge_id(chaotic_machine_id, PATH_TO_BBCHALLENGE_DB).unwrap();
 
         assert_eq!(
-            halting_segment_decider(&tm, 7, 3, 1000, false),
+            halting_segment_decider(&tm, 7, 3, NodeLimit::NodeLimit(1000), false),
             // 38 nodes expanded, cross checked with @Iijil
             HaltingSegmentResult::MachineDoesNotHalt(38)
         );
@@ -284,7 +288,7 @@ mod tests {
         let tm: TM = TM::from_bbchallenge_id(chaotic_machine_id, PATH_TO_BBCHALLENGE_DB).unwrap();
 
         assert_eq!(
-            halting_segment_decider(&tm, 3, 1, 1000, false),
+            halting_segment_decider(&tm, 3, 1, NodeLimit::NodeLimit(1000), false),
             // 18 nodes expanded, cross checked with @Iijil
             HaltingSegmentResult::MachineDoesNotHalt(18)
         );

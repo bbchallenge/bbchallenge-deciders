@@ -9,3 +9,5 @@ version = "0.1.0"
 indicatif = {version = "*", features = ["rayon"]}
 rayon = "1.5"
 rand = "*"
+indexmap = "1.9"
+jemallocator = "0.5"
