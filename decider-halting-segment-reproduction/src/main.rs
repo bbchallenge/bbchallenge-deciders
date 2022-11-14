@@ -303,7 +303,7 @@ fn main() {
     decided_ids.sort();
 
     println!(
-        "{} machines decided by halting segment (using @Iijil's strategy)",
+        "{} machines decided by halting segment (using @Iijil's updated strategy)",
         decided_ids.len()
     );
 
