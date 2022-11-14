@@ -204,8 +204,78 @@ fn Iijil_strategy(machine_id: u32, node_limit: usize, print_run_info: bool) -> b
     false
 }
 
+fn Iijil_strategy_updated(
+    machine_id: u32,
+    distance_to_end_limit: u8,
+    print_run_info: bool,
+) -> bool {
+    /* Instead of using a node limit, like in `Iijil_strategy`, we exhaustively search all odd segment sizes
+    up to `2*distance_to_end_limit+1` (and stop early when one reaches a conclusion), from middle starting position.
+
+    This is because node limit make reproducibility hard when a different order is used to push nodes in the stack in varying
+    implementions. We feel that this method is simpler than imposing an order on nodes.
+    */
+
+    let mut distance_to_segment_end: u8 = 1;
+    let mut total_nodes_consumed = 0;
+
+    let tm = TM::from_bbchallenge_id(machine_id, PATH_TO_BBCHALLENGE_DB).unwrap();
+    if print_run_info {
+        println!("Machine ID: {}", machine_id);
+        println!("{}", tm);
+    }
+    while distance_to_segment_end <= distance_to_end_limit {
+        let segment_size = 2 * distance_to_segment_end + 1;
+        let initial_pos_in_segment = distance_to_segment_end as usize;
+
+        if print_run_info {
+            println!("Segment size: {}", segment_size);
+        }
+
+        let result = halting_segment_decider(
+            &tm,
+            segment_size,
+            initial_pos_in_segment,
+            NodeLimit::NoLimit,
+            print_run_info,
+        );
+
+        match result {
+            HaltingSegmentResult::MachineDoesNotHalt(nb_nodes) => {
+                if print_run_info {
+                    println!(
+                        "Machine {} proved nonhalting with segment size {} and initial position {} after expanding {} nodes, and cumulatively {} nodes in search", machine_id,
+                        segment_size, initial_pos_in_segment, nb_nodes, nb_nodes+total_nodes_consumed
+                    );
+                }
+                return true;
+            }
+
+            HaltingSegmentResult::CannotConclude(nb_nodes) => {
+                if print_run_info {
+                    println!("Cannot conclude with segment size {} and initial position {}, {} nodes expanded",
+                    segment_size, initial_pos_in_segment, nb_nodes);
+                }
+                total_nodes_consumed += nb_nodes;
+            }
+            HaltingSegmentResult::NodeLimitExceeded => {
+                if print_run_info {
+                    println!("Node limit exceeded");
+                }
+                return false;
+            }
+        }
+        distance_to_segment_end += 1;
+    }
+    if print_run_info {
+        println!("Node limit exceeded");
+    }
+    false
+}
+
 fn main() {
-    const NODE_LIMIT: usize = 10000;
+    // Corresponds to max segment size 2*5 + 1 = 11
+    const DISTANCE_TO_END_LIMIT: u8 = 5;
 
     let mut undecided_index_file = File::open(PATH_TO_UNDECIDED_INDEX).unwrap();
     let mut raw_data: Vec<u8> = Vec::new();
@@ -227,7 +297,7 @@ fn main() {
     let mut decided_ids: Vec<&u32> = undecided_ids
         .par_iter()
         .progress_with_style(style)
-        .filter(|&id| Iijil_strategy(*id, NODE_LIMIT, false))
+        .filter(|&id| Iijil_strategy_updated(*id, DISTANCE_TO_END_LIMIT, false))
         .collect();
 
     decided_ids.sort();
@@ -245,7 +315,7 @@ fn main() {
     random_id = random_id.to_ascii_lowercase();
 
     let output_file =
-        format!("output/halting-segment-reproduction-run-{random_id}-nodes-{NODE_LIMIT}");
+        format!("output/halting-segment-reproduction-run-{random_id}-max-distance-to-end-{DISTANCE_TO_END_LIMIT}");
 
     let mut file = File::create(output_file).unwrap();
     for id in decided_ids {
@@ -298,7 +368,13 @@ mod tests {
 
     #[test]
     fn Iijil_strategy_23367211() {
-        Iijil_strategy(23367211, 200000, true);
+        assert!(Iijil_strategy(23367211, 200000, true))
+    }
+
+    #[test]
+    fn Iijil_strategy_updated_23367211() {
+        // Segment size 15 = 2*7+1
+        assert!(Iijil_strategy_updated(23367211, 7, true))
     }
 
     #[test]
