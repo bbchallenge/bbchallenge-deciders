@@ -19,7 +19,6 @@ use std::cmp::min;
 pub struct MitMDFAProver {
     n: i32,
     solver: Solver,
-    ready: bool,
 }
 
 impl Prover for MitMDFAProver {
@@ -28,11 +27,8 @@ impl Prover for MitMDFAProver {
     }
 
     fn prove(&mut self, tm: &Machine) -> Option<Proof> {
-        if !self.ready {
-            self.init(self.n);
-        }
-        let assumptions = tm.rules().flat_map(Self::tm_clause);
-        if self.solver.solve_with(assumptions) == Some(true) {
+        self.init(self.n, tm);
+        if self.solver.solve() == Some(true) {
             let mut dfa = DFA::new(self.n as usize);
             for q in 0..dfa.len() {
                 for b in 0..2 {
@@ -48,8 +44,8 @@ impl Prover for MitMDFAProver {
 
 impl ProverOptions for MitMDFAProver {
     fn new(depth: usize) -> Self {
-        let (solver, n, ready) = (Solver::new(), depth as L, false);
-        MitMDFAProver { n, solver, ready }
+        let (solver, n) = (Solver::new(), depth as L);
+        MitMDFAProver { n, solver }
     }
 }
 
@@ -76,10 +72,6 @@ fn a(b: L, h: L) -> L {
 
 #[rustfmt::skip]
 impl MitMDFAProver {
-    fn _tm_write(        f: L, r: L)       -> L { f + T*r             + 2 }
-    fn _tm_right(        f: L, r: L)       -> L { f + T*r             + T*2 + 2 }
-    fn _tm_to_eq(        f: L, r: L, t: L) -> L { f + T*(r + 2*t)     + T*4 + 2 }
-    fn _tm_to_le(        f: L, r: L, t: L) -> L { f + T*(r + 2*(t-1)) + T*(6+T*2) + 2 }
     fn _dfa_t_eq(n: L, lr: L, qb: L, t: L) -> L { lr + 2*(qb-1 + a(2*n  , t  )) + 4*T*(T+1) + 2 }
     fn _dfa_t_le(n: L, lr: L, qb: L, t: L) -> L { lr + 2*(qb-2 + a(2*n-2, t-1)) + 4*T*(T+1) + n*(1+3*n) }
     fn _accepted(n: L, ql: L, f: L, r: L, qr: L) -> L { ql + n*(f + T*(r + 2*qr)) + 4*T*(T+1) + 6*n*(n-1) + 1 }
@@ -87,49 +79,6 @@ impl MitMDFAProver {
 }
 
 impl MitMDFAProver {
-    fn negate_if_0(lit: L, w: u8) -> L {
-        match w {
-            0 => -lit,
-            _ => lit,
-        }
-    }
-
-    fn negate_if_l(lit: L, d: Side) -> L {
-        match d {
-            Side::L => -lit,
-            Side::R => lit,
-        }
-    }
-
-    fn tm_clause(rule: Rule) -> [L; 3] {
-        match rule {
-            Rule::Move { f, r, w, d, t } => [
-                Self::negate_if_0(Self::_tm_write(f as L, r as L), w),
-                Self::negate_if_l(Self::_tm_right(f as L, r as L), d),
-                Self::_tm_to_eq(f as L, r as L, t as L),
-            ],
-            Rule::Halt { f, r } => [Self::_tm_to_eq(f as L, r as L, T), TRUE, TRUE],
-        }
-    }
-
-    fn tm_to(&self, f: TMState, r: u8, t: L) -> L {
-        if (0..=T).contains(&t) {
-            Self::_tm_to_eq(f as L, r as L, t)
-        } else {
-            FALSE
-        }
-    }
-
-    fn tm_to_le(&self, f: TMState, r: u8, t: L) -> L {
-        if t <= 0 {
-            self.tm_to(f, r, t)
-        } else if t < T {
-            Self::_tm_to_le(f as L, r as L, t)
-        } else {
-            TRUE
-        }
-    }
-
     fn dfa(&self, lr: i32, q: DFAState, b: u8, t: L) -> L {
         let qb = 2 * (q as L) + (b as L);
         if (qb, t) == (0, 0) {
@@ -179,19 +128,9 @@ impl MitMDFAProver {
         self.solver.add_clause(clause.into_iter())
     }
 
-    fn init(&mut self, n: L) {
-        self.ready = true;
+    fn init(&mut self, n: L, tm: &Machine) {
+        self.solver = Solver::new();
         self.add([TRUE]);
-        // TM transition outcomes are mutually exclusive.
-        for f in 0..(T as TMState) {
-            for r in 0..2 {
-                for t in 0..=T {
-                    self.add([-self.tm_to(f, r, t), self.tm_to_le(f, r, t)]);
-                    self.add([-self.tm_to_le(f, r, t), self.tm_to_le(f, r, t + 1)]);
-                    self.add([-self.tm_to(f, r, t + 1), -self.tm_to_le(f, r, t)]);
-                }
-            }
-        }
         // DFA transitions:
         for lr in 0..2 {
             for q in 0..(n as DFAState) {
@@ -214,44 +153,34 @@ impl MitMDFAProver {
         // Closure conditions:
         for ql in 0..(n as DFAState) {
             for qr in 0..(n as DFAState) {
-                for f in 0..(T as TMState) {
-                    for r in 0..2 {
-                        self.add([-self.tm_to(f, r, T), self.accept(ql, f, r, qr)]);
-                        let cr = Self::_tm_right(f as L, r as L);
-                        for w in 0..2 {
-                            let cw = Self::negate_if_0(Self::_tm_write(f as L, r as L), w);
-                            for t in 0..(T as TMState) {
-                                let ct = self.tm_to(f, r, t as L);
-                                for b in 0..2 {
-                                    for qw in 0..(n as DFAState) {
-                                        for qb in 0..(n as DFAState) {
-                                            // Closure under left TM transitions, b f@r -> t@b w
-                                            self.add([
-                                                self.accept(qb, f, r, qr),
-                                                -cw,
-                                                cr,
-                                                -ct,
-                                                -self.dfa(FROM_LEFT, ql, b, qb as L),
-                                                -self.dfa(FROM_RIGHT, qr, w, qw as L),
-                                                -self.accept(ql, t, b, qw),
-                                            ]);
-                                            // Closure under right TM transitions, f@r b -> w t@b
-                                            self.add([
-                                                self.accept(ql, f, r, qb),
-                                                -cw,
-                                                -cr,
-                                                -ct,
-                                                -self.dfa(FROM_RIGHT, qr, b, qb as L),
-                                                -self.dfa(FROM_LEFT, ql, w, qw as L),
-                                                -self.accept(qw, t, b, qr),
-                                            ]);
-                                        }
+                tm.rules().for_each(|rule| match rule {
+                    Rule::Halt { f, r } => self.add([self.accept(ql, f, r, qr)]),
+                    Rule::Move { f, r, w, d, t } => {
+                        for b in 0..2 {
+                            for qw in 0..(n as DFAState) {
+                                for qb in 0..(n as DFAState) {
+                                    if d == Side::L {
+                                        // Transition: b f@r -> t@b w
+                                        self.add([
+                                            -self.dfa(FROM_LEFT, ql, b, qb as L),
+                                            -self.dfa(FROM_RIGHT, qr, w, qw as L),
+                                            -self.accept(ql, t, b, qw),
+                                            self.accept(qb, f, r, qr),
+                                        ]);
+                                    } else {
+                                        // Transition: f@r b -> w t@b
+                                        self.add([
+                                            -self.dfa(FROM_RIGHT, qr, b, qb as L),
+                                            -self.dfa(FROM_LEFT, ql, w, qw as L),
+                                            -self.accept(qw, t, b, qr),
+                                            self.accept(ql, f, r, qb),
+                                        ]);
                                     }
                                 }
                             }
                         }
                     }
-                }
+                });
             }
         }
         // DFA ordering criteria: as in dfa_iterator.rs, we impose an ordering criterion, which
