@@ -111,17 +111,14 @@ impl MitMDFAProver {
 
     fn dfa_eval(&self, lr: i32, q: DFAState, b: u8) -> DFAState {
         // We have the less-or-equal variables solved, but a linear search is more than fast enough.
-        for t in 0..(self.n as DFAState) {
-            if self.value(self.dfa(lr, q, b, t as L)) {
-                return t;
+        let max_val = (self.n - 1) as DFAState;
+        for t in 0..max_val {
+            match self.solver.value(self.dfa(lr, q, b, t as L)) {
+                Some(true) | None => return t,
+                Some(false) => {}
             }
         }
-        unreachable!("The transition has a value in every model.");
-    }
-
-    /// Evaluate a variable or negation, making arbitrary choices if needed.
-    fn value(&self, lit: L) -> bool {
-        self.solver.value(lit).unwrap_or(lit > 0)
+        max_val
     }
 
     fn add<I: IntoIterator<Item = L>>(&mut self, clause: I) {
