@@ -18,7 +18,16 @@ use std::cmp::min;
 /// A prover which searches for "Meet-in-the-Middle DFA" recognizers.
 pub struct MitMDFAProver {
     n: i32,
-    solver: Solver,
+}
+
+trait BetterAddClause {
+    fn add<I: IntoIterator<Item = L>>(&mut self, clause: I);
+}
+
+impl BetterAddClause for Solver {
+    fn add<I: IntoIterator<Item = L>>(&mut self, clause: I) {
+        self.add_clause(clause.into_iter())
+    }
 }
 
 impl Prover for MitMDFAProver {
@@ -27,12 +36,12 @@ impl Prover for MitMDFAProver {
     }
 
     fn prove(&mut self, tm: &Machine) -> Option<Proof> {
-        self.init(self.n, tm);
-        if self.solver.solve() == Some(true) {
+        let mut solver = self.init(self.n, tm);
+        if solver.solve() == Some(true) {
             let mut dfa = DFA::new(self.n as usize);
             for q in 0..dfa.len() {
                 for b in 0..2 {
-                    dfa.t[q][b] = self.dfa_eval(FROM_LEFT, q as DFAState, b as u8);
+                    dfa.t[q][b] = self.dfa_eval(&solver, FROM_LEFT, q as DFAState, b as u8);
                 }
             }
             DirectProver::complete_unverified(tm, Side::R, dfa)
@@ -44,8 +53,7 @@ impl Prover for MitMDFAProver {
 
 impl ProverOptions for MitMDFAProver {
     fn new(depth: usize) -> Self {
-        let (solver, n) = (Solver::new(), depth as L);
-        MitMDFAProver { n, solver }
+        MitMDFAProver { n: depth as L }
     }
 }
 
@@ -109,11 +117,11 @@ impl MitMDFAProver {
         }
     }
 
-    fn dfa_eval(&self, lr: i32, q: DFAState, b: u8) -> DFAState {
+    fn dfa_eval(&self, solver: &Solver, lr: i32, q: DFAState, b: u8) -> DFAState {
         // We have the less-or-equal variables solved, but a linear search is more than fast enough.
         let max_val = (self.n - 1) as DFAState;
         for t in 0..max_val {
-            match self.solver.value(self.dfa(lr, q, b, t as L)) {
+            match solver.value(self.dfa(lr, q, b, t as L)) {
                 Some(true) | None => return t,
                 Some(false) => {}
             }
@@ -121,28 +129,24 @@ impl MitMDFAProver {
         max_val
     }
 
-    fn add<I: IntoIterator<Item = L>>(&mut self, clause: I) {
-        self.solver.add_clause(clause.into_iter())
-    }
-
-    fn init(&mut self, n: L, tm: &Machine) {
-        self.solver = Solver::new();
-        self.add([TRUE]);
+    fn init(&mut self, n: L, tm: &Machine) -> Solver {
+        let mut solver = Solver::new();
+        solver.add([TRUE]);
         // DFA transitions:
         for lr in 0..2 {
             for q in 0..(n as DFAState) {
                 for b in 0..2 {
                     // Outcomes are mutually exclusive.
                     for t in 0..n {
-                        self.add([-self.dfa(lr, q, b, t), self.dfa_le(lr, q, b, t)]);
-                        self.add([-self.dfa_le(lr, q, b, t), self.dfa_le(lr, q, b, t + 1)]);
-                        self.add([-self.dfa(lr, q, b, t + 1), -self.dfa_le(lr, q, b, t)]);
+                        solver.add([-self.dfa(lr, q, b, t), self.dfa_le(lr, q, b, t)]);
+                        solver.add([-self.dfa_le(lr, q, b, t), self.dfa_le(lr, q, b, t + 1)]);
+                        solver.add([-self.dfa(lr, q, b, t + 1), -self.dfa_le(lr, q, b, t)]);
                     }
                     // An outcome occurs.
                     if (q, b) != (0, 0) {
                         let tmax = min(2 * (q as L) + (b as L) + 1, n);
                         let qb = 2 * (q as L) + (b as L);
-                        self.add((0..tmax).map(|t| Self::_dfa_t_eq(n, lr, qb, t)));
+                        solver.add((0..tmax).map(|t| Self::_dfa_t_eq(n, lr, qb, t)));
                     }
                 }
             }
@@ -151,14 +155,14 @@ impl MitMDFAProver {
         for ql in 0..(n as DFAState) {
             for qr in 0..(n as DFAState) {
                 tm.rules().for_each(|rule| match rule {
-                    Rule::Halt { f, r } => self.add([self.accept(ql, f, r, qr)]),
+                    Rule::Halt { f, r } => solver.add([self.accept(ql, f, r, qr)]),
                     Rule::Move { f, r, w, d, t } => {
                         for b in 0..2 {
                             for qw in 0..(n as DFAState) {
                                 for qb in 0..(n as DFAState) {
                                     if d == Side::L {
                                         // Transition: b f@r -> t@b w
-                                        self.add([
+                                        solver.add([
                                             -self.dfa(FROM_LEFT, ql, b, qb as L),
                                             -self.dfa(FROM_RIGHT, qr, w, qw as L),
                                             -self.accept(ql, t, b, qw),
@@ -166,7 +170,7 @@ impl MitMDFAProver {
                                         ]);
                                     } else {
                                         // Transition: f@r b -> w t@b
-                                        self.add([
+                                        solver.add([
                                             -self.dfa(FROM_RIGHT, qr, b, qb as L),
                                             -self.dfa(FROM_LEFT, ql, w, qw as L),
                                             -self.accept(qw, t, b, qr),
@@ -214,13 +218,13 @@ impl MitMDFAProver {
             let (q, b) = ((qb / 2) as DFAState, (qb % 2) as u8);
             for m in qb / 2..min(n, qb) {
                 for lr in 0..2 {
-                    self.add([-tmax_eq(n, lr, qb, m, &base), self.dfa_le(lr, q, b, m + 1)]);
-                    self.add([
+                    solver.add([-tmax_eq(n, lr, qb, m, &base), self.dfa_le(lr, q, b, m + 1)]);
+                    solver.add([
                         -tmax_eq(n, lr, qb, m, &base),
                         -self.dfa_le(lr, q, b, m),
                         tmax_eq(n, lr, qb + 1, m, &base),
                     ]);
-                    self.add([
+                    solver.add([
                         -tmax_eq(n, lr, qb, m, &base),
                         -self.dfa(lr, q, b, m + 1),
                         tmax_eq(n, lr, qb + 1, m + 1, &base),
@@ -228,5 +232,6 @@ impl MitMDFAProver {
                 }
             }
         }
+        solver
     }
 }
