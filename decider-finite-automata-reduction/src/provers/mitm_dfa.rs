@@ -72,10 +72,10 @@ fn a(b: L, h: L) -> L {
 
 #[rustfmt::skip]
 impl MitMDFAProver {
-    fn _dfa_t_eq(n: L, lr: L, qb: L, t: L) -> L { lr + 2*(qb-1 + a(2*n  , t  )) + 4*T*(T+1) + 2 }
-    fn _dfa_t_le(n: L, lr: L, qb: L, t: L) -> L { lr + 2*(qb-2 + a(2*n-2, t-1)) + 4*T*(T+1) + n*(1+3*n) }
-    fn _accepted(n: L, ql: L, f: L, r: L, qr: L) -> L { ql + n*(f + T*(r + 2*qr)) + 4*T*(T+1) + 6*n*(n-1) + 1 }
-    fn _aux_var0(n: L) -> L { n*T*2*n + 4*T*(T+1) + 6*n*(n-1) + 1 }
+    fn _dfa_t_eq(n: L, lr: L, qb: L, t: L) -> L { lr + 2*(qb-1 + a(2*n  , t  )) + 2 }
+    fn _dfa_t_le(n: L, lr: L, qb: L, t: L) -> L { lr + 2*(qb-2 + a(2*n-2, t-1)) + n*(1+3*n) }
+    fn _accepted(n: L, ql: L, f: L, r: L, qr: L) -> L { ql + n*(f + T*(r + 2*qr)) + 6*n*(n-1) + 1 }
+    fn _aux_var0(n: L) -> L { n*T*2*n + 6*n*(n-1) + 1 }
 }
 
 impl MitMDFAProver {
