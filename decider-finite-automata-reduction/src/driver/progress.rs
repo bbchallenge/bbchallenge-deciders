@@ -45,7 +45,10 @@ impl DeciderProgress {
             },
         );
         let prover_style = ProgressStyle::with_template(PROVER).unwrap();
-        let for_index = multi.add(ProgressBar::new(len as u64).with_style(index_style));
+        let pb = ProgressBar::new(len as u64)
+            .with_style(index_style)
+            .with_finish(ProgressFinish::Abandon);
+        let for_index = multi.add(pb);
         DeciderProgress {
             multi,
             for_index,
