@@ -83,15 +83,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
-name = "cadical"
-version = "0.1.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "509aed9f025452ea0105d2cf7635776a9a4977500424085fcf8f44d79bbf0ff5"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "cc"
 version = "1.0.74"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -282,10 +273,10 @@ name = "decider-finite-automata-reduction"
 version = "0.1.0"
 dependencies = [
  "argh",
- "cadical",
  "custom_error",
  "indicatif",
  "itertools",
+ "kissat-rs",
  "node_crunch",
  "serde",
  "serde_json",
@@ -442,6 +433,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49409df3e3bf0856b916e2ceaca09ee28e6871cf7d9ce97a692cacfdb2a25a47"
 dependencies = [
  "wasm-bindgen",
+]
+
+[[package]]
+name = "kissat-rs"
+version = "0.1.0"
+source = "git+https://github.com/UncombedCoconut/kissat-rs#155cda733d8087bfa3c2bdb9087ddd14c214463f"
+dependencies = [
+ "cc",
 ]
 
 [[package]]
