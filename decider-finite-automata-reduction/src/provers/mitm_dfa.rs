@@ -145,8 +145,7 @@ impl MitMDFAProver {
                     // An outcome occurs.
                     if (q, b) != (0, 0) {
                         let tmax = min(2 * (q as L) + (b as L) + 1, n);
-                        let qb = 2 * (q as L) + (b as L);
-                        solver.add((0..tmax).map(|t| Self::_dfa_t_eq(n, lr, qb, t)));
+                        solver.add((0..tmax).map(|t| self.dfa(lr, q, b, t)));
                     }
                 }
             }
