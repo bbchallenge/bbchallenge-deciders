@@ -486,7 +486,7 @@ dependencies = [
 [[package]]
 name = "node_crunch"
 version = "0.2.0"
-source = "git+https://github.com/willi-kappler/node_crunch?rev=26e2c71#26e2c7135ee929ab968b5c072810069c601d5a05"
+source = "git+https://github.com/willi-kappler/node_crunch#b77e77f5e4be4e30a088397381c3006eb6306cdc"
 dependencies = [
  "bincode",
  "chacha20poly1305",
