@@ -12,7 +12,7 @@
 
 use super::{DirectProver, Prover, ProverOptions};
 use crate::core::{DFAState, Machine, Proof, Rule, Side, TMState, DFA, TM_STATES};
-use kissat_rs::Solver;
+use cat_solver::Solver;
 use std::cmp::min;
 
 /// A prover which searches for "Meet-in-the-Middle DFA" recognizers.
