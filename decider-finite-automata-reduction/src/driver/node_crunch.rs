@@ -34,7 +34,7 @@ struct WorkStats {
 impl Default for WorkStats {
     fn default() -> Self {
         Self {
-            target_size: 16,
+            target_size: 1,
             last_send: Instant::now(),
             todo: None,
         }
@@ -56,6 +56,7 @@ struct Server {
     retries: Vec<NewData>,
     bar: ProgressBar,
     stats: HashMap<NodeID, WorkStats>,
+    tms_in_flight: usize,
 }
 
 impl NCServer for Server {
@@ -82,12 +83,15 @@ impl NCServer for Server {
                     .progress
                     .prover_progress(self.ids.len(), self.current_prover.clone());
                 self.progress.set_solved(self.index.len_solved());
-            } else {
+            } else if self.tms_in_flight == 0 {
                 return Ok(NCJobStatus::Finished);
+            } else {
+                return Ok(NCJobStatus::Waiting);
             }
         }
         let len = min(self.ids.len(), entry.target_size);
         self.bar.inc(len as u64);
+        self.tms_in_flight += len;
         let new_data = NewData {
             prover_name: self.current_prover.clone(),
             ids: self.ids.drain(0..len).collect(),
@@ -116,6 +120,7 @@ impl NCServer for Server {
                 _ => min(s.target_size, size_out / 4),
             };
             s.target_size = max(1, min(s.target_size, 8192));
+            self.tms_in_flight -= size_out;
         });
         for (i, result) in node_data.results.iter() {
             match &result {
@@ -129,6 +134,10 @@ impl NCServer for Server {
                     self.progress.println(msg)?;
                 }
             }
+        }
+        if self.ids.is_empty() && self.prover_names.is_empty() {
+            let msg = format!("Awaiting results for {} TMs + 60s shutdown.", self.tms_in_flight);
+            self.progress.println(msg)?;
         }
         Ok(())
     }
@@ -231,6 +240,7 @@ pub fn process_remote(
             retries: Vec::new(),
             bar: ProgressBar::hidden(),
             stats: HashMap::new(),
+            tms_in_flight: 0,
         })
         .expect("Quit due to server error!");
 }
