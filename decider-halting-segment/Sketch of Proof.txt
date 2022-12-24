@@ -1,0 +1,25 @@
+Shawn Ligocki wrote bout CTL here: https://www.sligocki.com/2022/06/10/ctl.html
+
+This decider uses coCTL:
+
+We define a set C of configurations so that:
+
+1. all halting configurations where the TM halts after 1 step are in C
+2. C is backwards-closed: For any configuration c in C, all predecessor configurations c', that turn into c after 1 step, are also in C.
+3. C does not contain the starting configuration
+
+If all of these are true, then the TM can never enter C from the starting configuration and thus can never halt
+
+
+Note that the usual backwards reasoning decider tries to find the minimal set C by starting with the set that contains all the configurations in 1 and then keeps adding possible predecessors until that becomes impossible.
+
+For this decider, in cases where a predecessor would fix a symbol too far away from the halting position, we do not only add that configuration to C, but all configurations where the segment around the halting position is present and the TM is in any state further away from it in the given direction.
+
+Most of those extra added configurations only have predecessors with the same description. Only when the position is next to the fixed segment are there possible predecessors with another description: Those where the TM just exited the defined segment in the correct direction, leaving the fixed segment behind.
+
+Those are exactly the predecessors this decider adds to it's configurations when considering configurations where the position is too far away.
+
+
+That the starting configuration can't be reached is explicitly checked.
+
+The decider only returns "true" when it has considered all configurations it encountered and didn't find any possible predecessors it has not yet encountered. That means C is indeed backwards-closed.
