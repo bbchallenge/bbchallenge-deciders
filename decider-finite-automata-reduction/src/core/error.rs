@@ -1,24 +1,34 @@
 //! Error/Result definitions for the outcomes of checking a proof.
+
 use super::{DFAState, Rule};
-use custom_error::custom_error;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
-custom_error! {
-    #[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
-    pub BadProof
-    /// A reason for rejecting a proof.
-
-    BadDimensions = "array lengths did not match",
-    BadVector = "indices on a vector (represented as a binary number) went out of bounds",
-    BadDFASize = "DFA too small to address the initial state",
-    BadNFASize = "NFA too small to address the states nfa_start(q, f)",
-    BadDFATransition = "DFA transitions went out of bounds",
-    LeadingZeroSensitivity = "DFA failed to ignore leading zeros",
-    TrailingZeroSensitivity = "NFA failed to ignore trailing zeros",
-    BadStart = "tape automaton accepted the start configuration",
-    NotClosed {q: DFAState, rule: Rule} = "closure under {rule} unmet at q={q} (DFA)",
-    BadSteadyState = "NFA transitions didn't preserve 'steady_state'",
-    RejectedSteadyState = "NFA didn't accept 'steady_state",
+/// A reason for rejecting a proof.
+#[derive(Error, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum BadProof {
+    #[error("array lengths did not match")]
+    BadDimensions,
+    #[error("indices on a vector (reresented as a binary number) went out of bounds")]
+    BadVector,
+    #[error("DFA too small to address the initial state")]
+    BadDFASize,
+    #[error("NFA too small to address the states nfa_start(q, f)")]
+    BadNFASize,
+    #[error("DFA transitions went out of bounds")]
+    BadDFATransition,
+    #[error("DFA failed to ignore leading zeros")]
+    LeadingZeroSensitivity,
+    #[error("NFA failed to ignore trailing zeros")]
+    TrailingZeroSensitivity,
+    #[error("tape automaton accepted the start configuration")]
+    BadStart,
+    #[error("closure under {rule} unmet at q={q} (DFA)")]
+    NotClosed { q: DFAState, rule: Rule },
+    #[error("NFA transitions didn't preserve 'steady_state'")]
+    BadSteadyState,
+    #[error("NFA didn't accept 'steady_state")]
+    RejectedSteadyState,
 }
 
 pub type ProofResult<T> = Result<T, BadProof>;

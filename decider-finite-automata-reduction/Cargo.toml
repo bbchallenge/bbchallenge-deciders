@@ -6,7 +6,7 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [features]
-# Double the bit-vector size to 128, allowing BB5 search depths up to .
+# Double the bit-vector size to 128, allowing BB5 search depths up to 25.
 u128 = []
 
 [profile.release]
@@ -14,13 +14,13 @@ debug = 1
 lto = "thin"
 
 [dependencies]
-argh = "0.1.9"
+argh = "0.1.10"
 cat_solver = "0.1.0"
-custom_error = "1.9.2"
-indicatif = "0.17.1"
+indicatif = "0.17.3"
 itertools = "0.10.5"
 node_crunch = { git = "https://github.com/willi-kappler/node_crunch" }
-serde = { version = "1.0.147", features = ["derive"] }
-serde_json = "1.0"
-serde_with = "2.0.1"
+serde = { version = "1.0.152", features = ["derive"] }
+serde_json = "1.0.91"
+serde_with = "2.2.0"
+thiserror = "1.0.38"
 zerocopy = "0.6.1"

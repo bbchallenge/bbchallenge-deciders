@@ -2,11 +2,11 @@
 
 use super::TM_STATES;
 use crate::core::TMState;
-use custom_error::custom_error;
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+use thiserror::Error;
 use zerocopy::{AsBytes, FromBytes};
 
 /// A low-level transition, as in https://bbchallenge.org/method#format
@@ -18,7 +18,9 @@ struct Trans {
     new: u8,
 }
 
-custom_error! { pub BadTMText{} = "use https://discuss.bbchallenge.org/t/standard-tm-text-format" }
+#[derive(Error, Debug)]
+#[error("use https://discuss.bbchallenge.org/t/standard-tm-text-format")]
+pub struct BadTMText;
 
 impl FromStr for Trans {
     type Err = BadTMText;
