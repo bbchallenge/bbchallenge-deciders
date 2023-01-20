@@ -58,8 +58,10 @@ impl DirectProver {
 
     /// Try to return a Proof for `tm`, given the choice of scan direction.
     fn prove_side(&mut self, tm: &Machine, direction: Side) -> Option<Proof> {
+        let greatest_pow2_bound = 1usize << (8 * usize::BITS - self.depth.leading_zeros() - 1);
         let mut dfas = DFAPrefixIterator::new(self.depth);
         let mut nfas = vec![NFA::new(self.depth * TM_STATES + 1); 2 * self.depth];
+        let mut initial_non_sink_states = 0;
         let halt = (TM_STATES * self.depth) as NFAState;
         loop {
             let (q_new, b_new) = dfas.next()?;
@@ -68,6 +70,25 @@ impl DirectProver {
                 Self::init(&dfas.dfa, &mut nfas[0], tm, halt);
             } else {
                 nfas[ply] = nfas[ply - 1].clone();
+            }
+            if cfg!(feature = "sink_heuristic") {
+                // Heuristic: Nearly all solutions have a "sink state" transitioning only to itself,
+                // typically recognizing a bit-pattern the TM never writes in its infinite lifetime.
+                // Our DFAs are ordered breadth-first, so one may assume one of the first ~2^k
+                // states should find one. This saves A LOT of time and, when wrong, can be fixed
+                // by a higher-depth search. The exact threshold was chosen empirically and saves
+                // far more time than it loses on higher-depth re-searches.
+                initial_non_sink_states = std::cmp::min(initial_non_sink_states, q_new as usize);
+                if initial_non_sink_states == q_new as usize
+                    && (dfas.dfa.t[initial_non_sink_states][0] != q_new
+                        || b_new == 1 && dfas.dfa.t[initial_non_sink_states][1] != q_new)
+                {
+                    initial_non_sink_states += 1;
+                }
+                if initial_non_sink_states > greatest_pow2_bound {
+                    dfas.skip_current_subtree();
+                    continue;
+                }
             }
             Self::saturate(&dfas.dfa, &mut nfas[ply], tm, direction, q_new, b_new);
             if row(nfa_start(0, 0)) * nfas[ply].accepted {
