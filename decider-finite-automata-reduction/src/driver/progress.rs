@@ -7,7 +7,7 @@ use indicatif::{
 use std::{borrow::Cow, fmt::Write, time::Duration};
 
 const INDEX: &str =
-    "{pos:>7}+{left}           {wide_bar:.green/red} All Deciders: {elapsed_precise:12}";
+    "{pos:>7}+{left}               {wide_bar:.green/red} All Deciders: {elapsed_precise:12}";
 const PROVER: &str =
     "{pos:>7}/{len:>7} ~{eta_precise:12} {wide_bar} {msg:12}: {elapsed_precise:12}";
 
