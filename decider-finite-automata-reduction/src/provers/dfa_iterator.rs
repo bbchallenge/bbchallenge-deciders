@@ -3,13 +3,13 @@
 use crate::core::{DFAState, DFA};
 
 /// Iterates over possible n-state DFAs, subject to two restrictions:
-/// 1. `DFA::check_leading_zeros()` passes
-/// 2. The `DFAState` IDs `0..n` make their first appearances in order in the transition table.
-///    (In Rust that would be: in `dfa.t.iter().flatten()`.)
+/// 1. `DFA::check_leading_zeros()` passes.
+/// 2. The DFA states are ordered the same as a breadth-first search from the initial state
+///    (taking 0-transitions before 1-transitions). In particular, it's connected and the
+///    `DFAState` IDs `0..n` make their first appearances in order in the transition table
+///    (which in Rust that would be: in `dfa.t.iter().flatten()`.)
 ///
-/// We visit the possible flattened transition tables in lexicographic order.
-/// Condition 2 stops us from emitting DFAs which are isomorphic (the same after relabelling).
-/// Equivalent form: the DFA must be the first (by lex order) in its isomorphism class.
+/// Condition 2 stops us from emitting two isomorphic DFAs.
 ///
 /// The iterator has two flavors. `DFAPrefixIterator` yields once per (nonempty) partially-filled
 /// transition table, so long as it's a prefix of a total DFA following rules 1-2.
@@ -17,7 +17,7 @@ use crate::core::{DFAState, DFA};
 /// `DFAPrefixIterator` supports an additional method, `skip_current_subtree()`, if the caller
 /// is uninterested in DFAs starting with the most recently yielded prefix.
 ///
-/// We DON'T yield references to the DFA -- you try getting Rust's borrow checker to allow that! :)
+/// We don't yield references to the DFA. (Rust only recently added "LendingIterator" support.)
 /// Instead: the dfa is accessible as a field, DFAPrefixIterator yields the changed `(q, b)` index,
 /// and DFAIterator yields `()`.
 pub struct DFAPrefixIterator {
