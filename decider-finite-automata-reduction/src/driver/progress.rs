@@ -4,11 +4,12 @@ use indicatif::{
     MultiProgress, ProgressBar, ProgressBarIter, ProgressFinish, ProgressIterator, ProgressState,
     ProgressStyle,
 };
-use std::{borrow::Cow, fmt::Write};
+use std::{borrow::Cow, fmt::Write, time::Duration};
 
 const INDEX: &str =
-    "{pos:>7}+{left}           {wide_bar:.green/red} All Deciders: {elapsed_precise:8}";
-const PROVER: &str = "{pos:>7}/{len:>7} ~{eta_precise:8} {wide_bar} {msg:12}: {elapsed_precise:8}";
+    "{pos:>7}+{left}           {wide_bar:.green/red} All Deciders: {elapsed_precise:12}";
+const PROVER: &str =
+    "{pos:>7}/{len:>7} ~{eta_precise:12} {wide_bar} {msg:12}: {elapsed_precise:12}";
 
 pub struct DeciderProgress {
     multi: MultiProgress,
@@ -49,6 +50,7 @@ impl DeciderProgress {
             .with_style(index_style)
             .with_finish(ProgressFinish::Abandon);
         let for_index = multi.add(pb);
+        for_index.enable_steady_tick(Duration::from_millis(500));
         DeciderProgress {
             multi,
             for_index,
@@ -57,11 +59,14 @@ impl DeciderProgress {
     }
 
     pub fn prover_progress(&self, len: usize, name: impl Into<Cow<'static, str>>) -> ProgressBar {
-        self.multi
+        let bar = self
+            .multi
             .add(ProgressBar::new(len as u64))
             .with_style(self.prover_style.clone())
             .with_message(name)
-            .with_finish(ProgressFinish::AndLeave)
+            .with_finish(ProgressFinish::AndLeave);
+        bar.enable_steady_tick(Duration::from_millis(500));
+        bar
     }
 
     /// Print a log line above all progress bars.
