@@ -37,14 +37,15 @@ Examples:
 
 For BB(5), you'll want to have `../all_5_states_undecided_machines_with_global_header` and `../bb5_undecided_index` -- see `../README.md`.
 (Alternate locations may be provided on the command line.)
-I recommend the exact settings from the example command lines above: `--server --ip <your address> [--port <#>] -p direct -x 0 -l 8 -p mitm_dfa -x 8`.
+Settings recommended for BB(5): `--server --ip $(hostname -i) -p direct -x 0 -l 7 -p mitm_dfa -x 9 -l 11 -p direct -x 7 -l 9 -p mitm_dfa -x 11 -l 12`.
 The server command will wait for one or more client commands to start, then use them to solve machines in parallel.
 
 In general, deeper searches succeed more often but take dramatically more time. 
-(For example, `-p direct` runtimes per TM at depths 1-9  are ~2μs, ~8μs, ~50μs, ~300μs, ~4ms, ~70ms, ~1s, ~30s, ~20m.)
+(Estimates: `-p direct` per-TM times, depths 1-10: 4μs, 12μs, 17μs, 300μs, 1ms, 4ms, 30ms, 30s, 2m, 20m;
+            `-p mitm_dfa` 1-12: 7μs, 50μs, 300μs, 1ms, 5ms, 20ms, 80ms, 300ms, 1s, 4s, 20s, 40s.)
 The program will solve most of the seed DB at low depth before going deeper.
 The `mitm_dfa` prover covers a subset of the `direct` prover's search space, so it's redundant to use it at a depth where `direct` has been used.
-(Up to depth ~5, it's also slower, but after depth ~8 it gains the upper hand.)
+(Up to depth 7, it's also slower, but from depth 8 it's increasingly faster.)
 
 Results will be saved to the `output` subdir:
 
@@ -57,14 +58,20 @@ As in the first command-line example, the decider's `--ad-hoc` mode lets you sol
 given as [Seed DB](https://bbchallenge.org/method#seed-database) indexes or [machine code](http://discuss.bbchallenge.org/t/standard-tm-text-format/60/17?u=uncombedcoconut) text.
 It will output the data of any successful proof (explained below) as pretty-printed JSON.
 
-### Larger BB(n) problems
+### Build-time options
 
 The default build options work only for BB(5) and up to search depths of 12.
 To double the depth limit (at the cost of some speed), add `--features u128` to the `cargo build` / `cargo run` command lines.
 To change the number of TM states, edit `src/limits.rs`. The program will expect a seed DB format with a corresponding number of bytes per machine.
 Beware, some unit tests assume `TM_STATES == 5`, and nearly all testing has been in BB(5) mode.
 
+The default build options include `sink_heuristic`, a behavior which artifically limits the proof search to (on average) find successful proofs much sooner.
+It can be disabled by passing `--no-default-features` on the `cargo` command line, though this is not recommended.
+
 ## How it works: practice
+
+Note: a decider correctness paper under construction [here](https://github.com/bbchallenge/bbchallenge-proofs/tree/finite-automata-reduction) covers similar material,
+though it sidesteps the material in the "theory" section relating this decider to related techniques.
 
 We search for the data of the following non-halting proof (which is easily checked, even if the search is complex).
 In this section, I'll take it for granted that a complex definition is worth writing out. (That's the hard part.)
@@ -141,6 +148,9 @@ In our [Decider Verification Files](https://github.com/TonyGuil/bbchallenge/blob
   then 2n bytes for a DFA transition table as described above
 - Warning: The DVF format has an `nEntries` header. This decider operates in append mode and lets that become stale.
   It may also write multiple proof records for the same `SeedDatabaseIndex`. These are quirks to fix in post-processing.
+
+The above link also includes a verifier coded independently by Tony Guilfoyle, able to consume these files and check the proofs.
+Tony also defines proof formats which explicitly give the NFA.
 
 ## How it works: theory
 
