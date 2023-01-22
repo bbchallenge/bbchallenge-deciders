@@ -86,6 +86,6 @@ impl DeciderProgress {
 
     /// Finish everything.
     pub fn finish(&self) {
-        self.for_index.finish();
+        self.for_index.abandon();
     }
 }

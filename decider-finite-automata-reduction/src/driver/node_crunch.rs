@@ -94,6 +94,8 @@ impl NCServer for Server {
                 );
                 self.progress.set_solved(self.index.len_solved());
             } else if self.batches_out.is_empty() {
+                self.progress.println("Done! Worker shutdown takes ~60s.")?;
+                self.progress.finish();
                 return Ok(NCJobStatus::Finished);
             } else {
                 return Ok(NCJobStatus::Waiting);
@@ -137,9 +139,9 @@ impl NCServer for Server {
             if self.bars[sent.stage].length() == Some(self.bars[sent.stage].position()) {
                 self.bars[sent.stage].finish();
             }
-            if sent.stage == self.stage {
+            if self.stage == sent.stage {
                 self.tms_out_this_stage -= size_out;
-            } else {
+            } else if self.stage < self.prover_names.len() {
                 let done: Vec<MachineID> = node_data
                     .results
                     .iter()
@@ -161,13 +163,6 @@ impl NCServer for Server {
                     self.progress.println(msg)?;
                 }
             }
-        }
-        if self.ids.is_empty() && self.prover_names.is_empty() {
-            let msg = format!(
-                "Awaiting results for {} batches + 60s shutdown.",
-                self.batches_out.len()
-            );
-            self.progress.println(msg)?;
         }
         Ok(())
     }
