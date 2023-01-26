@@ -42,7 +42,7 @@ impl DeciderProgress {
             "left",
             |state: &ProgressState, w: &mut dyn Write| {
                 let pos = state.pos();
-                write!(w, "{:>7}", state.len().unwrap_or(pos) - pos).unwrap()
+                write!(w, "{:>7}", state.len().unwrap_or(pos).saturating_sub(pos)).unwrap()
             },
         );
         let prover_style = ProgressStyle::with_template(PROVER).unwrap();

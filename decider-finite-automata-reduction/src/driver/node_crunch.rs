@@ -84,15 +84,15 @@ impl NCServer for Server {
         }
         while self.ids.is_empty() {
             self.stage += (self.batch_id != 0) as usize;
+            self.index.read_decided()?;
+            self.progress.set_solved(self.index.len_solved());
             if self.stage < self.prover_names.len() {
-                self.index.read_decided()?;
                 self.ids = self.index.iter().collect();
                 self.tms_out_this_stage = 0;
                 self.bars.push(
                     self.progress
                         .prover_progress(self.ids.len(), self.prover_names[self.stage].clone()),
                 );
-                self.progress.set_solved(self.index.len_solved());
             } else if self.batches_out.is_empty() {
                 self.progress.println("Done! Worker shutdown takes ~60s.")?;
                 self.progress.finish();
@@ -148,7 +148,10 @@ impl NCServer for Server {
                     .filter_map(|(id, result)| result.is_ok().then_some(*id))
                     .collect();
                 self.ids.retain(|id| !done.contains(id));
-                self.bars[self.stage].set_length((self.tms_out_this_stage + self.ids.len()) as u64);
+                self.bars[self.stage].set_length(
+                    (self.tms_out_this_stage + self.ids.len()) as u64
+                        + self.bars[self.stage].position(),
+                );
             }
         });
         for (i, result) in node_data.results.iter() {
