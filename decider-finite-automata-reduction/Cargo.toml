@@ -6,8 +6,7 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [features]
-default = ["sink_heuristic"]
-# Decider direct-n only tries DFAs with a "sink" in the first 2^floor(log2(n)) states - ~10x faster, ~1% missed TMs.
+# Decider direct-n only tries DFAs with a "sink" in the first 2^floor(log2(n)) states: big speedup, small false negative rate (raising the "n" needed to solve the TM).
 sink_heuristic = []
 # Double the bit-vector size to 128, allowing BB5 search depths up to 25.
 u128 = []

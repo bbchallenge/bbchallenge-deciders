@@ -41,8 +41,8 @@ Settings recommended for BB(5): `--server --ip $(hostname -i) -p direct -x 0 -l 
 The server command will wait for one or more client commands to start, then use them to solve machines in parallel.
 
 In general, deeper searches succeed more often but take dramatically more time. 
-(Estimates: `-p direct` per-TM times, depths 1-10: 4μs, 12μs, 17μs, 300μs, 1ms, 4ms, 30ms, 30s, 2m, 20m;
-            `-p mitm_dfa` 1-12: 7μs, 50μs, 300μs, 1ms, 5ms, 20ms, 80ms, 300ms, 1s, 4s, 20s, 40s.)
+(Rough time/TM: `-p direct` depths 1-10: 4μs, 12μs, 17μs, 300μs, 1ms, 4ms, 30ms, 30s, 2m, 20m assuming `features=sink_heuristic`;
+                `-p mitm_dfa` 1-12: 7μs, 50μs, 300μs, 1ms, 5ms, 20ms, 80ms, 300ms, 1s, 4s, 20s, 40s.)
 The program will solve most of the seed DB at low depth before going deeper.
 The `mitm_dfa` prover covers a subset of the `direct` prover's search space, so it's redundant to use it at a depth where `direct` has been used.
 (Up to depth 7, it's also slower, but from depth 8 it's increasingly faster.)
@@ -60,13 +60,15 @@ It will output the data of any successful proof (explained below) as pretty-prin
 
 ### Build-time options
 
-The default build options work only for BB(5) and up to search depths of 12.
+The default build options work only for BB(5) and up to search depths of 12, and make the `direct` prover search exhaustively.
+
 To double the depth limit (at the cost of some speed), add `--features u128` to the `cargo build` / `cargo run` command lines.
 To change the number of TM states, edit `src/limits.rs`. The program will expect a seed DB format with a corresponding number of bytes per machine.
 Beware, some unit tests assume `TM_STATES == 5`, and nearly all testing has been in BB(5) mode.
 
-The default build options include `sink_heuristic`, a behavior which artifically limits the proof search to (on average) find successful proofs much sooner.
-It can be disabled by passing `--no-default-features` on the `cargo` command line, though this is not recommended.
+To speed up the `direct` prover dramatically at most depths, build `--features sink_heuristic`.
+The effect is to reduce the search space in a way that leads to a few false negatives (TMs only proven at later iterations than necessary), but *much* faster search iterations.
+Overall, this means TMs are solved in less time. The reason this isn't the default is that the algorithm is clearer and more easily reproduced without it.
 
 ## How it works: practice
 
