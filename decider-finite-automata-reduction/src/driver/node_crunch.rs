@@ -4,6 +4,7 @@ use crate::io::{Database, DeciderVerificationFile, Index, MachineID, OutputFile}
 use crate::provers::{prover_by_name, ProverBox};
 use crate::DeciderArgs;
 use indicatif::ProgressBar;
+use itertools::{EitherOrBoth, Itertools};
 use node_crunch::{
     NCConfiguration, NCError, NCJobStatus, NCNode, NCNodeStarter, NCServer, NCServerStarter, NodeID,
 };
@@ -78,9 +79,13 @@ impl NCServer for Server {
         node_id: NodeID,
     ) -> Result<NCJobStatus<Self::NewDataT>, NCError> {
         let entry = self.stats.entry(node_id).and_modify(update).or_default();
-        if let Some(batch_id) = self.retry_batches.pop() {
-            entry.todo.push(batch_id);
-            return Ok(NCJobStatus::Unfinished(self.batches_out[&batch_id].clone()));
+        while let Some(batch_id) = self.retry_batches.pop() {
+            // Re-send a batch we've queued for a retry, if any. This next lookup succeeds, unless:
+            // a worker just might have missed a heartbeat but recovered before we re-sent its work.
+            if let Some(batch) = self.batches_out.get(&batch_id) {
+                entry.todo.push(batch_id);
+                return Ok(NCJobStatus::Unfinished(batch.clone()));
+            }
         }
         while self.ids.is_empty() {
             self.stage += (self.batch_id != 0) as usize;
@@ -134,7 +139,7 @@ impl NCServer for Server {
                 2001..=4000 => min(s.target_size, size_out / 2),
                 _ => min(s.target_size, size_out / 4),
             };
-            s.target_size = max(1, min(s.target_size, 8192));
+            s.target_size = s.target_size.clamp(1, 8192);
             self.bars[sent.stage].inc(size_out as u64);
             if self.bars[sent.stage].length() == Some(self.bars[sent.stage].position()) {
                 self.bars[sent.stage].finish();
@@ -142,12 +147,20 @@ impl NCServer for Server {
             if self.stage == sent.stage {
                 self.tms_out_this_stage -= size_out;
             } else if self.stage < self.prover_names.len() {
-                let done: Vec<MachineID> = node_data
+                let done = node_data
                     .results
                     .iter()
-                    .filter_map(|(id, result)| result.is_ok().then_some(*id))
+                    .filter_map(|(id, result)| result.is_ok().then_some(*id));
+                self.ids = self
+                    .ids
+                    .iter()
+                    .copied()
+                    .merge_join_by(done, MachineID::cmp)
+                    .filter_map(|lr| match lr {
+                        EitherOrBoth::Left(id) => Some(id),
+                        _ => None,
+                    })
                     .collect();
-                self.ids.retain(|id| !done.contains(id));
                 self.bars[self.stage].set_length(
                     (self.tms_out_this_stage + self.ids.len()) as u64
                         + self.bars[self.stage].position(),
@@ -176,7 +189,7 @@ impl NCServer for Server {
                 if !s.todo.is_empty() {
                     let msg = format!("{:?} died. Retrying its work.", id);
                     let _ = self.progress.println(msg);
-                    self.retry_batches.extend(s.todo.drain(..));
+                    self.retry_batches.append(&mut s.todo);
                 }
             });
         }
