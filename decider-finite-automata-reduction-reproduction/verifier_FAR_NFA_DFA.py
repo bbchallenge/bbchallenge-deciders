@@ -239,7 +239,6 @@ if __name__ == "__main__":
     dvf = FAR_DVF.from_file(PATH_TO_DVF, pre_scan=False)
 
     N = dvf.n_entries
-    N = 100
 
     if VERBOSE:
         print(f"Verifying {N} dvf entries...")
@@ -268,7 +267,7 @@ if __name__ == "__main__":
 
     if results.all():
         if VERBOSE:
-            print(f"All entries were successfully verified!")
+            print(f"All {N} entries were successfully verified!")
         exit(0)
 
     if VERBOSE:
