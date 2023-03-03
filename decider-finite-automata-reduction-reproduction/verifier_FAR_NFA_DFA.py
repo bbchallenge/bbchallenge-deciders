@@ -142,11 +142,6 @@ def verify_FAR_proof_DFA_NFA(
     return True, 0
 
 
-def aux_verify_FAR_proof_DFA_NFA(all_args):
-    # For multiprocessing purposes
-    return verify_FAR_proof_DFA_NFA(*all_args)[0]
-
-
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument(
@@ -194,92 +189,81 @@ if __name__ == "__main__":
     SELECTED_ENTRY = args.entry
     VERBOSE = args.verbose
 
-    machine_db_file = open(PATH_TO_DB, "rb")
-    dvf_file = open(PATH_TO_DVF, "rb")
+    with open(PATH_TO_DB, "rb") as machine_db_file:
+        with open(PATH_TO_DVF, "rb") as dvf_file:
+            # Verify just one machine
+            if SELECTED_ENTRY is not None:
+                dvf = FAR_DVF.from_file(PATH_TO_DVF, pre_scan=False)
+                header, entry = dvf.ith_entry(dvf_file, args.entry)
+                machine = load_machine_from_db(machine_db_file, header.machine_id)
+                if VERBOSE:
+                    from tm_utils import pptm
 
-    # Verify just one machine
-    if SELECTED_ENTRY is not None:
-        dvf = FAR_DVF.from_file(PATH_TO_DVF, pre_scan=False)
-        header, entry = dvf.ith_entry(dvf_file, args.entry)
+                    print(f"Verifying machine #{header.machine_id}\n")
+                    pptm(machine)
+                    print(f"\nDVF header:\n\n{header}")
+                    print(f"\nDVF entry:\n\n{entry}")
 
-        if VERBOSE:
-            from tm_utils import pptm
+                verified, error_id = verify_FAR_proof_DFA_NFA(
+                    entry,
+                    machine,
+                )
 
-            print(f"Verifying machine #{header.machine_id}\n")
-            machine = load_machine_from_db(machine_db_file, header.machine_id)
-            machine_db_file.close()
-            pptm(machine)
-            print(f"\nDVF header:\n\n{header}")
-            print(f"\nDVF entry:\n\n{entry}")
+                if args.graphviz:
+                    print(entry.to_graphviz())
 
-        verified, error_id = verify_FAR_proof_DFA_NFA(
-            entry,
-            machine,
-        )
+                if verified:
+                    if VERBOSE:
+                        print("\nMachine successfully verified.")
+                    exit(0)
+                if VERBOSE:
+                    print(f"\nMachine not verified, failing condition {error_id}.")
+                exit(-1)
 
-        if args.graphviz:
-            print(entry.to_graphviz())
+            if args.graphviz and SELECTED_ENTRY is None:
+                print(
+                    "You must select a specific entry using -e option for a graphviz representation to be outputted.\n"
+                )
+                argparser.print_help()
+                exit(-1)
 
-        dvf_file.close()
-        machine_db_file.close()
+            import tqdm
 
-        if verified:
+            dvf = FAR_DVF.from_file(PATH_TO_DVF, pre_scan=True)
+
+            N = dvf.n_entries
+            # N = 10000
+
             if VERBOSE:
-                print("\nMachine successfully verified.")
-            exit(0)
-        if VERBOSE:
-            print(f"\nMachine not verified, failing condition {error_id}.")
-        exit(-1)
+                print(f"Verifying {N} dvf entries...")
 
-    if args.graphviz and SELECTED_ENTRY is None:
-        dvf_file.close()
-        machine_db_file.close()
-        print(
-            "You must select a specific entry using -e option for a graphviz representation to be outputted.\n"
-        )
-        argparser.print_help()
-        exit(-1)
+            gen_entries = (
+                [
+                    dvf.ith_entry(dvf_file, i)[1],
+                    load_machine_from_db(
+                        machine_db_file, dvf.ith_entry(dvf_file, i)[0].machine_id
+                    ),
+                ]
+                for i in range(N)
+            )
 
-    import tqdm
+            results = Parallel(n_jobs=args.cores, prefer="processes", verbose=0)(
+                delayed(verify_FAR_proof_DFA_NFA)(entity, machine)
+                for entity, machine in tqdm.tqdm(gen_entries, total=N)
+            )
 
-    dvf = FAR_DVF.from_file(PATH_TO_DVF, pre_scan=True)
+            results = np.array(map(lambda x: x[0], results))
 
-    N = dvf.n_entries
-    # N = 10000
+            if results.all():
+                if VERBOSE:
+                    print(f"All {N} entries were successfully verified!")
+                exit(0)
 
-    if VERBOSE:
-        print(f"Verifying {N} dvf entries...")
+            if VERBOSE:
+                argwhere = np.argwhere(results == False).flatten()
+                print(f"{len(argwhere)} DVF entries failed verification!")
+                print(
+                    f"Here are the 10 first: {argwhere[:10]}. You can use option -e to explore them individually."
+                )
 
-    gen_entries = (
-        [
-            dvf.ith_entry(dvf_file, i)[1],
-            load_machine_from_db(
-                machine_db_file, dvf.ith_entry(dvf_file, i)[0].machine_id
-            ),
-        ]
-        for i in range(N)
-    )
-
-    results = Parallel(n_jobs=args.cores, prefer="processes", verbose=0)(
-        delayed(verify_FAR_proof_DFA_NFA)(entity, machine)
-        for entity, machine in tqdm.tqdm(gen_entries, total=N)
-    )
-
-    dvf_file.close()
-    machine_db_file.close()
-
-    results = np.array(map(lambda x: x[0], results))
-
-    if results.all():
-        if VERBOSE:
-            print(f"All {N} entries were successfully verified!")
-        exit(0)
-
-    if VERBOSE:
-        argwhere = np.argwhere(results == False).flatten()
-        print(f"{len(argwhere)} DVF entries failed verification!")
-        print(
-            f"Here are the 10 first: {argwhere[:10]}. You can use option -e to explore them individually."
-        )
-
-    exit(-1)
+            exit(-1)

@@ -195,32 +195,34 @@ class FAR_DVF:
         f.close()
         return to_return
 
-    def ith_entry(self, f, i_entry, verbose=False, just_header=False):
+    def ith_entry(self, dvf_file, i_entry, verbose=False, just_header=False):
         if i_entry < 0 or i_entry >= self.n_entries:
             raise EOFError(
                 f"Entry {i_entry} does not exist. There are {self.n_entries} entries."
             )
 
         if self.cursor_positions is not None:
-            f.seek(self.cursor_positions[i_entry])
+            dvf_file.seek(self.cursor_positions[i_entry])
         else:
-            f.seek(4)  # first 4 bytes are number of entries
+            dvf_file.seek(4)  # first 4 bytes are number of entries
             curr_entry = 0
             while curr_entry != i_entry:
                 header = FAR_EntryHeader.from_bytes(
-                    f.read(FAR_EntryHeader.DVF_HEADER_SIZE)
+                    dvf_file.read(FAR_EntryHeader.DVF_HEADER_SIZE)
                 )
-                f.seek(header.info_length, 1)
+                dvf_file.seek(header.info_length, 1)
                 curr_entry += 1
 
-        header = FAR_EntryHeader.from_bytes(f.read(FAR_EntryHeader.DVF_HEADER_SIZE))
+        header = FAR_EntryHeader.from_bytes(
+            dvf_file.read(FAR_EntryHeader.DVF_HEADER_SIZE)
+        )
 
         if just_header:
             return header
 
         entry = None
         if header.decider_type == FAR_DeciderTypes.FAR_DFA_NFA:
-            entry = FAR_EntryDFANFA.from_bytes(f.read(header.info_length))
+            entry = FAR_EntryDFANFA.from_bytes(dvf_file.read(header.info_length))
         if verbose:
             print(f"Entry {i_entry}")
             print(header)
