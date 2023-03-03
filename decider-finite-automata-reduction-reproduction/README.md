@@ -4,9 +4,7 @@ This reproduces [the work of Justin Blanchard](https://github.com/UncombedCoconu
 
 For more details on the technique please refer to [bbchallenge's paper](https://github.com/bbchallenge/bbchallenge-proofs) (you currently have to select the FAR branch of the github repo). 
 
-## Context
-
-Please refer to:
+Please also refer to:
 
 - [https://github.com/UncombedCoconut/bbchallenge-deciders/tree/finite-automata-reduction/decider-finite-automata-reduction](https://github.com/UncombedCoconut/bbchallenge-deciders/tree/finite-automata-reduction/decider-finite-automata-reduction)
 - [https://github.com/UncombedCoconut/bbchallenge-nfa-verification](https://github.com/UncombedCoconut/bbchallenge-nfa-verification)
