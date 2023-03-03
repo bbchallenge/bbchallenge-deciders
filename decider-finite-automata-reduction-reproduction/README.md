@@ -26,7 +26,7 @@ Verify machines in a DVF file:
 
 - `python verifier_FAR_NFA_DFA.py --dvf resources/dfa_nfa_proofs.dvf`: verifies all the proofs of `dfa_nfa_proofs.dvf`
 - `python verifier_FAR_NFA_DFA.py --dvf resources/dfa_nfa_proofs.dvf -e 6`: verifies only the 6th entry of the dvf file (counting from 0)
-- `python verifier_FAR_NFA_DFA.py --dvf resources/dfa_nfa_proofs.dvf -e 6 --graphviz | dot -Tsvg -o output/nfa.svg`: outputs SVG image of the NFA of the 6th entry of the dvf file (the entry is also verified)
+- `python verifier_FAR_NFA_DFA.py --dvf resources/dfa_nfa_proofs.dvf -e 6 --graphviz | dot -Tsvg -o output/nfa.svg`: outputs an SVG image of the NFA of the 6th entry of the dvf file (the entry is also verified)
 
 ```
 usage: verifier_FAR_NFA_DFA.py [-h] [-d DB] --dvf DVF [-e ENTRY] [--graphviz] [--verbose]
