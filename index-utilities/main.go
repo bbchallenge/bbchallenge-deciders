@@ -32,6 +32,7 @@ func main() {
 	argTestSorted := flag.Bool("ts", false, "test if machine index file is sorted")
 	argSortFile := flag.Bool("s", false, "outputs sorted version of file")
 	argTestSameContent := flag.String("sc", "", "tests that two files have same content modulo order")
+	argToText := flag.Bool("txt", false, "outputs the machine index file in text")
 
 	flag.Parse()
 
@@ -41,6 +42,7 @@ func main() {
 	testSorted := *argTestSorted
 	sortFile := *argSortFile
 	otherIndexFileName := *argTestSameContent
+	toText := *argToText
 
 	var err error
 	var index []byte
@@ -77,6 +79,12 @@ func main() {
 		}
 		fmt.Println("SUCCESS: index is sorted")
 		os.Exit(0)
+	}
+
+	if toText {
+		for i := 0; i < len(machineIndices); i += 1 {
+				fmt.Println(machineIndices[i])
+		}
 	}
 
 	if sortFile {
