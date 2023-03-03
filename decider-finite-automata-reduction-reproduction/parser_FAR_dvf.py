@@ -195,13 +195,11 @@ class FAR_DVF:
         f.close()
         return to_return
 
-    def ith_entry(self, i_entry, verbose=False, just_header=False):
+    def ith_entry(self, f, i_entry, verbose=False, just_header=False):
         if i_entry < 0 or i_entry >= self.n_entries:
             raise EOFError(
                 f"Entry {i_entry} does not exist. There are {self.n_entries} entries."
             )
-
-        f = open(self.file_path, "rb")
 
         if self.cursor_positions is not None:
             f.seek(self.cursor_positions[i_entry])
@@ -227,7 +225,6 @@ class FAR_DVF:
             print(f"Entry {i_entry}")
             print(header)
 
-        f.close()
         return header, entry
 
     def __str__(self) -> str:

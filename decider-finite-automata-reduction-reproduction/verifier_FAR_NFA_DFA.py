@@ -4,7 +4,7 @@ from tm_utils import load_machine_from_db
 
 from parser_FAR_dvf import *
 
-from typing import Callable
+from joblib import Parallel, delayed
 
 
 def verify_FAR_halting_transition(proof: FAR_EntryDFANFA, from_state, read_symbol):
@@ -195,11 +195,12 @@ if __name__ == "__main__":
     VERBOSE = args.verbose
 
     machine_db_file = open(PATH_TO_DB, "rb")
+    dvf_file = open(PATH_TO_DVF, "rb")
 
     # Verify just one machine
     if SELECTED_ENTRY is not None:
         dvf = FAR_DVF.from_file(PATH_TO_DVF, pre_scan=False)
-        header, entry = dvf.ith_entry(args.entry)
+        header, entry = dvf.ith_entry(dvf_file, args.entry)
 
         if VERBOSE:
             from tm_utils import pptm
@@ -219,6 +220,9 @@ if __name__ == "__main__":
         if args.graphviz:
             print(entry.to_graphviz())
 
+        dvf_file.close()
+        machine_db_file.close()
+
         if verified:
             if VERBOSE:
                 print("\nMachine successfully verified.")
@@ -228,6 +232,8 @@ if __name__ == "__main__":
         exit(-1)
 
     if args.graphviz and SELECTED_ENTRY is None:
+        dvf_file.close()
+        machine_db_file.close()
         print(
             "You must select a specific entry using -e option for a graphviz representation to be outputted.\n"
         )
@@ -236,34 +242,33 @@ if __name__ == "__main__":
 
     import tqdm
 
-    dvf = FAR_DVF.from_file(PATH_TO_DVF, pre_scan=False)
+    dvf = FAR_DVF.from_file(PATH_TO_DVF, pre_scan=True)
 
     N = dvf.n_entries
+    # N = 10000
 
     if VERBOSE:
         print(f"Verifying {N} dvf entries...")
 
     gen_entries = (
         [
-            dvf.ith_entry(i)[1],
-            load_machine_from_db(machine_db_file, dvf.ith_entry(i)[0].machine_id),
+            dvf.ith_entry(dvf_file, i)[1],
+            load_machine_from_db(
+                machine_db_file, dvf.ith_entry(dvf_file, i)[0].machine_id
+            ),
         ]
         for i in range(N)
     )
 
-    pool = mp.Pool(args.cores)
-
-    results = np.array(
-        list(
-            pool.map(
-                aux_verify_FAR_proof_DFA_NFA,
-                tqdm.tqdm(gen_entries, total=N),
-            )
-        )
+    results = Parallel(n_jobs=args.cores, prefer="processes", verbose=0)(
+        delayed(verify_FAR_proof_DFA_NFA)(entity, machine)
+        for entity, machine in tqdm.tqdm(gen_entries, total=N)
     )
 
+    dvf_file.close()
     machine_db_file.close()
-    pool.close()
+
+    results = np.array(map(lambda x: x[0], results))
 
     if results.all():
         if VERBOSE:
