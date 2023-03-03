@@ -2,7 +2,6 @@ from enum import Enum
 from io import BytesIO
 
 import numpy as np
-from graphviz import Digraph
 
 
 class FAR_DeciderTypes(Enum):
@@ -60,9 +59,17 @@ class FAR_EntryDFANFA:
         return str(self)
 
     def __str__(self):
-        return f"Direction right-to-left {self.direction_right_to_left}\n# DFA states {self.nb_dfa_states}\n# NFA states {self.nb_nfa_states}"
+        direction = "right-to-left" if self.direction_right_to_left else "left-to-right"
 
-    def DFA_to_graphviz(self, d: Digraph):
+        return (
+            f"Direction: {direction}\nNumber of DFA states: {self.nb_dfa_states}\nNumber of NFA states: {self.nb_nfa_states}\n"
+            f"\nDFA transitions:\n{self.dfa_transitions}\n"
+            f"\nNFA transition matrix 0:\n{self.nfa_transitions[0].astype(int)}\n"
+            f"\nNFA transition matrix 1:\n{self.nfa_transitions[1].astype(int)}\n"
+            f"\nAccept vector:\n{self.accept_vector.astype(int)}\n"
+        )
+
+    def DFA_to_graphviz(self, d):
         for i in range(self.nb_dfa_states):
             for r in range(2):
                 from_ = str(i)
@@ -78,7 +85,7 @@ class FAR_EntryDFANFA:
             state_name = str(dfa_state) + letter
         return state_name
 
-    def NFA_to_graphviz(self, d: Digraph):
+    def NFA_to_graphviz(self, d):
         for i in range(self.nb_nfa_states):
             state_name = self.NFA_i_to_state_name(i)
             d.node(
@@ -94,6 +101,8 @@ class FAR_EntryDFANFA:
                         d.edge(state_from, state_to, label=str(r))
 
     def to_graphviz(self):
+        from graphviz import Digraph
+
         d = Digraph()
         self.DFA_to_graphviz(d)
         self.NFA_to_graphviz(d)
@@ -157,25 +166,31 @@ class FAR_DVF:
         self.n_entries = n_entries
 
     @classmethod
-    def from_file(cls, file_path):
+    def from_file(cls, file_path, pre_scan=True):
         f = open(file_path, "rb")
         n_entries = int.from_bytes(f.read(4), byteorder="big")
 
         to_return = cls(n_entries)
         to_return.file_path = file_path
 
-        cursor_position = 4
-        cursor_positions = []
-        i_entry = 0
-        while i_entry != n_entries:
-            cursor_positions.append(cursor_position)
-            header = FAR_EntryHeader.from_bytes(f.read(FAR_EntryHeader.DVF_HEADER_SIZE))
-            cursor_position += FAR_EntryHeader.DVF_HEADER_SIZE
-            f.read(header.info_length)
-            cursor_position += header.info_length
-            i_entry += 1
+        # pre scans to know the position of each entries
+        if pre_scan:
+            cursor_position = 4
+            cursor_positions = []
+            i_entry = 0
+            while i_entry != n_entries:
+                cursor_positions.append(cursor_position)
+                header = FAR_EntryHeader.from_bytes(
+                    f.read(FAR_EntryHeader.DVF_HEADER_SIZE)
+                )
+                cursor_position += FAR_EntryHeader.DVF_HEADER_SIZE
+                f.seek(header.info_length, 1)
+                cursor_position += header.info_length
+                i_entry += 1
 
-        to_return.cursor_positions = cursor_positions
+            to_return.cursor_positions = cursor_positions
+        else:
+            to_return.cursor_positions = None
 
         f.close()
         return to_return
@@ -187,7 +202,18 @@ class FAR_DVF:
             )
 
         f = open(self.file_path, "rb")
-        f.read(self.cursor_positions[i_entry])
+
+        if self.cursor_positions is not None:
+            f.seek(self.cursor_positions[i_entry])
+        else:
+            f.seek(4)  # first 4 bytes are number of entries
+            curr_entry = 0
+            while curr_entry != i_entry:
+                header = FAR_EntryHeader.from_bytes(
+                    f.read(FAR_EntryHeader.DVF_HEADER_SIZE)
+                )
+                f.seek(header.info_length, 1)
+                curr_entry += 1
 
         header = FAR_EntryHeader.from_bytes(f.read(FAR_EntryHeader.DVF_HEADER_SIZE))
 
