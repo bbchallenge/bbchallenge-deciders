@@ -32,3 +32,9 @@ def pptm(machine, return_repr=False):
         print(tabulate(table, headers=headers))
     else:
         return tabulate(table, headers=headers)
+
+
+def load_machine_from_db(machine_db_file, i, db_has_header=True):
+    c = 1 if db_has_header else 0
+    machine_db_file.seek(30 * (i + c))
+    return machine_db_file.read(30)

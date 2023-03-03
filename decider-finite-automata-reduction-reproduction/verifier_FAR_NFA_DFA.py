@@ -1,7 +1,10 @@
 import argparse
-from typing import Callable
+import multiprocessing as mp
+from tm_utils import load_machine_from_db
 
 from parser_FAR_dvf import *
+
+from typing import Callable
 
 
 def verify_FAR_halting_transition(proof: FAR_EntryDFANFA, from_state, read_symbol):
@@ -60,9 +63,8 @@ def verify_FAR_right_transition(proof, from_state, read_symbol, write, goto):
 
 
 def verify_FAR_proof_DFA_NFA(
-    header: FAR_EntryHeader,
     proof: FAR_EntryDFANFA,
-    get_machine_i: Callable[[int], bytes],
+    machine: bytes,
 ):
     # Condition 1 (Leading zeros ignored)
     # The DFA's transition function \delta should verify
@@ -91,11 +93,11 @@ def verify_FAR_proof_DFA_NFA(
     if not (
         (
             proof.steady_state
-            @ proof.nfa_transitions[0][:, -1].reshape(entry.nb_nfa_states, 1)
+            @ proof.nfa_transitions[0][:, -1].reshape(proof.nb_nfa_states, 1)
         )[0, 0]
         and (
             proof.steady_state
-            @ proof.nfa_transitions[0][:, -1].reshape(entry.nb_nfa_states, 1)
+            @ proof.nfa_transitions[0][:, -1].reshape(proof.nb_nfa_states, 1)
         )[0, 0]
     ):
         return False, 4
@@ -105,7 +107,7 @@ def verify_FAR_proof_DFA_NFA(
         return False, 8
 
     # There is one condition to check per machine's transition rule
-    M = get_machine_i(header.machine_id)
+    M = machine
     for from_state in range(5):
         for read_symbol in range(2):
             write, move_to, goto = M[
@@ -113,7 +115,7 @@ def verify_FAR_proof_DFA_NFA(
             ]
 
             # Symmetrising machine if scan is right to left
-            if entry.direction_right_to_left:
+            if proof.direction_right_to_left:
                 move_to = 1 - move_to
 
             goto -= 1
@@ -140,6 +142,11 @@ def verify_FAR_proof_DFA_NFA(
     return True, 0
 
 
+def aux_verify_FAR_proof_DFA_NFA(all_args):
+    # For multiprocessing purposes
+    return verify_FAR_proof_DFA_NFA(*all_args)[0]
+
+
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument(
@@ -158,6 +165,14 @@ if __name__ == "__main__":
         "--entry",
         type=int,
         help="verifies only the specified entry of the dvf file",
+    )
+
+    argparser.add_argument(
+        "-c",
+        "--cores",
+        type=int,
+        default=mp.cpu_count(),
+        help=f"number of cores on which to parallelize the run, default on your machine is {mp.cpu_count()}",
     )
     argparser.add_argument(
         "--graphviz",
@@ -179,33 +194,27 @@ if __name__ == "__main__":
     SELECTED_ENTRY = args.entry
     VERBOSE = args.verbose
 
-    def load_machine_from_db(machine_db_file, i, db_has_header=True):
-        c = 1 if db_has_header else 0
-        machine_db_file.seek(30 * (i + c))
-        return machine_db_file.read(30)
+    machine_db_file = open(PATH_TO_DB, "rb")
 
     # Verify just one machine
     if SELECTED_ENTRY is not None:
         dvf = FAR_DVF.from_file(PATH_TO_DVF, pre_scan=False)
-
         header, entry = dvf.ith_entry(args.entry)
-        machine_db_file = open(PATH_TO_DB, "rb")
 
         if VERBOSE:
             from tm_utils import pptm
 
             print(f"Verifying machine #{header.machine_id}\n")
             machine = load_machine_from_db(machine_db_file, header.machine_id)
+            machine_db_file.close()
             pptm(machine)
             print(f"\nDVF header:\n\n{header}")
             print(f"\nDVF entry:\n\n{entry}")
 
         verified, error_id = verify_FAR_proof_DFA_NFA(
-            header,
             entry,
-            lambda machine_id: load_machine_from_db(machine_db_file, machine_id),
+            machine,
         )
-        machine_db_file.close()
 
         if args.graphviz:
             print(entry.to_graphviz())
@@ -224,3 +233,49 @@ if __name__ == "__main__":
         )
         argparser.print_help()
         exit(-1)
+
+    import tqdm
+
+    dvf = FAR_DVF.from_file(PATH_TO_DVF, pre_scan=False)
+
+    N = dvf.n_entries
+    N = 100
+
+    if VERBOSE:
+        print(f"Verifying {N} dvf entries...")
+
+    gen_entries = (
+        [
+            dvf.ith_entry(i)[1],
+            load_machine_from_db(machine_db_file, dvf.ith_entry(i)[0].machine_id),
+        ]
+        for i in range(N)
+    )
+
+    pool = mp.Pool(args.cores)
+
+    results = np.array(
+        list(
+            pool.map(
+                aux_verify_FAR_proof_DFA_NFA,
+                tqdm.tqdm(gen_entries, total=N),
+            )
+        )
+    )
+
+    machine_db_file.close()
+    pool.close()
+
+    if results.all():
+        if VERBOSE:
+            print(f"All entries were successfully verified!")
+        exit(0)
+
+    if VERBOSE:
+        argwhere = np.argwhere(results == False).flatten()
+        print(f"{len(argwhere)} DVF entries failed verification!")
+        print(
+            f"Here are the 10 first: {argwhere[:10]}. You can use option -e to explore them individually."
+        )
+
+    exit(-1)
