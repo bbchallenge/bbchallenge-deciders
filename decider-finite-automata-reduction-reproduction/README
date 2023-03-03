@@ -13,3 +13,17 @@ Verify machines in a DVF file:
 - `python verifier_FAR_NFA_DFA.py --dvf resources/dfa_nfa_proofs.dvf`: verifies all the proofs of `dfa_nfa_proofs.dvf`
 - `python verifier_FAR_NFA_DFA.py --dvf resources/dfa_nfa_proofs.dvf -e 6`: verifies only the 6th entry of the dvf file (counting from 0)
 - `python verifier_FAR_NFA_DFA.py --dvf resources/dfa_nfa_proofs.dvf -e 6 --graphviz | dot -Tsvg -o output/nfa.svg`: outputs SVG image of the NFA of the 6th entry of the dvf file (the entry is also verified)
+
+```
+usage: verifier_FAR_NFA_DFA.py [-h] [-d DB] --dvf DVF [-e ENTRY] [--graphviz] [--verbose]
+
+options:
+  -h, --help            show this help message and exit
+  -d DB, --db DB        path to the DB file
+  --dvf DVF             path to the verification file
+  -e ENTRY, --entry ENTRY
+                        verifies only the specified entry of the dvf file
+  --graphviz            if an entry is selected with -e this will output the graphviz code of the NFA (the
+                        entry is also verified)
+  --verbose             enables logging
+```
