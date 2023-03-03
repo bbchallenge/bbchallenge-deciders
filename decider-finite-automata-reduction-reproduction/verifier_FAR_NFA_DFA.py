@@ -1,8 +1,7 @@
 import argparse
+from typing import Callable
 
 from parser_FAR_dvf import *
-
-from typing import Callable
 
 
 def verify_FAR_halting_transition(proof: FAR_EntryDFANFA, from_state, read_symbol):
@@ -141,42 +140,6 @@ def verify_FAR_proof_DFA_NFA(
     return True, 0
 
 
-def pptm(machine, return_repr=False):
-    def ithl(i):
-        return chr(ord("A") + i)
-
-    def g(move):
-        if move == 0:
-            return "R"
-        return "L"
-
-    from tabulate import tabulate
-
-    headers = ["s", "0", "1"]
-    table = []
-
-    nb_states = len(machine) // 6
-
-    for i in range(nb_states):
-        row = [ithl(i)]
-        for j in range(2):
-            write = machine[6 * i + 3 * j]
-            move = machine[6 * i + 3 * j + 1]
-            goto = machine[6 * i + 3 * j + 2] - 1
-
-            if goto == -1:
-                row.append("---")
-                continue
-
-            row.append(f"{write}{g(move)}{ithl(goto)}")
-        table.append(row)
-
-    if not return_repr:
-        print(tabulate(table, headers=headers))
-    else:
-        return tabulate(table, headers=headers)
-
-
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument(
@@ -229,6 +192,8 @@ if __name__ == "__main__":
         machine_db_file = open(PATH_TO_DB, "rb")
 
         if VERBOSE:
+            from tm_utils import pptm
+
             print(f"Verifying machine #{header.machine_id}\n")
             machine = load_machine_from_db(machine_db_file, header.machine_id)
             pptm(machine)
