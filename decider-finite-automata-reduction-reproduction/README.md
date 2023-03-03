@@ -1,3 +1,9 @@
+# Finite Automata Reduction (reproduction)
+
+This reproduces [the work of Justin Blanchard](https://github.com/UncombedCoconut/bbchallenge-deciders/tree/finite-automata-reduction/decider-finite-automata-reduction) (and also [here](https://github.com/UncombedCoconut/bbchallenge-nfa-verification)) on Finite Automata Reduction, a technique for automatically deciding whether some Turing machines halt or not.
+
+For more details on the technique please refer to [bbchallenge's paper](https://github.com/bbchallenge/bbchallenge-proofs) (you currently have to select the FAR branch of the github repo). 
+
 ## Context
 
 Please refer to:
@@ -6,7 +12,7 @@ Please refer to:
 - [https://github.com/UncombedCoconut/bbchallenge-nfa-verification](https://github.com/UncombedCoconut/bbchallenge-nfa-verification)
 - [https://github.com/TonyGuil/bbchallenge/tree/main/FAR](https://github.com/TonyGuil/bbchallenge/tree/main/FAR)
 
-You can feed this verifier DVF files containing NFA-DFA Finite Automata Reduction (FAR) proofs, such as the uncompressed version of [**this file**](https://github.com/UncombedCoconut/bbchallenge-nfa-verification/blob/4da6899808be8922fb6872b48fd17c35856858fb/dfa_nfa_proofs.dvf.zst) (you need to use facebook's `zstd` for decompressing: [https://github.com/facebook/zstd](https://github.com/facebook/zstd)).
+You can feed the verifier DVF files containing NFA-DFA Finite Automata Reduction (FAR) proofs, such as the uncompressed version of [**this file**](https://github.com/UncombedCoconut/bbchallenge-nfa-verification/blob/4da6899808be8922fb6872b48fd17c35856858fb/dfa_nfa_proofs.dvf.zst) (you need to use facebook's `zstd` for decompressing: [https://github.com/facebook/zstd](https://github.com/facebook/zstd)).
 
 ## Setup
 
@@ -16,7 +22,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Usage
+## Verifier usage
 
 Verify machines in a DVF file:
 
