@@ -10,7 +10,7 @@ Please also refer to:
 - [https://github.com/UncombedCoconut/bbchallenge-nfa-verification](https://github.com/UncombedCoconut/bbchallenge-nfa-verification)
 - [https://github.com/TonyGuil/bbchallenge/tree/main/FAR](https://github.com/TonyGuil/bbchallenge/tree/main/FAR)
 
-You can feed the verifier DVF files containing NFA-DFA Finite Automata Reduction (FAR) proofs, such as the uncompressed version of [**this file**](https://github.com/UncombedCoconut/bbchallenge-nfa-verification/blob/4da6899808be8922fb6872b48fd17c35856858fb/dfa_nfa_proofs.dvf.zst) (you need to use facebook's `zstd` for decompressing: [https://github.com/facebook/zstd](https://github.com/facebook/zstd)).
+You can feed to the verifier DVF files (see this [README](https://github.com/UncombedCoconut/bbchallenge-deciders/tree/finite-automata-reduction/decider-finite-automata-reduction)) containing NFA-DFA Finite Automata Reduction (FAR) proofs, such as the uncompressed version of [**this file**](https://github.com/UncombedCoconut/bbchallenge-nfa-verification/blob/4da6899808be8922fb6872b48fd17c35856858fb/dfa_nfa_proofs.dvf.zst) (you need to use facebook's `zstd` for decompressing: [https://github.com/facebook/zstd](https://github.com/facebook/zstd)).
 
 ## Setup
 
