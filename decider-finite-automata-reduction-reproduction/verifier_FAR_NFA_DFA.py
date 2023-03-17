@@ -23,10 +23,10 @@ def verify_FAR_left_transition(
     # R_r >= row_{\delta(i,b)}(M_f)^T row_i(M_t) R_b R_w
     # Which amounts to checking R_b R_w at position "\delta(i,b)f", "it"
 
-    for i_dfa_state in range(proof.nb_dfa_states):
-        for b in range(2):
+    for b in range(2):
+        RbRw = proof.nfa_transitions[b] @ proof.nfa_transitions[write]
+        for i_dfa_state in range(proof.nb_dfa_states):
             goes_to_dfa_state = proof.dfa_transitions[i_dfa_state][b]
-            RbRw = proof.nfa_transitions[b] @ proof.nfa_transitions[write]
 
             i = 5 * goes_to_dfa_state + from_state
             j = 5 * i_dfa_state + goto
@@ -45,13 +45,8 @@ def verify_FAR_right_transition(proof, from_state, read_symbol, write, goto):
     # R_r >= row_i(M_f)^T row_{\delta(i,w)}(M_t)
     # Which amounts to checking R_r at position "if", "\delta(i,w)t"
 
-    done = set({})
     for i_dfa_state in range(proof.nb_dfa_states):
         goes_to_dfa_state = proof.dfa_transitions[i_dfa_state][write]
-
-        if goes_to_dfa_state in done:
-            continue
-        done.add(goes_to_dfa_state)
 
         nfa_state_i_f = 5 * i_dfa_state + from_state
         nfa_state_delta_i_w_t = 5 * goes_to_dfa_state + goto
