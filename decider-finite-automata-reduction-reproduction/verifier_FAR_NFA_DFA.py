@@ -1,5 +1,4 @@
 import argparse
-import multiprocessing as mp
 from tm_utils import load_machine_from_db
 
 from parser_FAR_dvf import *
