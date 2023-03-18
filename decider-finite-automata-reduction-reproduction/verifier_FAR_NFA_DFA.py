@@ -1,9 +1,9 @@
 import argparse
-from tm_utils import load_machine_from_db
-
-from parser_FAR_dvf import *
 
 from joblib import Parallel, delayed
+
+from parser_FAR_dvf import *
+from tm_utils import load_machine_from_db
 
 
 def verify_FAR_halting_transition(proof: FAR_EntryDFANFA, from_state, read_symbol):

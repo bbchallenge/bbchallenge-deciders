@@ -1,14 +1,14 @@
 import argparse
 import multiprocessing as mp
-from tm_utils import load_machine_from_db
-
-from parser_FAR_dvf import *
 
 from joblib import Parallel, delayed
 
+from parser_FAR_dvf import *
+from tm_utils import load_machine_from_db
+
 
 def solve_FAR_NFA_from_DFA(
-    dfa_transitions, nb_nfa_states, machine: bytes, direction_right_to_left=False
+    dfa_transitions, total_dfa_states, machine: bytes, direction_right_to_left=False
 ):
     """Given a DFA and a Turing machine the function solves the NFA
     associated to it (direct FAR algorithm) and returns True if the finite machine
@@ -16,7 +16,7 @@ def solve_FAR_NFA_from_DFA(
 
     Args:
         dfa_transitions: a DFA given as a list of transitions
-        nb_nfa_states: the number of states in the NFA to solve
+        total_dfa_states: the total number of states in the DFA (`dfa_transitions` can be partial)
         machine (bytes): a Turing machine in bbchallenge binary format
         direction_right_to_left (bool, optional): Whether the scan direction is right to left or not. Defaults to False.
 
@@ -26,6 +26,7 @@ def solve_FAR_NFA_from_DFA(
             R: transition matrices for the sub-NFA
             a: accepting states of the sub-NFA
     """
+    nb_nfa_states = 5 * total_dfa_states + 1
     nb_dfa_states = len(dfa_transitions)
     R = np.zeros((2, nb_nfa_states, nb_nfa_states)).astype(bool)
 
@@ -52,10 +53,16 @@ def solve_FAR_NFA_from_DFA(
             # Equation 7'
             elif move_to == 0:
                 for i_dfa_state in range(nb_dfa_states):
-                    goes_to_dfa_state = dfa_transitions[i_dfa_state][write]
-                    nfa_state_i_f = 5 * i_dfa_state + from_state
-                    nfa_state_delta_i_w_t = 5 * goes_to_dfa_state + goto
-                    R[read_symbol][nfa_state_i_f, nfa_state_delta_i_w_t] = True
+                    try:
+                        goes_to_dfa_state = dfa_transitions[i_dfa_state][write]
+                        nfa_state_i_f = 5 * i_dfa_state + from_state
+                        nfa_state_delta_i_w_t = 5 * goes_to_dfa_state + goto
+                        R[read_symbol][nfa_state_i_f, nfa_state_delta_i_w_t] = True
+                    except IndexError:
+                        # Handling partial DFAs
+                        # This exception is triggered by `dfa_transitions[i_dfa_state][write]`
+                        # When using partial DFAs
+                        continue
 
     # Machine dependent dynamic equations
     old_R = None
@@ -84,12 +91,18 @@ def solve_FAR_NFA_from_DFA(
                     for b in range(2):
                         RbRw = old_R[b] @ old_R[write]
                         for i_dfa_state in range(nb_dfa_states):
-                            goes_to_dfa_state = dfa_transitions[i_dfa_state][b]
+                            try:
+                                goes_to_dfa_state = dfa_transitions[i_dfa_state][b]
 
-                            i = 5 * goes_to_dfa_state + from_state
-                            j = 5 * i_dfa_state + goto
+                                i = 5 * goes_to_dfa_state + from_state
+                                j = 5 * i_dfa_state + goto
 
-                            R[read_symbol][i, :] += RbRw[j, :]
+                                R[read_symbol][i, :] += RbRw[j, :]
+                            except IndexError:
+                                # Handling partial DFAs
+                                # This exception is triggered by `dfa_transitions[i_dfa_state][b]`
+                                # When using partial DFAs
+                                continue
 
     # Solve a
     a = np.zeros((1, nb_nfa_states)).astype(bool)
@@ -111,7 +124,7 @@ def solve_FAR_NFA_from_DFA(
 def aux_check_solve_FAR_NFA_from_DFA(proof: FAR_EntryDFANFA, machine: bytes):
     solved, R, a = solve_FAR_NFA_from_DFA(
         proof.dfa_transitions,
-        5 * len(proof.dfa_transitions) + 1,
+        len(proof.dfa_transitions),
         machine,
         proof.direction_right_to_left,
     )
