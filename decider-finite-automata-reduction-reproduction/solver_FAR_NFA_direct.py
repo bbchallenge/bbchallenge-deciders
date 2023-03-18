@@ -8,7 +8,7 @@ from joblib import Parallel, delayed
 
 
 def solve_FAR_NFA_from_DFA(
-    dfa_transitions, machine: bytes, direction_right_to_left=False
+    dfa_transitions, nb_nfa_states, machine: bytes, direction_right_to_left=False
 ):
     """Given a DFA and a Turing machine the function solves the NFA
     associated to it (direct FAR algorithm) and returns True if the finite machine
@@ -16,6 +16,7 @@ def solve_FAR_NFA_from_DFA(
 
     Args:
         dfa_transitions: a DFA given as a list of transitions
+        nb_nfa_states: the number of states in the NFA to solve
         machine (bytes): a Turing machine in bbchallenge binary format
         direction_right_to_left (bool, optional): Whether the scan direction is right to left or not. Defaults to False.
 
@@ -26,7 +27,6 @@ def solve_FAR_NFA_from_DFA(
             a: accepting states of the sub-NFA
     """
     nb_dfa_states = len(dfa_transitions)
-    nb_nfa_states = 5 * nb_dfa_states + 1
     R = np.zeros((2, nb_nfa_states, nb_nfa_states)).astype(bool)
 
     # Equation 4'
@@ -110,7 +110,10 @@ def solve_FAR_NFA_from_DFA(
 
 def aux_check_solve_FAR_NFA_from_DFA(proof: FAR_EntryDFANFA, machine: bytes):
     solved, R, a = solve_FAR_NFA_from_DFA(
-        proof.dfa_transitions, machine, proof.direction_right_to_left
+        proof.dfa_transitions,
+        5 * len(proof.dfa_transitions) + 1,
+        machine,
+        proof.direction_right_to_left,
     )
 
     return (
