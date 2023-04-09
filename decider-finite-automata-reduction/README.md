@@ -148,11 +148,21 @@ In our [Decider Verification Files](https://github.com/TonyGuil/bbchallenge/blob
 - `InfoLength` is variable, but corresponds to
 - `DeciderSpecificInfo` contains 1 byte for the direction (0 if as above the FSM is to scan left-to-right, 1 if reversed),
   then 2n bytes for a DFA transition table as described above
+- Note that Tony Guilfoyle (the above repo's author) has both implemented an independent verifier, and specified a format variant (`DeciderType` = 11)
+  where the decider info defines the full DFA+NFA proof.
 - Warning: The DVF format has an `nEntries` header. This decider operates in append mode and lets that become stale.
   It may also write multiple proof records for the same `SeedDatabaseIndex`. These are quirks to fix in post-processing.
+  Some Python scripts to aid in post-processing (and conversion to enriched `DeciderType=11` format) are available in
+  [this repository](https://github.com/UncombedCoconut/bbchallenge-nfa-verification).
 
-The above link also includes a verifier coded independently by Tony Guilfoyle, able to consume these files and check the proofs.
-Tony also defines proof formats which explicitly give the NFA.
+So, in full, the format of `output/finite_automata_reduction.dvf` is:
+* nEntries: `uint32_t` (big-endian, *not reliable*)
+* For each entry:
+    - SeedDatabaseIndex: `uint32_t` (big-endian)
+    - DeciderType: `uint32_t` (big-endian, always 10)
+    - InfoLength: `uint32_t` (big-endian)
+    - Direction: `uint8_t` (0 if the automaton reads left-to-right, 1 otherwise)
+    - TransitionTable: `uint8_t[InfoLength-1]` (entries `[δ(0, 0), δ(0, 1), δ(1, 0), δ(1, 1), …, [δ(n, 0), δ(n, 1)]]`, where `n = (InfoLength-1)/2`)
 
 ## How it works: theory
 
