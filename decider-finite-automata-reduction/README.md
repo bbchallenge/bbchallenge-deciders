@@ -72,7 +72,7 @@ Overall, this means TMs are solved in less time. The reason this isn't the defau
 
 ## How it works: practice
 
-Note: a decider correctness paper under construction [here](https://github.com/bbchallenge/bbchallenge-proofs/tree/finite-automata-reduction) covers similar material,
+Note: the decider correctness paper [here](https://github.com/bbchallenge/bbchallenge-proofs/blob/finite-automata-reduction/deciders/correctness-deciders.pdf) covers similar material,
 though it sidesteps the material in the "theory" section relating this decider to related techniques.
 
 We search for the data of the following non-halting proof (which is easily checked, even if the search is complex).
