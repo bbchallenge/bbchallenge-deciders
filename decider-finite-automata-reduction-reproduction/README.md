@@ -62,3 +62,30 @@ options:
   -cdvf, --check-dvf    solves the nfas of the dfas of a dfa-nfa dvf files and make sure they correspond to the nfas in the file
   --verbose             enables logging
 ```
+
+## Decider usage
+
+`decider_FAR_direct.py` decides machines using the FAR direct algorithm.
+
+Currently its interface is a bit odd as it will only decide machines that are already listed in a DVF file and then check that the solution it found matches the DVF entry. Contrarily to the solver, the decider does search the space of DFAs (up to `-l` DFA states) -- the solver only constructs the complete NFA from the lhs/rhs dfa.
+
+- `python decider_FAR_direct.py --check-dvf resources/dfa_nfa_proofs.dvf --verbose -l 4`
+
+```
+usage: decider_FAR_direct.py [-h] [-d DB] [-c CORES] [-cdvf CHECK_DVF]
+                             [-l LIMIT_DFA_STATES] [--verbose]
+
+options:
+  -h, --help            show this help message and exit
+  -d DB, --db DB        path to the DB file
+  -c CORES, --cores CORES
+                        number of cores on which to parallelize the run,
+                        default on your machine is 8
+  -cdvf CHECK_DVF, --check-dvf CHECK_DVF
+                        Decides all machine IDs present in a .dvf (where the
+                        number of dfa states are less than the limit given
+                        with option -l) and check that results are the same
+  -l LIMIT_DFA_STATES, --limit-dfa-states LIMIT_DFA_STATES
+                        max number of dfa states to enumerate
+  --verbose             enables logging
+```
