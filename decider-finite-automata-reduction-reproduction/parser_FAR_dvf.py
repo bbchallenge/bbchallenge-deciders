@@ -36,6 +36,53 @@ class FAR_EntryHeader:
         return cls(machine_id, decider_type, info_length)
 
 
+class FAR_EntryDFAOnly:
+    def __init__(
+        self,
+        direction_right_to_left: bool,
+        nb_dfa_states: int,
+        dfa_transitions: list[list[int]],
+    ):
+        self.direction_right_to_left = direction_right_to_left
+        self.nb_dfa_states = nb_dfa_states
+        self.dfa_transitions = dfa_transitions[:]
+
+    def __repr__(self):
+        return str(self)
+
+    def __str__(self):
+        direction = "right-to-left" if self.direction_right_to_left else "left-to-right"
+
+        return (
+            f"Direction: {direction}\nNumber of DFA states: {self.nb_dfa_states}\n"
+            f"\nDFA transitions:\n{self.dfa_transitions}\n"
+        )
+
+    @classmethod
+    def from_bytes(cls, entry_bytes: bytes):
+        n_bytes = len(entry_bytes)
+        entry_bytes = BytesIO(entry_bytes)
+        direction_byte = entry_bytes.read(1)
+        direction_byte = int.from_bytes(direction_byte, byteorder="big")
+        direction_right_to_left = direction_byte == 1
+        nb_dfa_states = (n_bytes - 1) // 2
+        dfa_transitions = []
+
+        for _ in range(nb_dfa_states):
+            dfa_transitions.append(
+                [
+                    int.from_bytes(entry_bytes.read(1), byteorder="big"),
+                    int.from_bytes(entry_bytes.read(1), byteorder="big"),
+                ]
+            )
+
+        return cls(
+            direction_right_to_left,
+            nb_dfa_states,
+            dfa_transitions,
+        )
+
+
 class FAR_EntryDFANFA:
     def __init__(
         self,
@@ -166,9 +213,22 @@ class FAR_DVF:
         self.n_entries = n_entries
 
     @classmethod
-    def from_file(cls, file_path, pre_scan=True):
+    def from_file(cls, file_path, pre_scan=True, compute_n_entries=False):
         f = open(file_path, "rb")
         n_entries = int.from_bytes(f.read(4), byteorder="big")
+
+        if compute_n_entries:
+            n_entries = 0
+            while True:
+                try:
+                    header = FAR_EntryHeader.from_bytes(
+                        f.read(FAR_EntryHeader.DVF_HEADER_SIZE)
+                    )
+                except Exception:
+                    break
+                f.seek(header.info_length, 1)
+                n_entries += 1
+            f.seek(4)
 
         to_return = cls(n_entries)
         to_return.file_path = file_path
@@ -195,8 +255,15 @@ class FAR_DVF:
         f.close()
         return to_return
 
-    def ith_entry(self, dvf_file, i_entry, verbose=False, just_header=False):
-        if i_entry < 0 or i_entry >= self.n_entries:
+    def ith_entry(
+        self,
+        dvf_file,
+        i_entry,
+        verbose=False,
+        just_header=False,
+        ignore_n_entries=False,
+    ):
+        if i_entry < 0 or (i_entry >= self.n_entries and not ignore_n_entries):
             raise EOFError(
                 f"Entry {i_entry} does not exist. There are {self.n_entries} entries."
             )
@@ -223,6 +290,8 @@ class FAR_DVF:
         entry = None
         if header.decider_type == FAR_DeciderTypes.FAR_DFA_NFA:
             entry = FAR_EntryDFANFA.from_bytes(dvf_file.read(header.info_length))
+        elif header.decider_type == FAR_DeciderTypes.FAR_DFA_ONLY:
+            entry = FAR_EntryDFAOnly.from_bytes(dvf_file.read(header.info_length))
         if verbose:
             print(f"Entry {i_entry}")
             print(header)

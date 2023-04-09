@@ -100,11 +100,6 @@ if __name__ == "__main__":
         help="path to the DB file",
         default="../all_5_states_undecided_machines_with_global_header",
     )
-    argparser.add_argument(
-        "--dvf",
-        required=True,
-        help="path to the verification file",
-    )
 
     argparser.add_argument(
         "-c",
@@ -118,8 +113,6 @@ if __name__ == "__main__":
         "-cdvf",
         "--check-dvf",
         help="Decides all machine IDs present in a .dvf (where the number of dfa states are less than the limit given with option -l) and check that results are the same",
-        default=False,
-        action="store_true",
     )
 
     argparser.add_argument(
@@ -137,16 +130,65 @@ if __name__ == "__main__":
         action="store_true",
     )
 
+    argparser.add_argument(
+        "-i",
+        "--index",
+        help="path to undecided index file",
+    )
+
     args = argparser.parse_args()
 
     PATH_TO_DB = args.db
-    PATH_TO_DVF = args.dvf
+    PATH_TO_DVF = args.check_dvf
     VERBOSE = args.verbose
     LIMIT_DFA_STATES = args.limit_dfa_states
+    PATH_TO_UNDECIDED_INDEX = args.index
 
-    CHECK_DVf = args.check_dvf
+    CHECK_DVf = args.check_dvf is not None
 
-    if CHECK_DVf:
+    if PATH_TO_UNDECIDED_INDEX is not None:
+        with open(PATH_TO_DB, "rb") as machine_db_file:
+            with open(PATH_TO_UNDECIDED_INDEX, "rb") as undecided_file:
+                import tqdm
+
+                if VERBOSE:
+                    print("Scanning undecided index file...")
+
+                undecided_file_raw = undecided_file.read()
+                undecided_machines_id = []
+
+                for i in tqdm.tqdm(range(0, 800, 4)):
+                    machine_id = int.from_bytes(
+                        undecided_file_raw[i : i + 4], byteorder="big"
+                    )
+                    undecided_machines_id.append(machine_id)
+
+                if VERBOSE:
+                    print(
+                        f"Applying FAR direct decider with max {LIMIT_DFA_STATES} DFA states to {len(undecided_machines_id)} machines..."
+                    )
+
+                gen_entries = (
+                    [
+                        load_machine_from_db(machine_db_file, machine_id),
+                        LIMIT_DFA_STATES,
+                    ]
+                    for machine_id in undecided_machines_id
+                )
+
+                results = Parallel(n_jobs=args.cores, verbose=4)(
+                    delayed(decider_FAR_direct)(machine, limit)
+                    for machine, limit in tqdm.tqdm(
+                        gen_entries, total=len(undecided_machines_id)
+                    )
+                )
+
+                print("O")
+
+                results = np.array(map(lambda x: x[0], results))
+                print(results[0])
+
+    elif CHECK_DVf:
         with open(PATH_TO_DB, "rb") as machine_db_file:
             with open(PATH_TO_DVF, "rb") as dvf_file:
                 import tqdm
