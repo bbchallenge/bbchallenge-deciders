@@ -11,7 +11,7 @@ use zerocopy::{AsBytes, FromBytes};
 
 /// A low-level transition, as in https://bbchallenge.org/method#format
 #[derive(AsBytes, FromBytes, Clone, Debug, Default, Eq, PartialEq)]
-#[repr(packed)]
+#[repr(C)]
 struct Trans {
     bit: u8,
     dir: u8,
@@ -67,7 +67,7 @@ impl Display for Trans {
 #[derive(
     AsBytes, FromBytes, Clone, SerializeDisplay, DeserializeFromStr, Debug, Default, Eq, PartialEq,
 )]
-#[repr(packed)]
+#[repr(C)]
 pub struct Machine {
     code: [[Trans; 2]; TM_STATES],
 }

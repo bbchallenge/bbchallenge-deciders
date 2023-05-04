@@ -26,7 +26,7 @@ impl Database {
         ids: I,
     ) -> impl Iterator<Item = (MachineID, Machine)> + 'a {
         let mut reader = BufReader::new(&self.file);
-        let pos = reader.seek(std::io::SeekFrom::Current(0)).unwrap() as i64;
+        let pos = reader.stream_position().unwrap() as i64;
         Reader {
             reader,
             ids,
