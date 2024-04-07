@@ -313,6 +313,33 @@ impl Configuration {
         self.step_count += 1;
         Ok(())
     }
+
+    /// Implements n directional Turing machine steps, inplace.
+    ///
+    /// ```
+    /// use decider_bouncers_reproduction::directional_tm::{Configuration};
+    /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
+    /// let mut configuration = Configuration::new(machine_str);
+    /// assert_eq!(format!("{configuration}"), "0∞A>0∞");
+    /// configuration.steps(64);
+    /// assert_eq!(format!("{configuration}"), "0∞11111101100D>0∞");
+    /// configuration.steps(25);
+    /// assert_eq!(format!("{configuration}"), "0∞111111011<A01010110∞");
+    /// configuration.steps(2);
+    /// assert_eq!(format!("{configuration}"), "0∞1111110<A0101010110∞");
+    /// configuration.steps(13);
+    /// assert_eq!(format!("{configuration}"), "0∞1111111110110D>0110∞");
+    /// configuration.steps(4);
+    /// assert_eq!(format!("{configuration}"), "0∞111111111011110D>10∞");
+    /// configuration.steps(1);
+    /// assert_eq!(format!("{configuration}"), "0∞1111111110111100D>0∞");
+    /// ```
+    pub fn steps(&mut self, n: u32) -> Result<(), TMError> {
+        for _ in 0..n {
+            self.step()?;
+        }
+        Ok(())
+    }
 }
 
 pub fn hey() {
