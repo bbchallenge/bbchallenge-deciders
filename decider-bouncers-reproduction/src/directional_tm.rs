@@ -1,5 +1,5 @@
 #[derive(Debug)]
-enum TMError {
+pub enum TMError {
     MachineHasHalted,
     OutOfTapeError,
     InvalidConfigurationError,
@@ -122,7 +122,7 @@ impl fmt::Display for Configuration {
                 TapeContent::Symbol(x) => write!(f, "{}", x)?,
                 TapeContent::Head(head) => {
                     if i != self.head_pos {
-                        panic!("Stored head position is not consistent with actual head position in tape.")
+                        panic!("Stored head position {} is not consistent with actual head position {} in tape.", self.head_pos, i);
                     }
 
                     if head.pointing_direction == Direction::RIGHT {
@@ -207,13 +207,13 @@ impl Configuration {
     }
 
     fn get_current_read_content(&self) -> Result<TapeContent, TMError> {
-        return Result::Ok(self.get_tape_content(self.get_current_read_pos()?)?);
+        return Ok(self.get_tape_content(self.get_current_read_pos()?)?);
     }
 
     fn get_current_read_symbol(&self) -> Result<u8, TMError> {
         return match self.get_current_read_content()? {
-            TapeContent::Symbol(x) => Result::Ok(x),
-            TapeContent::InfiniteZero => Result::Ok(0),
+            TapeContent::Symbol(x) => Ok(x),
+            TapeContent::InfiniteZero => Ok(0),
             TapeContent::Head(_) => Err(TMError::InvalidConfigurationError),
         };
     }
@@ -225,14 +225,57 @@ impl Configuration {
         );
         match curr_transition {
             Option::None => return Err(TMError::MachineHasHalted),
-            Option::Some(transition) => Result::Ok(transition),
+            Option::Some(transition) => Ok(transition),
         }
     }
 
     /// Implements a directional Turing machine step, inplace.
-    fn step(&mut self) -> Result<(), TMError> {
+    ///
+    /// Testing the step function with expansion on the right 0∞ extremity:
+    /// ```
+    /// use decider_bouncers_reproduction::directional_tm::{Configuration};
+    /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
+    /// let mut configuration = Configuration::new(machine_str);
+    /// assert_eq!(format!("{configuration}"), "0∞A>0∞");
+    /// configuration.step();
+    /// assert_eq!(format!("{configuration}"), "0∞1B>0∞");
+    /// configuration.step();
+    /// assert_eq!(format!("{configuration}"), "0∞1<C10∞");
+    /// configuration.step();
+    /// assert_eq!(format!("{configuration}"), "0∞1C>10∞");
+    /// configuration.step();
+    /// assert_eq!(format!("{configuration}"), "0∞11C>0∞");
+    /// configuration.step();
+    /// assert_eq!(format!("{configuration}"), "0∞11<B10∞");
+    /// configuration.step();
+    /// assert_eq!(format!("{configuration}"), "0∞11D>10∞");
+    /// configuration.step();
+    /// assert_eq!(format!("{configuration}"), "0∞110D>0∞");
+    /// configuration.step();
+    /// assert_eq!(format!("{configuration}"), "0∞110<A10∞");
+    /// configuration.step();
+    /// assert_eq!(format!("{configuration}"), "0∞111B>10∞");
+    /// ```
+    ///
+    /// Testing the step function with expansion on the left 0∞ extremity:
+    /// ```
+    /// use decider_bouncers_reproduction::directional_tm::{Configuration};
+    /// let machine_str = "1LB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
+    /// let mut configuration = Configuration::new(machine_str);
+    /// assert_eq!(format!("{configuration}"), "0∞A>0∞");
+    /// configuration.step();
+    /// assert_eq!(format!("{configuration}"), "0∞<B10∞");
+    /// configuration.step();
+    /// assert_eq!(format!("{configuration}"), "0∞<C110∞");
+    /// configuration.step();
+    /// assert_eq!(format!("{configuration}"), "0∞<B1110∞");
+    /// configuration.step();
+    /// assert_eq!(format!("{configuration}"), "0∞<C11110∞");
+    /// configuration.step();
+    /// ```
+    pub fn step(&mut self) -> Result<(), TMError> {
         let curr_head = self.get_current_head()?;
-        let curr_read_pos = self.get_current_read_pos()?;
+        let mut curr_read_pos = self.get_current_read_pos()?;
         let curr_read_content = self.get_current_read_content()?;
         let curr_transition = self.get_current_transition()?;
 
@@ -249,6 +292,7 @@ impl Configuration {
                 } else {
                     self.tape.push_front(TapeContent::InfiniteZero);
                     self.head_pos += 1;
+                    curr_read_pos += 1;
                 }
             }
             TapeContent::Symbol(_) => {}
@@ -267,7 +311,7 @@ impl Configuration {
         }
 
         self.step_count += 1;
-        return Ok(());
+        Ok(())
     }
 }
 
