@@ -121,6 +121,10 @@ impl fmt::Display for Configuration {
                 TapeContent::InfiniteZero => write!(f, "0∞")?,
                 TapeContent::Symbol(x) => write!(f, "{}", x)?,
                 TapeContent::Head(head) => {
+                    if i != self.head_pos {
+                        panic!("Stored head position is not consistent with actual head position in tape.")
+                    }
+
                     if head.pointing_direction == Direction::RIGHT {
                         write!(f, "{}>", (head.state + b'A') as char)?;
                     } else {
@@ -145,31 +149,61 @@ impl Configuration {
                 }),
                 TapeContent::InfiniteZero,
             ]),
-            head_pos: 0,
+            head_pos: 1,
             step_count: 0,
         }
     }
 
-    fn get_tape_content(&self, pos: i32) -> Result<TapeContent, TMError> {
-        if pos < 0 || pos >= self.tape.len().try_into().unwrap() {
+    fn valid_tape_after_direction(
+        &self,
+        pos: usize,
+        direction: Direction,
+    ) -> Result<usize, TMError> {
+        let new_pos = match direction {
+            Direction::RIGHT => (pos as i32) + 1,
+            Direction::LEFT => (pos as i32) - 1,
+        };
+        if new_pos < 0 || new_pos >= self.tape.len().try_into().unwrap() {
             return Err(TMError::OutOfTapeError);
         }
 
-        Ok(self.tape[pos as usize])
+        return Ok(new_pos as usize);
+    }
+
+    fn get_tape_content(&self, pos: usize) -> Result<TapeContent, TMError> {
+        if pos >= self.tape.len().try_into().unwrap() {
+            return Err(TMError::OutOfTapeError);
+        }
+
+        match self.tape[pos] {
+            TapeContent::InfiniteZero => {
+                if pos == 0 || pos == self.tape.len() - 1 {
+                    return Ok(TapeContent::InfiniteZero);
+                }
+                return Err(TMError::InvalidConfigurationError);
+            }
+            TapeContent::Symbol(x) => return Ok(TapeContent::Symbol(x)),
+            TapeContent::Head(head) => {
+                if pos == self.head_pos {
+                    return Ok(TapeContent::Head(head));
+                }
+                return Err(TMError::InvalidConfigurationError);
+            }
+        }
     }
 
     fn get_current_head(&self) -> Result<TapeHead, TMError> {
-        match self.get_tape_content(self.head_pos as i32)? {
+        match self.get_tape_content(self.head_pos)? {
             TapeContent::Head(head) => Ok(head),
             _ => Err(TMError::InvalidConfigurationError),
         }
     }
 
-    fn get_current_read_pos(&self) -> Result<i32, TMError> {
-        return match self.get_current_head()?.pointing_direction {
-            Direction::RIGHT => Result::Ok((self.head_pos as i32) + 1),
-            Direction::LEFT => Result::Ok((self.head_pos as i32) - 1),
-        };
+    fn get_current_read_pos(&self) -> Result<usize, TMError> {
+        return self.valid_tape_after_direction(
+            self.head_pos,
+            self.get_current_head()?.pointing_direction,
+        );
     }
 
     fn get_current_read_content(&self) -> Result<TapeContent, TMError> {
@@ -202,17 +236,38 @@ impl Configuration {
         let curr_read_content = self.get_current_read_content()?;
         let curr_transition = self.get_current_transition()?;
 
+        let new_head = TapeHead {
+            state: curr_transition.state_goto,
+            pointing_direction: curr_transition.direction,
+        };
+
+        // Extend tape if head pointing at 0^\infty extremity
         match curr_read_content {
-            TapeContent::Symbol(_) => {
-                return Ok(());
-            }
             TapeContent::InfiniteZero => {
-                return Ok(());
+                if curr_read_pos != 0 {
+                    self.tape.push_back(TapeContent::InfiniteZero);
+                } else {
+                    self.tape.push_front(TapeContent::InfiniteZero);
+                    self.head_pos += 1;
+                }
             }
+            TapeContent::Symbol(_) => {}
             TapeContent::Head(_) => {
                 return Err(TMError::InvalidConfigurationError);
             }
         }
+
+        self.tape[self.head_pos] = TapeContent::Head(new_head);
+        self.tape[curr_read_pos] = TapeContent::Symbol(curr_transition.write);
+
+        if curr_head.pointing_direction == new_head.pointing_direction {
+            self.tape.swap(self.head_pos, curr_read_pos);
+            self.head_pos =
+                self.valid_tape_after_direction(self.head_pos, curr_transition.direction)?;
+        }
+
+        self.step_count += 1;
+        return Ok(());
     }
 }
 
