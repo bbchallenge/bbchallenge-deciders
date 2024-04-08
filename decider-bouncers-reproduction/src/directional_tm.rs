@@ -2,7 +2,7 @@
 pub enum TMError {
     MachineHasHalted,
     OutOfTapeError,
-    InvalidConfigurationError,
+    InvalidTapeError,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -96,28 +96,29 @@ enum TapeContent {
     Head(TapeHead),
 }
 
-/// Directional Turing Machine Configuration, with additional information stored for convenience.
-pub struct Configuration {
+/// Directional Turing machine (potentially partial) tape, with additional information stored for convenience.
+/// Note that in this setup the tape also contain the head, hence completely represents a (partial) tape.
+pub struct Tape {
     machine_transition: TMTransitionTable,
-    tape: VecDeque<TapeContent>,
+    tape_content: VecDeque<TapeContent>,
     head_pos: usize,
     step_count: i32,
 }
 
 use std::{collections::VecDeque, fmt};
 
-impl fmt::Display for Configuration {
-    /// Returns the string representation of a Configuration.
+impl fmt::Display for Tape {
+    /// Returns the string representation of a Tape.
     ///
     /// ```
-    /// use decider_bouncers_reproduction::directional_tm::{TMTransition, Direction, TMTransitionTable, Configuration};
+    /// use decider_bouncers_reproduction::directional_tm::{TMTransition, Direction, TMTransitionTable, Tape};
     /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
-    /// let configuration = Configuration::new(machine_str);
-    /// assert_eq!(format!("{configuration}"), "0∞A>0∞");
+    /// let tape = Tape::new(machine_str);
+    /// assert_eq!(format!("{tape}"), "0∞A>0∞");
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for i in 0..self.tape.len() {
-            match &self.tape[i] {
+        for i in 0..self.tape_content.len() {
+            match &self.tape_content[i] {
                 TapeContent::InfiniteZero => write!(f, "0∞")?,
                 TapeContent::Symbol(x) => write!(f, "{}", x)?,
                 TapeContent::Head(head) => {
@@ -137,11 +138,11 @@ impl fmt::Display for Configuration {
     }
 }
 
-impl Configuration {
-    pub fn new(machine_std_format: &str) -> Configuration {
-        Configuration {
+impl Tape {
+    pub fn new(machine_std_format: &str) -> Tape {
+        Tape {
             machine_transition: TMTransitionTable::new(machine_std_format),
-            tape: VecDeque::from(vec![
+            tape_content: VecDeque::from(vec![
                 TapeContent::InfiniteZero,
                 TapeContent::Head(TapeHead {
                     state: 0,
@@ -163,7 +164,7 @@ impl Configuration {
             Direction::RIGHT => (pos as i32) + 1,
             Direction::LEFT => (pos as i32) - 1,
         };
-        if new_pos < 0 || new_pos >= self.tape.len().try_into().unwrap() {
+        if new_pos < 0 || new_pos >= self.tape_content.len().try_into().unwrap() {
             return Err(TMError::OutOfTapeError);
         }
 
@@ -171,23 +172,23 @@ impl Configuration {
     }
 
     fn get_tape_content(&self, pos: usize) -> Result<TapeContent, TMError> {
-        if pos >= self.tape.len().try_into().unwrap() {
+        if pos >= self.tape_content.len().try_into().unwrap() {
             return Err(TMError::OutOfTapeError);
         }
 
-        match self.tape[pos] {
+        match self.tape_content[pos] {
             TapeContent::InfiniteZero => {
-                if pos == 0 || pos == self.tape.len() - 1 {
+                if pos == 0 || pos == self.tape_content.len() - 1 {
                     return Ok(TapeContent::InfiniteZero);
                 }
-                return Err(TMError::InvalidConfigurationError);
+                return Err(TMError::InvalidTapeError);
             }
             TapeContent::Symbol(x) => return Ok(TapeContent::Symbol(x)),
             TapeContent::Head(head) => {
                 if pos == self.head_pos {
                     return Ok(TapeContent::Head(head));
                 }
-                return Err(TMError::InvalidConfigurationError);
+                return Err(TMError::InvalidTapeError);
             }
         }
     }
@@ -195,7 +196,7 @@ impl Configuration {
     fn get_current_head(&self) -> Result<TapeHead, TMError> {
         match self.get_tape_content(self.head_pos)? {
             TapeContent::Head(head) => Ok(head),
-            _ => Err(TMError::InvalidConfigurationError),
+            _ => Err(TMError::InvalidTapeError),
         }
     }
 
@@ -214,7 +215,7 @@ impl Configuration {
         return match self.get_current_read_content()? {
             TapeContent::Symbol(x) => Ok(x),
             TapeContent::InfiniteZero => Ok(0),
-            TapeContent::Head(_) => Err(TMError::InvalidConfigurationError),
+            TapeContent::Head(_) => Err(TMError::InvalidTapeError),
         };
     }
 
@@ -233,45 +234,45 @@ impl Configuration {
     ///
     /// Testing the step function with expansion on the right 0∞ extremity:
     /// ```
-    /// use decider_bouncers_reproduction::directional_tm::{Configuration};
+    /// use decider_bouncers_reproduction::directional_tm::{Tape};
     /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
-    /// let mut configuration = Configuration::new(machine_str);
-    /// assert_eq!(format!("{configuration}"), "0∞A>0∞");
-    /// configuration.step();
-    /// assert_eq!(format!("{configuration}"), "0∞1B>0∞");
-    /// configuration.step();
-    /// assert_eq!(format!("{configuration}"), "0∞1<C10∞");
-    /// configuration.step();
-    /// assert_eq!(format!("{configuration}"), "0∞1C>10∞");
-    /// configuration.step();
-    /// assert_eq!(format!("{configuration}"), "0∞11C>0∞");
-    /// configuration.step();
-    /// assert_eq!(format!("{configuration}"), "0∞11<B10∞");
-    /// configuration.step();
-    /// assert_eq!(format!("{configuration}"), "0∞11D>10∞");
-    /// configuration.step();
-    /// assert_eq!(format!("{configuration}"), "0∞110D>0∞");
-    /// configuration.step();
-    /// assert_eq!(format!("{configuration}"), "0∞110<A10∞");
-    /// configuration.step();
-    /// assert_eq!(format!("{configuration}"), "0∞111B>10∞");
+    /// let mut tape = Tape::new(machine_str);
+    /// assert_eq!(format!("{tape}"), "0∞A>0∞");
+    /// tape.step();
+    /// assert_eq!(format!("{tape}"), "0∞1B>0∞");
+    /// tape.step();
+    /// assert_eq!(format!("{tape}"), "0∞1<C10∞");
+    /// tape.step();
+    /// assert_eq!(format!("{tape}"), "0∞1C>10∞");
+    /// tape.step();
+    /// assert_eq!(format!("{tape}"), "0∞11C>0∞");
+    /// tape.step();
+    /// assert_eq!(format!("{tape}"), "0∞11<B10∞");
+    /// tape.step();
+    /// assert_eq!(format!("{tape}"), "0∞11D>10∞");
+    /// tape.step();
+    /// assert_eq!(format!("{tape}"), "0∞110D>0∞");
+    /// tape.step();
+    /// assert_eq!(format!("{tape}"), "0∞110<A10∞");
+    /// tape.step();
+    /// assert_eq!(format!("{tape}"), "0∞111B>10∞");
     /// ```
     ///
     /// Testing the step function with expansion on the left 0∞ extremity:
     /// ```
-    /// use decider_bouncers_reproduction::directional_tm::{Configuration};
+    /// use decider_bouncers_reproduction::directional_tm::{Tape};
     /// let machine_str = "1LB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
-    /// let mut configuration = Configuration::new(machine_str);
-    /// assert_eq!(format!("{configuration}"), "0∞A>0∞");
-    /// configuration.step();
-    /// assert_eq!(format!("{configuration}"), "0∞<B10∞");
-    /// configuration.step();
-    /// assert_eq!(format!("{configuration}"), "0∞<C110∞");
-    /// configuration.step();
-    /// assert_eq!(format!("{configuration}"), "0∞<B1110∞");
-    /// configuration.step();
-    /// assert_eq!(format!("{configuration}"), "0∞<C11110∞");
-    /// configuration.step();
+    /// let mut tape = Tape::new(machine_str);
+    /// assert_eq!(format!("{tape}"), "0∞A>0∞");
+    /// tape.step();
+    /// assert_eq!(format!("{tape}"), "0∞<B10∞");
+    /// tape.step();
+    /// assert_eq!(format!("{tape}"), "0∞<C110∞");
+    /// tape.step();
+    /// assert_eq!(format!("{tape}"), "0∞<B1110∞");
+    /// tape.step();
+    /// assert_eq!(format!("{tape}"), "0∞<C11110∞");
+    /// tape.step();
     /// ```
     pub fn step(&mut self) -> Result<(), TMError> {
         let curr_head = self.get_current_head()?;
@@ -288,24 +289,24 @@ impl Configuration {
         match curr_read_content {
             TapeContent::InfiniteZero => {
                 if curr_read_pos != 0 {
-                    self.tape.push_back(TapeContent::InfiniteZero);
+                    self.tape_content.push_back(TapeContent::InfiniteZero);
                 } else {
-                    self.tape.push_front(TapeContent::InfiniteZero);
+                    self.tape_content.push_front(TapeContent::InfiniteZero);
                     self.head_pos += 1;
                     curr_read_pos += 1;
                 }
             }
             TapeContent::Symbol(_) => {}
             TapeContent::Head(_) => {
-                return Err(TMError::InvalidConfigurationError);
+                return Err(TMError::InvalidTapeError);
             }
         }
 
-        self.tape[self.head_pos] = TapeContent::Head(new_head);
-        self.tape[curr_read_pos] = TapeContent::Symbol(curr_transition.write);
+        self.tape_content[self.head_pos] = TapeContent::Head(new_head);
+        self.tape_content[curr_read_pos] = TapeContent::Symbol(curr_transition.write);
 
         if curr_head.pointing_direction == new_head.pointing_direction {
-            self.tape.swap(self.head_pos, curr_read_pos);
+            self.tape_content.swap(self.head_pos, curr_read_pos);
             self.head_pos =
                 self.valid_tape_after_direction(self.head_pos, curr_transition.direction)?;
         }
@@ -317,22 +318,22 @@ impl Configuration {
     /// Implements n directional Turing machine steps, inplace.
     ///
     /// ```
-    /// use decider_bouncers_reproduction::directional_tm::{Configuration};
+    /// use decider_bouncers_reproduction::directional_tm::{Tape};
     /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
-    /// let mut configuration = Configuration::new(machine_str);
-    /// assert_eq!(format!("{configuration}"), "0∞A>0∞");
-    /// configuration.steps(64);
-    /// assert_eq!(format!("{configuration}"), "0∞11111101100D>0∞");
-    /// configuration.steps(25);
-    /// assert_eq!(format!("{configuration}"), "0∞111111011<A01010110∞");
-    /// configuration.steps(2);
-    /// assert_eq!(format!("{configuration}"), "0∞1111110<A0101010110∞");
-    /// configuration.steps(13);
-    /// assert_eq!(format!("{configuration}"), "0∞1111111110110D>0110∞");
-    /// configuration.steps(4);
-    /// assert_eq!(format!("{configuration}"), "0∞111111111011110D>10∞");
-    /// configuration.steps(1);
-    /// assert_eq!(format!("{configuration}"), "0∞1111111110111100D>0∞");
+    /// let mut tape = Tape::new(machine_str);
+    /// assert_eq!(format!("{tape}"), "0∞A>0∞");
+    /// tape.steps(64);
+    /// assert_eq!(format!("{tape}"), "0∞11111101100D>0∞");
+    /// tape.steps(25);
+    /// assert_eq!(format!("{tape}"), "0∞111111011<A01010110∞");
+    /// tape.steps(2);
+    /// assert_eq!(format!("{tape}"), "0∞1111110<A0101010110∞");
+    /// tape.steps(13);
+    /// assert_eq!(format!("{tape}"), "0∞1111111110110D>0110∞");
+    /// tape.steps(4);
+    /// assert_eq!(format!("{tape}"), "0∞111111111011110D>10∞");
+    /// tape.steps(1);
+    /// assert_eq!(format!("{tape}"), "0∞1111111110111100D>0∞");
     /// ```
     pub fn steps(&mut self, n: u32) -> Result<(), TMError> {
         for _ in 0..n {
