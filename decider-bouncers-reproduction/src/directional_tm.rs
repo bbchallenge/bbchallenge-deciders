@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum TMError {
     MachineHasHalted,
     OutOfTapeError,
@@ -84,13 +84,13 @@ impl TMTransitionTable {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct TapeHead {
-    state: u8,
-    pointing_direction: Direction,
+pub struct TapeHead {
+    pub state: u8,
+    pub pointing_direction: Direction,
 }
 
 #[derive(Debug, Clone, Copy)]
-enum TapeContent {
+pub enum TapeContent {
     InfiniteZero,
     Symbol(u8),
     Head(TapeHead),
@@ -113,7 +113,7 @@ impl fmt::Display for Tape {
     /// ```
     /// use decider_bouncers_reproduction::directional_tm::{TMTransition, Direction, TMTransitionTable, Tape};
     /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
-    /// let tape = Tape::new(machine_str);
+    /// let tape = Tape::new_initial(machine_str);
     /// assert_eq!(format!("{tape}"), "0∞A>0∞");
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -139,7 +139,7 @@ impl fmt::Display for Tape {
 }
 
 impl Tape {
-    pub fn new(machine_std_format: &str) -> Tape {
+    pub fn new_initial(machine_std_format: &str) -> Tape {
         Tape {
             machine_transition: TMTransitionTable::new(machine_std_format),
             tape_content: VecDeque::from(vec![
@@ -151,6 +151,27 @@ impl Tape {
                 TapeContent::InfiniteZero,
             ]),
             head_pos: 1,
+            step_count: 0,
+        }
+    }
+
+    pub fn new_partial(
+        machine_std_format: &str,
+        before_head: &Vec<TapeContent>,
+        head: TapeHead,
+        after_head: &Vec<TapeContent>,
+    ) -> Tape {
+        Tape {
+            machine_transition: TMTransitionTable::new(machine_std_format),
+            tape_content: VecDeque::from(
+                [
+                    before_head.as_slice(),
+                    &[TapeContent::Head(head)],
+                    after_head.as_slice(),
+                ]
+                .concat(),
+            ),
+            head_pos: before_head.len(),
             step_count: 0,
         }
     }
@@ -232,11 +253,24 @@ impl Tape {
 
     /// Implements a directional Turing machine step, inplace.
     ///
+    /// Testing the step function on partial tapes:
+    /// ```
+    /// use decider_bouncers_reproduction::directional_tm::{Tape,TapeContent,TapeHead, Direction, TMError};
+    /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
+    /// let mut tape = Tape::new_partial(machine_str, &vec![TapeContent::Symbol(1),TapeContent::Symbol(0),TapeContent::Symbol(0),TapeContent::Symbol(1)], TapeHead { state: 0, pointing_direction: Direction::RIGHT },&vec![TapeContent::Symbol(0),TapeContent::Symbol(1)]);
+    /// assert_eq!(format!("{tape}"), "1001A>01");
+    /// tape.step();
+    /// assert_eq!(format!("{tape}"), "10011B>1");
+    /// tape.step();
+    /// assert_eq!(format!("{tape}"), "100111D>");
+    /// assert_eq!(tape.step(), Err(TMError::OutOfTapeError));
+    /// ```
+    ///
     /// Testing the step function with expansion on the right 0∞ extremity:
     /// ```
     /// use decider_bouncers_reproduction::directional_tm::{Tape};
     /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
-    /// let mut tape = Tape::new(machine_str);
+    /// let mut tape = Tape::new_initial(machine_str);
     /// assert_eq!(format!("{tape}"), "0∞A>0∞");
     /// tape.step();
     /// assert_eq!(format!("{tape}"), "0∞1B>0∞");
@@ -262,7 +296,7 @@ impl Tape {
     /// ```
     /// use decider_bouncers_reproduction::directional_tm::{Tape};
     /// let machine_str = "1LB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
-    /// let mut tape = Tape::new(machine_str);
+    /// let mut tape = Tape::new_initial(machine_str);
     /// assert_eq!(format!("{tape}"), "0∞A>0∞");
     /// tape.step();
     /// assert_eq!(format!("{tape}"), "0∞<B10∞");
@@ -320,7 +354,7 @@ impl Tape {
     /// ```
     /// use decider_bouncers_reproduction::directional_tm::{Tape};
     /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
-    /// let mut tape = Tape::new(machine_str);
+    /// let mut tape = Tape::new_initial(machine_str);
     /// assert_eq!(format!("{tape}"), "0∞A>0∞");
     /// tape.steps(64);
     /// assert_eq!(format!("{tape}"), "0∞11111101100D>0∞");
