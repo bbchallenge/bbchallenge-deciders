@@ -75,11 +75,11 @@ impl TMTransitionTable {
     /// assert_eq!(transition_table.get_transition(4, 1), Some(TMTransition { write: 0, direction: Direction::LEFT, state_goto: 0 }));
     /// ```
     pub fn get_transition(&self, state: u8, read: u8) -> Option<TMTransition> {
-        let machine_split: Vec<&str> = self.machine_std_format.split("_").collect();
+        let machine_split: Vec<&str> = self.machine_std_format.split('_').collect();
         let read_usize = read as usize;
-        return TMTransition::from_std_str_triple(
+        TMTransition::from_std_str_triple(
             &machine_split[state as usize][3 * read_usize..3 * read_usize + 3],
-        );
+        )
     }
 }
 
@@ -189,11 +189,11 @@ impl Tape {
             return Err(TMError::OutOfTapeError);
         }
 
-        return Ok(new_pos as usize);
+        Ok(new_pos as usize)
     }
 
     fn get_tape_content(&self, pos: usize) -> Result<TapeContent, TMError> {
-        if pos >= self.tape_content.len().try_into().unwrap() {
+        if pos >= self.tape_content.len() {
             return Err(TMError::OutOfTapeError);
         }
 
@@ -202,14 +202,14 @@ impl Tape {
                 if pos == 0 || pos == self.tape_content.len() - 1 {
                     return Ok(TapeContent::InfiniteZero);
                 }
-                return Err(TMError::InvalidTapeError);
+                Err(TMError::InvalidTapeError)
             }
-            TapeContent::Symbol(x) => return Ok(TapeContent::Symbol(x)),
+            TapeContent::Symbol(x) => Ok(TapeContent::Symbol(x)),
             TapeContent::Head(head) => {
                 if pos == self.head_pos {
                     return Ok(TapeContent::Head(head));
                 }
-                return Err(TMError::InvalidTapeError);
+                Err(TMError::InvalidTapeError)
             }
         }
     }
@@ -222,22 +222,19 @@ impl Tape {
     }
 
     fn get_current_read_pos(&self) -> Result<usize, TMError> {
-        return self.valid_tape_after_direction(
-            self.head_pos,
-            self.get_current_head()?.pointing_direction,
-        );
+        self.valid_tape_after_direction(self.head_pos, self.get_current_head()?.pointing_direction)
     }
 
     fn get_current_read_content(&self) -> Result<TapeContent, TMError> {
-        return Ok(self.get_tape_content(self.get_current_read_pos()?)?);
+        self.get_tape_content(self.get_current_read_pos()?)
     }
 
     fn get_current_read_symbol(&self) -> Result<u8, TMError> {
-        return match self.get_current_read_content()? {
+        match self.get_current_read_content()? {
             TapeContent::Symbol(x) => Ok(x),
             TapeContent::InfiniteZero => Ok(0),
             TapeContent::Head(_) => Err(TMError::InvalidTapeError),
-        };
+        }
     }
 
     fn get_current_transition(&self) -> Result<TMTransition, TMError> {
@@ -246,7 +243,7 @@ impl Tape {
             self.get_current_read_symbol()?,
         );
         match curr_transition {
-            Option::None => return Err(TMError::MachineHasHalted),
+            Option::None => Err(TMError::MachineHasHalted),
             Option::Some(transition) => Ok(transition),
         }
     }
@@ -375,8 +372,4 @@ impl Tape {
         }
         Ok(())
     }
-}
-
-pub fn hey() {
-    println!("Hey from directional_tm!");
 }
