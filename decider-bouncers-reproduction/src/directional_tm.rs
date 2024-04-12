@@ -1,3 +1,5 @@
+use std::{collections::VecDeque, fmt};
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum TMError {
     MachineHasHalted,
@@ -89,6 +91,15 @@ pub struct TapeHead {
     pub pointing_direction: Direction,
 }
 
+impl TapeHead {
+    pub fn default() -> TapeHead {
+        TapeHead {
+            state: 0,
+            pointing_direction: Direction::RIGHT,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum TapeContent {
     InfiniteZero,
@@ -100,15 +111,13 @@ pub enum TapeContent {
 /// Note that in this setup the tape also contain the head, hence completely represents a (partial) tape.
 pub struct Tape {
     machine_transition: TMTransitionTable,
-    tape_content: VecDeque<TapeContent>,
-    head_pos: usize,
+    pub tape_content: VecDeque<TapeContent>,
+    pub head_pos: usize,
     step_count: i32,
 }
 
-use std::{collections::VecDeque, fmt};
-
 impl fmt::Display for Tape {
-    /// Returns the string representation of a Tape.
+    /// Returns the string representation of a tape.
     ///
     /// ```
     /// use decider_bouncers_reproduction::directional_tm::{TMTransition, Direction, TMTransitionTable, Tape};
@@ -139,35 +148,65 @@ impl fmt::Display for Tape {
 }
 
 impl Tape {
-    pub fn new_initial(machine_std_format: &str) -> Tape {
-        Tape {
-            machine_transition: TMTransitionTable::new(machine_std_format),
-            tape_content: VecDeque::from(vec![
-                TapeContent::InfiniteZero,
-                TapeContent::Head(TapeHead {
-                    state: 0,
-                    pointing_direction: Direction::RIGHT,
-                }),
-                TapeContent::InfiniteZero,
-            ]),
-            head_pos: 1,
-            step_count: 0,
-        }
-    }
-
-    pub fn new_partial(
+    /// Constructs a tape enclosed with 0∞ symbols.
+    pub fn new(
         machine_std_format: &str,
-        before_head: &Vec<TapeContent>,
+        before_head: &[u8],
         head: TapeHead,
-        after_head: &Vec<TapeContent>,
+        after_head: &[u8],
     ) -> Tape {
         Tape {
             machine_transition: TMTransitionTable::new(machine_std_format),
             tape_content: VecDeque::from(
                 [
-                    before_head.as_slice(),
+                    &[TapeContent::InfiniteZero],
+                    before_head
+                        .iter()
+                        .map(|&x| TapeContent::Symbol(x))
+                        .collect::<Vec<_>>()
+                        .as_slice(),
                     &[TapeContent::Head(head)],
-                    after_head.as_slice(),
+                    after_head
+                        .iter()
+                        .map(|&x| TapeContent::Symbol(x))
+                        .collect::<Vec<_>>()
+                        .as_slice(),
+                    &[TapeContent::InfiniteZero],
+                ]
+                .concat(),
+            ),
+            head_pos: before_head.len() + 1,
+            step_count: 0,
+        }
+    }
+
+    /// Constructs an initial tape in bbchallenge sense: 0∞A>0∞.
+    pub fn new_initial(machine_std_format: &str) -> Tape {
+        Tape::new(machine_std_format, &[], TapeHead::default(), &[])
+    }
+
+    /// Constructs a partial tape (not enclosed with 0∞ symbols)
+    pub fn new_partial(
+        machine_std_format: &str,
+        before_head: &[u8],
+        head: TapeHead,
+        after_head: &[u8],
+    ) -> Tape {
+        Tape {
+            machine_transition: TMTransitionTable::new(machine_std_format),
+            tape_content: VecDeque::from(
+                [
+                    before_head
+                        .iter()
+                        .map(|&x| TapeContent::Symbol(x))
+                        .collect::<Vec<_>>()
+                        .as_slice(),
+                    &[TapeContent::Head(head)],
+                    after_head
+                        .iter()
+                        .map(|&x| TapeContent::Symbol(x))
+                        .collect::<Vec<_>>()
+                        .as_slice(),
                 ]
                 .concat(),
             ),
@@ -254,7 +293,7 @@ impl Tape {
     /// ```
     /// use decider_bouncers_reproduction::directional_tm::{Tape,TapeContent,TapeHead, Direction, TMError};
     /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
-    /// let mut tape = Tape::new_partial(machine_str, &vec![TapeContent::Symbol(1),TapeContent::Symbol(0),TapeContent::Symbol(0),TapeContent::Symbol(1)], TapeHead { state: 0, pointing_direction: Direction::RIGHT },&vec![TapeContent::Symbol(0),TapeContent::Symbol(1)]);
+    /// let mut tape = Tape::new_partial(machine_str, &[1,0,0,1], TapeHead::default(),&[0,1]);
     /// assert_eq!(format!("{tape}"), "1001A>01");
     /// tape.step();
     /// assert_eq!(format!("{tape}"), "10011B>1");
