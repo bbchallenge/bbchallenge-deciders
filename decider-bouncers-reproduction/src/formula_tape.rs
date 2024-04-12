@@ -146,10 +146,33 @@ impl FormulaTape {
             return self.pos_is_repeater_beg(self.tape.head_pos + 1);
         }
         self.pos_is_repeater_beg(self.tape.head_pos + 1)
-            || self.pos_is_repeater_end(self.tape.head_pos - 1)
+            || self.pos_is_repeater_end(self.tape.head_pos)
     }
 
-    fn shift_rule_tape(&self) -> Result<Tape, FormulaTapeError> {
+    /// Returns the sub-tape corresponding to the shift rule the head is potentially pointing at.
+    ///
+    /// ```
+    /// use decider_bouncers_reproduction::formula_tape::{FormulaTape, RepeaterPos, FormulaTapeError};
+    /// use decider_bouncers_reproduction::directional_tm::{Direction, Tape, TapeHead};
+    /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
+    /// let formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,1,1,1,1,1,1,1,1,0,1,1], TapeHead::default(), &[1,1,0,1]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 14, end: 16 }] };
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011A>(11)010∞");
+    /// let shift_rule_tape = formula_tape.shift_rule_tape().unwrap();
+    /// assert_eq!(format!("{shift_rule_tape}"), "111111011A>11");
+    /// let formula_tape = FormulaTape { tape: Tape::new(machine_str, &[], TapeHead::default(), &[1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1]), repeaters_pos: vec![RepeaterPos { beg: 2, end: 5 },RepeaterPos { beg: 14, end: 16 }] };
+    /// assert_eq!(format!("{formula_tape}"), "0∞A>(111)111111011(11)010∞");
+    /// let shift_rule_tape = formula_tape.shift_rule_tape().unwrap();
+    /// assert_eq!(format!("{shift_rule_tape}"), "A>111");
+    /// let formula_tape = FormulaTape { tape: Tape::new(machine_str,  &[1,1,1,1,1,1,1,1,1,0,1,1,1,1], TapeHead {state: 0, pointing_direction: Direction::LEFT}, &[0,1]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 13, end: 15 }] };
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011(11)<A010∞");
+    /// let shift_rule_tape = formula_tape.shift_rule_tape().unwrap();
+    /// assert_eq!(format!("{shift_rule_tape}"), "11<A01");
+    /// let formula_tape = FormulaTape { tape: Tape::new(machine_str,  &[1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1], TapeHead {state: 0, pointing_direction: Direction::LEFT}, &[]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 15, end: 17 }] };
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)11111101111(01)<A0∞");
+    /// let shift_rule_tape = formula_tape.shift_rule_tape().unwrap();
+    /// assert_eq!(format!("{shift_rule_tape}"), "01<A");
+    /// ````
+    pub fn shift_rule_tape(&self) -> Result<Tape, FormulaTapeError> {
         assert!(self.head_is_pointing_at_repeater());
 
         let head = match &self.tape.tape_content[self.tape.head_pos] {
@@ -173,7 +196,7 @@ impl FormulaTape {
             Direction::RIGHT => self.repeater_right(self.tape.head_pos).unwrap().end, // unwrap is safe because head is pointing at a repeater ,
             Direction::LEFT => match self.repeater_right(self.tape.head_pos) {
                 Some(repeater_pos) => repeater_pos.beg,
-                None => self.tape.last_index_non_zero_infinite().unwrap(), // unwrap is safe because tape non empty and contains at least the head
+                None => self.tape.last_index_non_zero_infinite().unwrap() + 1, // unwrap is safe because tape non empty and contains at least the head
             },
         };
 
