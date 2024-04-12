@@ -85,7 +85,7 @@ impl TMTransitionTable {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TapeHead {
     pub state: u8,
     pub pointing_direction: Direction,
@@ -100,7 +100,7 @@ impl TapeHead {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum TapeContent {
     InfiniteZero,
     Symbol(u8),
@@ -182,6 +182,18 @@ impl Tape {
 
     pub fn len(&self) -> usize {
         self.tape_content.len()
+    }
+
+    pub fn first_index_non_zero_infinite(&self) -> Option<usize> {
+        self.tape_content
+            .iter()
+            .position(|&x| x != TapeContent::InfiniteZero)
+    }
+
+    pub fn last_index_non_zero_infinite(&self) -> Option<usize> {
+        self.tape_content
+            .iter()
+            .rposition(|&x| x != TapeContent::InfiniteZero)
     }
 
     /// Returns a sub-tape from given start to end (excluded).

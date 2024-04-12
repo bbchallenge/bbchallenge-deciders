@@ -34,10 +34,6 @@ pub struct FormulaTape {
 pub enum FormulaTapeError {
     TMError(directional_tm::TMError),
     NoShiftRule,
-    /// Relative to the head's direction.
-    NoRepeaterAfterHead,
-    /// Relative to the head's direction.
-    NoRepeaterBeforeHead,
 }
 
 impl FormulaTapeError {
@@ -64,90 +60,83 @@ impl FormulaTape {
             .is_ok()
     }
 
-    /// Returns the position of the next repeater after the head (after is relative to the head's direction).
+    /// Returns the position of the repeater (if any) whose beginning is the closest to the right of the given pos. If the given pos is the beginning of a repeater, this repeater is returned.
     ///
     ///  ```
     /// use decider_bouncers_reproduction::formula_tape::{FormulaTape, RepeaterPos, FormulaTapeError};
     /// use decider_bouncers_reproduction::directional_tm::{Direction, Tape, TapeHead};
     /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
     /// let formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,1,1,1,1,1,1,1,1,0,1,1,1,1,0], TapeHead::default(), &[1]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 13, end: 15 }] };
-    /// let repeater_after_head = formula_tape.repeater_pos_after_head();
+    /// let repeater_right = formula_tape.repeater_right(0);
     /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011(11)0A>10∞");
-    /// assert_eq!(repeater_after_head, Err(FormulaTapeError::NoRepeaterAfterHead));
-    /// let formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,1,1,1,1,1,1,1,1,0,1,1], TapeHead::default(), &[1,1,0,1]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 14, end: 16 }] };
-    /// let repeater_after_head = formula_tape.repeater_pos_after_head();
-    /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011A>(11)010∞");
-    /// assert_eq!(repeater_after_head, Ok(RepeaterPos { beg: 14, end: 16 }));
-    /// let formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,1,1,1,1,1,1,1,1,0,1,1], TapeHead::default(), &[0,1,1,1,0,1]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 16, end: 18 }] };
-    /// let repeater_after_head = formula_tape.repeater_pos_after_head();
-    /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011A>01(11)010∞");
-    /// assert_eq!(repeater_after_head, Ok(RepeaterPos { beg: 16, end: 18 }));
+    /// assert_eq!(repeater_right, Some(RepeaterPos { beg: 1, end: 4 }));
+    /// let repeater_right = formula_tape.repeater_right(1);
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011(11)0A>10∞");
+    /// assert_eq!(repeater_right, Some(RepeaterPos { beg: 1, end: 4 }));
+    /// let repeater_right = formula_tape.repeater_right(5);
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011(11)0A>10∞");
+    /// assert_eq!(repeater_right, Some(RepeaterPos { beg: 13, end: 15 }));
+    /// let repeater_right = formula_tape.repeater_right(13);
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011(11)0A>10∞");
+    /// assert_eq!(repeater_right, Some(RepeaterPos { beg: 13, end: 15 }));
+    /// let repeater_right = formula_tape.repeater_right(14);
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011(11)0A>10∞");
+    /// assert_eq!(repeater_right, None);
     /// ```
-    pub fn repeater_pos_after_head(&self) -> Result<RepeaterPos, FormulaTapeError> {
-        let head = FormulaTapeError::result_from_tm_error(self.tape.get_current_head())?;
-
-        let repeater_pos = self
+    pub fn repeater_right(&self, pos: usize) -> Option<RepeaterPos> {
+        let repeater_index = self
             .repeaters_pos
-            .binary_search_by_key(&self.tape.head_pos, |repeater_pos| repeater_pos.beg);
+            .binary_search_by_key(&pos, |repeater_pos| repeater_pos.beg);
 
-        if head.pointing_direction == Direction::RIGHT {
-            match repeater_pos {
-                Ok(_) => Err(FormulaTapeError::TMError(
-                    directional_tm::TMError::InvalidTapeError,
-                )),
-                Err(repeater_index) => {
-                    if repeater_index == self.repeaters_pos.len() {
-                        return Err(FormulaTapeError::NoRepeaterAfterHead);
-                    }
-                    Ok(self.repeaters_pos[repeater_index])
+        match repeater_index {
+            Ok(repeater_index) => Some(self.repeaters_pos[repeater_index]),
+            Err(repeater_index) => {
+                if repeater_index == self.repeaters_pos.len() {
+                    return None;
                 }
-            }
-        } else {
-            match repeater_pos {
-                Ok(_) => Err(FormulaTapeError::TMError(
-                    directional_tm::TMError::InvalidTapeError,
-                )),
-                Err(repeater_index) => {
-                    if repeater_index == 0 {
-                        return Err(FormulaTapeError::NoRepeaterAfterHead);
-                    }
-                    Ok(self.repeaters_pos[repeater_index - 1])
-                }
+                Some(self.repeaters_pos[repeater_index])
             }
         }
     }
 
-    /// Returns the position of the last repeater before the head (before is relative to the head's direction).
-    fn repeater_pos_before_head(&self) -> Result<RepeaterPos, FormulaTapeError> {
-        let head = FormulaTapeError::result_from_tm_error(self.tape.get_current_head())?;
-
-        let repeater_pos = self
+    /// Returns the position of the repeater (if any) whose beginning is the closest to the left of the given pos. If the given pos is the beginning of a repeater, this repeater is returned.
+    ///
+    /// ```
+    /// use decider_bouncers_reproduction::formula_tape::{FormulaTape, RepeaterPos, FormulaTapeError};
+    /// use decider_bouncers_reproduction::directional_tm::{Direction, Tape, TapeHead};
+    /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
+    /// let formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,1,1,1,1,1,1,1,1,0,1,1,1,1,0], TapeHead::default(), &[1]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 13, end: 15 }] };
+    /// let repeater_left = formula_tape.repeater_left(0);
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011(11)0A>10∞");
+    /// assert_eq!(repeater_left, None);
+    /// let repeater_left = formula_tape.repeater_left(1);
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011(11)0A>10∞");
+    /// assert_eq!(repeater_left, Some(RepeaterPos { beg: 1, end: 4 }));
+    /// let repeater_left = formula_tape.repeater_left(5);
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011(11)0A>10∞");
+    /// assert_eq!(repeater_left, Some(RepeaterPos { beg: 1, end: 4 }));
+    /// let repeater_left = formula_tape.repeater_left(13);
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011(11)0A>10∞");
+    /// assert_eq!(repeater_left, Some(RepeaterPos { beg: 13, end: 15 }));
+    /// let repeater_left = formula_tape.repeater_left(14);
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011(11)0A>10∞");
+    /// assert_eq!(repeater_left, Some(RepeaterPos { beg: 13, end: 15 }));
+    /// let repeater_left = formula_tape.repeater_left(17);
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011(11)0A>10∞");
+    /// assert_eq!(repeater_left, Some(RepeaterPos { beg: 13, end: 15 }));
+    /// ```
+    pub fn repeater_left(&self, pos: usize) -> Option<RepeaterPos> {
+        let repeater_index = self
             .repeaters_pos
-            .binary_search_by_key(&self.tape.head_pos, |repeater_pos| repeater_pos.beg);
+            .binary_search_by_key(&pos, |repeater_pos| repeater_pos.beg);
 
-        if head.pointing_direction == Direction::RIGHT {
-            match repeater_pos {
-                Ok(_) => Err(FormulaTapeError::TMError(
-                    directional_tm::TMError::InvalidTapeError,
-                )),
-                Err(repeater_index) => {
-                    if repeater_index == 0 {
-                        return Err(FormulaTapeError::NoRepeaterBeforeHead);
-                    }
-                    Ok(self.repeaters_pos[repeater_index - 1])
+        match repeater_index {
+            Ok(repeater_index) => Some(self.repeaters_pos[repeater_index]),
+            Err(repeater_index) => {
+                if repeater_index == 0 {
+                    return None;
                 }
-            }
-        } else {
-            match repeater_pos {
-                Ok(_) => Err(FormulaTapeError::TMError(
-                    directional_tm::TMError::InvalidTapeError,
-                )),
-                Err(repeater_index) => {
-                    if repeater_index == self.repeaters_pos.len() {
-                        return Err(FormulaTapeError::NoRepeaterBeforeHead);
-                    }
-                    Ok(self.repeaters_pos[repeater_index])
-                }
+                Some(self.repeaters_pos[repeater_index - 1])
             }
         }
     }
@@ -172,44 +161,23 @@ impl FormulaTape {
             }
         };
 
-        let repeater_pos_after_head: RepeaterPos = self.repeater_pos_after_head()?; // Head is pointing at a repeater, so there must be a repeater after the head.
-        let repeater_pos_before_head: Result<RepeaterPos, FormulaTapeError> =
-            self.repeater_pos_before_head(); // There's not necessarily a repeater before the head.
-
-        let shift_rule_tape_beg = match head.pointing_direction {
-            Direction::RIGHT => {
-                if let Ok(repeater_pos_before_head) = repeater_pos_before_head {
-                    repeater_pos_before_head.end
-                } else {
-                    match self.tape.tape_content[0] {
-                        TapeContent::InfiniteZero => 1,
-                        _ => 0,
-                    }
-                }
-            }
-            Direction::LEFT => repeater_pos_after_head.beg,
+        let shift_rule_beg = match head.pointing_direction {
+            Direction::RIGHT => match self.repeater_left(self.tape.head_pos) {
+                Some(repeater_pos) => repeater_pos.end,
+                None => self.tape.first_index_non_zero_infinite().unwrap(), // unwrap is safe because tape non empty and contains at least the head
+            },
+            Direction::LEFT => self.repeater_left(self.tape.head_pos).unwrap().beg, // unwrap is safe because head is pointing at a repeater
         };
 
-        let shift_rule_tape_end = match head.pointing_direction {
-            Direction::RIGHT => repeater_pos_after_head.end,
-            Direction::LEFT => {
-                if let Ok(repeater_pos_before_head) = repeater_pos_before_head {
-                    repeater_pos_before_head.beg
-                } else {
-                    match self.tape.tape_content[self.tape.len() - 1] {
-                        TapeContent::InfiniteZero => self.tape.len() - 1,
-                        _ => self.tape.len(),
-                    }
-                }
-            }
+        let shift_rule_end = match head.pointing_direction {
+            Direction::RIGHT => self.repeater_right(self.tape.head_pos).unwrap().end, // unwrap is safe because head is pointing at a repeater ,
+            Direction::LEFT => match self.repeater_right(self.tape.head_pos) {
+                Some(repeater_pos) => repeater_pos.beg,
+                None => self.tape.last_index_non_zero_infinite().unwrap(), // unwrap is safe because tape non empty and contains at least the head
+            },
         };
 
-        match self.tape.sub_tape(shift_rule_tape_beg, shift_rule_tape_end) {
-            Some(tape) => Ok(tape),
-            None => Err(FormulaTapeError::TMError(
-                directional_tm::TMError::InvalidTapeError,
-            )),
-        }
+        Ok(self.tape.sub_tape(shift_rule_beg, shift_rule_end).unwrap()) // shift_rule_beg and shift_rule_end should be valid
     }
 
     /// Implements a formula tape step: it corresponds to a standard TM step when the head in not pointing at a repeater and corresponds to running a shift rule (if any exists) otherwise.
