@@ -53,7 +53,7 @@ impl TMTransition {
         })
     }
 }
-
+#[derive(Debug, Clone)]
 pub struct TMTransitionTable {
     pub machine_std_format: String,
 }
@@ -180,6 +180,30 @@ impl Tape {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.tape_content.len()
+    }
+
+    /// Returns a sub-tape from given start to end (excluded).
+    pub fn sub_tape(&self, start: usize, end: usize) -> Option<Tape> {
+        if end <= start || end > self.tape_content.len() {
+            return None;
+        }
+
+        Some(Tape {
+            machine_transition: self.machine_transition.clone(),
+            tape_content: self
+                .tape_content
+                .iter()
+                .cloned()
+                .skip(start)
+                .take(end - start)
+                .collect(),
+            head_pos: self.head_pos - start,
+            step_count: self.step_count,
+        })
+    }
+
     /// Constructs an initial tape in bbchallenge sense: 0∞A>0∞.
     pub fn new_initial(machine_std_format: &str) -> Tape {
         Tape::new(machine_std_format, &[], TapeHead::default(), &[])
@@ -253,7 +277,7 @@ impl Tape {
         }
     }
 
-    fn get_current_head(&self) -> Result<TapeHead, TMError> {
+    pub fn get_current_head(&self) -> Result<TapeHead, TMError> {
         match self.get_tape_content(self.head_pos)? {
             TapeContent::Head(head) => Ok(head),
             _ => Err(TMError::InvalidTapeError),
