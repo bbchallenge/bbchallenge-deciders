@@ -124,6 +124,12 @@ pub enum TapeContent {
     Head(TapeHead),
 }
 
+impl TapeContent {
+    pub fn is_head(&self) -> bool {
+        matches!(self, TapeContent::Head(_))
+    }
+}
+
 /// Directional Turing machine (potentially partial) tape, with additional information stored for convenience.
 /// Note that in this setup the tape also contain the head, hence completely represents a (partial) tape.
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -195,6 +201,34 @@ impl Tape {
 
     pub fn len(&self) -> usize {
         self.tape_content.len()
+    }
+
+    pub fn finite_words_left_right_of_head(&self) -> Result<(Vec<u8>, Vec<u8>), TMError> {
+        let head = self.get_current_head()?;
+
+        let left_word = self
+            .tape_content
+            .iter()
+            .skip_while(|&x| *x == TapeContent::InfiniteZero)
+            .take_while(|&x| !x.is_head())
+            .map(|x| match x {
+                TapeContent::Symbol(y) => *y,
+                _ => panic!("Head should only point to 0/1 symbols."),
+            })
+            .collect::<Vec<_>>();
+
+        let right_word = self
+            .tape_content
+            .iter()
+            .skip(self.head_pos + 1)
+            .take_while(|&x| *x != TapeContent::InfiniteZero)
+            .map(|x| match x {
+                TapeContent::Symbol(y) => *y,
+                _ => panic!("Head should only point to 0/1 symbols."),
+            })
+            .collect::<Vec<_>>();
+
+        Ok((left_word, right_word))
     }
 
     pub fn first_index_non_zero_infinite(&self) -> Option<usize> {
@@ -309,7 +343,7 @@ impl Tape {
         }
     }
 
-    fn get_current_read_pos(&self) -> Result<usize, TMError> {
+    pub fn get_current_read_pos(&self) -> Result<usize, TMError> {
         self.valid_tape_after_direction(self.head_pos, self.get_current_head()?.pointing_direction)
     }
 
