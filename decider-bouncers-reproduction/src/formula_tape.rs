@@ -1,8 +1,66 @@
+use std::collections::HashSet;
+
 use crate::directional_tm::TapeHead;
 
 use super::directional_tm;
 use super::directional_tm::{Direction, Tape, TapeContent};
 use std::fmt;
+
+/// Represents a bouncer shift rule (c.f. bouncer writeup).
+pub struct ShiftRule {
+    pub head: TapeHead,
+    pub tail: Vec<u8>,
+    pub lhs_repeater: Vec<u8>,
+    pub rhs_repeater: Vec<u8>,
+}
+
+/// Returns the string representation of a vector of u8.
+///
+/// ```
+/// use decider_bouncers_reproduction::formula_tape::vec_u8_to_string;
+/// let v = vec![0,0,1,1,1,0];
+/// assert_eq!(vec_u8_to_string(&v), "001110");
+/// ```
+pub fn v2s(v: &[u8]) -> String {
+    v.iter().map(|i| i.to_string()).collect::<String>()
+}
+
+impl fmt::Display for ShiftRule {
+    /// Returns the string representation of a shift rule.
+    ///
+    /// ```
+    /// use decider_bouncers_reproduction::formula_tape::{ShiftRule};
+    /// use decider_bouncers_reproduction::directional_tm::{TapeHead, Direction};
+    /// let shift_rule = ShiftRule { head: TapeHead::default(), tail: vec![1,1,0], lhs_repeater: vec![1,1], rhs_repeater: vec![0,0] };
+    /// assert_eq!(format!("{shift_rule}"), "110A>11 → 00110A>");
+    /// let shift_rule = ShiftRule { head: TapeHead { state: 3, pointing_direction: Direction::LEFT }, tail: vec![1,1,0], lhs_repeater: vec![1,1], rhs_repeater: vec![0,0] };
+    /// assert_eq!(format!("{shift_rule}"), "11<D110 → <D11000");
+    /// ````
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.head.pointing_direction {
+            Direction::RIGHT => write!(
+                f,
+                "{}{}{} → {}{}{}",
+                v2s(&self.tail),
+                self.head,
+                v2s(&self.lhs_repeater),
+                v2s(&self.rhs_repeater),
+                v2s(&self.tail),
+                self.head
+            ),
+            Direction::LEFT => write!(
+                f,
+                "{}{}{} → {}{}{}",
+                v2s(&self.lhs_repeater),
+                self.head,
+                v2s(&self.tail),
+                self.head,
+                v2s(&self.tail),
+                v2s(&self.rhs_repeater),
+            ),
+        }
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// Begin and end indexes of a repeater in a formula tape.
@@ -209,6 +267,48 @@ impl FormulaTape {
             return FormulaTapeError::result_from_tm_error(self.tape.step());
         }
 
+        let mut shift_rule_tape = self.shift_rule_tape()?;
+        let mut tapes_seen: HashSet<Tape> = HashSet::new();
+        let initial_tape = shift_rule_tape.clone();
+        let initial_head = FormulaTapeError::result_from_tm_error(initial_tape.get_current_head())?;
+        tapes_seen.insert(initial_tape.clone());
+
+        let mut min_head_pos = shift_rule_tape.head_pos;
+        let mut max_head_pos = shift_rule_tape.head_pos;
+
+        loop {
+            let res = shift_rule_tape.step();
+
+            if let Ok(()) = res {
+                min_head_pos = min_head_pos.min(shift_rule_tape.head_pos);
+                max_head_pos = max_head_pos.max(shift_rule_tape.head_pos);
+            }
+
+            // Cycle detection
+            if tapes_seen.contains(&shift_rule_tape) {
+                return Err(FormulaTapeError::NoShiftRule);
+            }
+
+            match res {
+                Ok(()) => {
+                    tapes_seen.insert(shift_rule_tape.clone());
+                }
+                Err(directional_tm::TMError::OutOfTapeError) => {
+                    let final_head =
+                        FormulaTapeError::result_from_tm_error(shift_rule_tape.get_current_head())?;
+
+                    if initial_head.state == final_head.state {
+                        return Ok(());
+                    } else {
+                        return Err(FormulaTapeError::NoShiftRule);
+                    }
+                }
+                Err(e) => {
+                    return FormulaTapeError::result_from_tm_error(Err(e));
+                }
+            }
+        }
+
         Ok(())
     }
 }
@@ -233,11 +333,7 @@ impl fmt::Display for FormulaTape {
                         panic!("Stored head position {} is not consistent with actual head position {} in tape.", self.tape.head_pos, i);
                     }
 
-                    if head.pointing_direction == Direction::RIGHT {
-                        write!(f, "{}>", (head.state + b'A') as char)?;
-                    } else {
-                        write!(f, "<{}", (head.state + b'A') as char)?;
-                    }
+                    write!(f, "{}", head)?;
                 }
             }
         }

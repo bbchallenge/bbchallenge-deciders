@@ -7,7 +7,7 @@ pub enum TMError {
     InvalidTapeError,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum Direction {
     LEFT,
     RIGHT,
@@ -53,7 +53,7 @@ impl TMTransition {
         })
     }
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct TMTransitionTable {
     pub machine_std_format: String,
 }
@@ -85,22 +85,39 @@ impl TMTransitionTable {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TapeHead {
     pub state: u8,
     pub pointing_direction: Direction,
 }
 
-impl TapeHead {
-    pub fn default() -> TapeHead {
+impl Default for TapeHead {
+    fn default() -> TapeHead {
         TapeHead {
             state: 0,
             pointing_direction: Direction::RIGHT,
         }
     }
 }
+impl fmt::Display for TapeHead {
+    /// Returns the string representation of a shift rule.
+    ///
+    /// ```
+    /// use decider_bouncers_reproduction::directional_tm::{TapeHead, Direction};
+    /// let head = TapeHead { state: 0, pointing_direction: Direction::RIGHT };
+    /// assert_eq!(format!("{}", head), "A>");
+    /// let head = TapeHead { state: 4, pointing_direction: Direction::LEFT };
+    /// assert_eq!(format!("{}", head), "<E");
+    /// ```
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.pointing_direction {
+            Direction::RIGHT => write!(f, "{}>", (self.state + b'A') as char),
+            Direction::LEFT => write!(f, "<{}", (self.state + b'A') as char),
+        }
+    }
+}
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum TapeContent {
     InfiniteZero,
     Symbol(u8),
@@ -109,6 +126,7 @@ pub enum TapeContent {
 
 /// Directional Turing machine (potentially partial) tape, with additional information stored for convenience.
 /// Note that in this setup the tape also contain the head, hence completely represents a (partial) tape.
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct Tape {
     machine_transition: TMTransitionTable,
     pub tape_content: VecDeque<TapeContent>,
@@ -134,12 +152,7 @@ impl fmt::Display for Tape {
                     if i != self.head_pos {
                         panic!("Stored head position {} is not consistent with actual head position {} in tape.", self.head_pos, i);
                     }
-
-                    if head.pointing_direction == Direction::RIGHT {
-                        write!(f, "{}>", (head.state + b'A') as char)?;
-                    } else {
-                        write!(f, "<{}", (head.state + b'A') as char)?;
-                    }
+                    write!(f, "{}", head)?;
                 }
             }
         }
