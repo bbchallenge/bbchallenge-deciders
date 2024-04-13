@@ -206,12 +206,17 @@ impl FormulaTape {
         }
     }
 
-    fn head_is_pointing_at_repeater(&self) -> bool {
+    pub fn head_is_pointing_at_repeater(&self) -> Result<bool, FormulaTapeError> {
+        let head = FormulaTapeError::result_from_tm_error(self.tape.get_current_head())?;
         if self.tape.head_pos == 0 {
-            return self.pos_is_repeater_beg(self.tape.head_pos + 1);
+            return Ok(self.pos_is_repeater_beg(self.tape.head_pos + 1)
+                && head.pointing_direction == Direction::RIGHT);
         }
-        self.pos_is_repeater_beg(self.tape.head_pos + 1)
-            || self.pos_is_repeater_end(self.tape.head_pos)
+
+        Ok((self.pos_is_repeater_beg(self.tape.head_pos + 1)
+            && head.pointing_direction == Direction::RIGHT)
+            || (self.pos_is_repeater_end(self.tape.head_pos)
+                && head.pointing_direction == Direction::LEFT))
     }
 
     /// Returns the sub-tape corresponding to the shift rule the head is potentially pointing at.
@@ -238,7 +243,7 @@ impl FormulaTape {
     /// assert_eq!(format!("{shift_rule_tape}"), "01<A");
     /// ````
     pub fn shift_rule_tape(&self) -> Result<Tape, FormulaTapeError> {
-        if !self.head_is_pointing_at_repeater() {
+        if !self.head_is_pointing_at_repeater()? {
             return Err(FormulaTapeError::NoShiftRule);
         }
 
@@ -271,7 +276,7 @@ impl FormulaTape {
     }
 
     fn apply_shift_rule(&mut self, shift_rule: &ShiftRule) -> Result<(), FormulaTapeError> {
-        if !self.head_is_pointing_at_repeater() {
+        if !self.head_is_pointing_at_repeater()? {
             return Err(FormulaTapeError::ShiftRuleNotApplicable);
         }
 
@@ -293,11 +298,8 @@ impl FormulaTape {
                 end: lhs_repeater_pos.beg - shift_rule.tail.len() - 1 + lhs_repeater_pos.len(),
             },
             Direction::LEFT => RepeaterPos {
-                beg: lhs_repeater_pos.beg + shift_rule.lhs_repeater.len() + 1,
-                end: lhs_repeater_pos.beg
-                    + shift_rule.lhs_repeater.len()
-                    + 1
-                    + lhs_repeater_pos.len(),
+                beg: lhs_repeater_pos.beg + shift_rule.tail.len() + 1,
+                end: lhs_repeater_pos.beg + shift_rule.tail.len() + 1 + lhs_repeater_pos.len(),
             },
         };
 
@@ -313,11 +315,13 @@ impl FormulaTape {
                 self.tape.tape_content.make_contiguous()
                     [new_repeater_pos.beg..lhs_repeater_pos.end]
                     .rotate_right(lhs_repeater_pos.len());
+                self.tape.head_pos += lhs_repeater_pos.len();
             }
             Direction::LEFT => {
                 self.tape.tape_content.make_contiguous()
                     [lhs_repeater_pos.beg..new_repeater_pos.end]
                     .rotate_left(lhs_repeater_pos.len());
+                self.tape.head_pos -= lhs_repeater_pos.len();
             }
         }
 
@@ -325,9 +329,23 @@ impl FormulaTape {
     }
 
     /// Implements a formula tape step: it corresponds to a standard TM step when the head in not pointing at a repeater and corresponds to running a shift rule (if any exists) otherwise.
-    fn step(&mut self) -> Result<(), FormulaTapeError> {
+    ///
+    /// ```
+    /// use decider_bouncers_reproduction::formula_tape::{FormulaTape, RepeaterPos, FormulaTapeError, ShiftRule};
+    /// use decider_bouncers_reproduction::directional_tm::{Direction, Tape, TapeHead};
+    /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
+    /// let mut formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,1,1,1,1,1,0,1,1], TapeHead {state: 0, pointing_direction: Direction::LEFT}, &[0,1,0,1,0,1,1]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 8, end: 10 }] };
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)1110(11)<A01010110∞");
+    /// formula_tape.step();
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)1110<A(01)01010110∞");
+    /// formula_tape.step();
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)1111B>(01)01010110∞");
+    /// let res = formula_tape.step();
+    /// assert_eq!(res, Err(FormulaTapeError::NoShiftRule));
+    /// ```
+    pub fn step(&mut self) -> Result<(), FormulaTapeError> {
         // Usual step: perform a TM step if head not pointing at a repeater
-        if !self.head_is_pointing_at_repeater() {
+        if !self.head_is_pointing_at_repeater()? {
             return FormulaTapeError::result_from_tm_error(self.tape.step());
         }
 
