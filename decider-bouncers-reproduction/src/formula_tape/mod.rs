@@ -395,8 +395,8 @@ impl FormulaTape {
 
         // Shift rule step: try to detect and apply a shift rule
         let shift_rule = self.detect_shift_rule()?;
-
-        self.apply_shift_rule(&shift_rule)
+        self.apply_shift_rule(&shift_rule)?;
+        Ok(())
     }
 
     pub fn steps(&mut self, num_steps: usize) -> Result<(), FormulaTapeError> {
