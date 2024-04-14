@@ -166,7 +166,7 @@ impl FormulaTape {
                     }
                 }
                 Err(e) => {
-                    return Err(FormulaTapeError::from(e));
+                    return Err(e.into());
                 }
             }
         }

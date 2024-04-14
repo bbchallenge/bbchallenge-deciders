@@ -390,8 +390,7 @@ impl FormulaTape {
     pub fn step(&mut self) -> Result<(), FormulaTapeError> {
         // Usual step: perform a TM step if head not pointing at a repeater
         if !self.head_is_pointing_at_repeater()? {
-            self.tape.step()?;
-            return Ok(());
+            return Ok(self.tape.step()?);
         }
 
         // Shift rule step: try to detect and apply a shift rule
