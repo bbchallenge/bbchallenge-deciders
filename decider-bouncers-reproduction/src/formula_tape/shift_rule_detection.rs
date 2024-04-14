@@ -30,11 +30,10 @@ impl FormulaTape {
         let mut tapes_seen: HashSet<Tape> = HashSet::new();
 
         let initial_tape = shift_rule_tape.clone();
-        let initial_head = FormulaTapeError::result_from_tm_error(initial_tape.get_current_head())?;
+        let initial_head = initial_tape.get_current_head()?;
         tapes_seen.insert(initial_tape.clone());
 
-        let (left_word_head, right_word_head) =
-            FormulaTapeError::result_from_tm_error(initial_tape.finite_words_left_right_of_head())?;
+        let (left_word_head, right_word_head) = initial_tape.finite_words_left_right_of_head()?;
         let lhs_repeater = match initial_head.pointing_direction {
             Direction::RIGHT => right_word_head,
             Direction::LEFT => left_word_head,
@@ -45,8 +44,7 @@ impl FormulaTape {
 
         let lhs_repeater_size = lhs_repeater.len();
 
-        let mut min_read_pos =
-            FormulaTapeError::result_from_tm_error(shift_rule_tape.get_current_read_pos())?;
+        let mut min_read_pos = shift_rule_tape.get_current_read_pos()?;
         let mut max_read_pos = min_read_pos;
 
         let mut num_steps = 0;
@@ -72,14 +70,11 @@ impl FormulaTape {
                     num_steps += 1;
                 }
                 Err(directional_tm::TMError::OutOfTapeError) => {
-                    let final_head =
-                        FormulaTapeError::result_from_tm_error(shift_rule_tape.get_current_head())?;
+                    let final_head = shift_rule_tape.get_current_head()?;
 
                     if initial_head.state == final_head.state {
                         let (final_left_word_head, final_right_word_head) =
-                            FormulaTapeError::result_from_tm_error(
-                                shift_rule_tape.finite_words_left_right_of_head(),
-                            )?;
+                            shift_rule_tape.finite_words_left_right_of_head()?;
                         match initial_head.pointing_direction {
                             Direction::RIGHT => {
                                 // Empty tail
@@ -102,14 +97,11 @@ impl FormulaTape {
                                     .sub_tape(min_read_pos, shift_rule_tape.len())
                                     .unwrap();
 
-                                let (tail, _) = FormulaTapeError::result_from_tm_error(
-                                    interesting_initial_tape.finite_words_left_right_of_head(),
-                                )?;
+                                let (tail, _) =
+                                    interesting_initial_tape.finite_words_left_right_of_head()?;
 
                                 let (repeater_and_tail, _) =
-                                    FormulaTapeError::result_from_tm_error(
-                                        interesting_final_tape.finite_words_left_right_of_head(),
-                                    )?;
+                                    interesting_final_tape.finite_words_left_right_of_head()?;
 
                                 if tail == repeater_and_tail[lhs_repeater.len()..] {
                                     let rhs_repeater =
@@ -144,14 +136,11 @@ impl FormulaTape {
                                 let interesting_final_tape =
                                     shift_rule_tape.sub_tape(0, max_read_pos + 1).unwrap();
 
-                                let (_, tail) = FormulaTapeError::result_from_tm_error(
-                                    interesting_initial_tape.finite_words_left_right_of_head(),
-                                )?;
+                                let (_, tail) =
+                                    interesting_initial_tape.finite_words_left_right_of_head()?;
 
                                 let (_, tail_and_repeater) =
-                                    FormulaTapeError::result_from_tm_error(
-                                        interesting_final_tape.finite_words_left_right_of_head(),
-                                    )?;
+                                    interesting_final_tape.finite_words_left_right_of_head()?;
 
                                 if tail
                                     == tail_and_repeater
@@ -177,7 +166,7 @@ impl FormulaTape {
                     }
                 }
                 Err(e) => {
-                    return FormulaTapeError::result_from_tm_error(Err(e));
+                    return Err(FormulaTapeError::from(e));
                 }
             }
         }

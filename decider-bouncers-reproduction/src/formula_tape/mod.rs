@@ -4,6 +4,7 @@ use std::fmt;
 
 mod alignment;
 mod shift_rule_detection;
+mod special_case;
 
 /// Represents a bouncer shift rule (c.f. bouncer writeup).
 pub struct ShiftRule {
@@ -103,14 +104,9 @@ pub enum FormulaTapeError {
     InvalidRepeaterIndex,
 }
 
-impl FormulaTapeError {
-    fn result_from_tm_error<T>(
-        res: Result<T, directional_tm::TMError>,
-    ) -> Result<T, FormulaTapeError> {
-        match res {
-            Ok(x) => Ok(x),
-            Err(e) => Err(FormulaTapeError::TMError(e)),
-        }
+impl From<directional_tm::TMError> for FormulaTapeError {
+    fn from(tm_error: directional_tm::TMError) -> Self {
+        FormulaTapeError::TMError(tm_error)
     }
 }
 
@@ -247,7 +243,7 @@ impl FormulaTape {
     }
 
     pub fn head_is_pointing_at_repeater(&self) -> Result<bool, FormulaTapeError> {
-        let head = FormulaTapeError::result_from_tm_error(self.tape.get_current_head())?;
+        let head = self.tape.get_current_head()?;
 
         Ok((self.pos_is_repeater_beg(self.tape.head_pos + 1)
             && head.pointing_direction == Direction::RIGHT)
@@ -316,7 +312,7 @@ impl FormulaTape {
             return Err(FormulaTapeError::ShiftRuleNotApplicable);
         }
 
-        let head = FormulaTapeError::result_from_tm_error(self.tape.get_current_head())?;
+        let head = self.tape.get_current_head()?;
 
         let lhs_repeater_pos = match head.pointing_direction {
             Direction::RIGHT => self.repeater_right(self.tape.head_pos).unwrap(), // unwrap is safe because head is pointing at a repeater
@@ -394,7 +390,8 @@ impl FormulaTape {
     pub fn step(&mut self) -> Result<(), FormulaTapeError> {
         // Usual step: perform a TM step if head not pointing at a repeater
         if !self.head_is_pointing_at_repeater()? {
-            return FormulaTapeError::result_from_tm_error(self.tape.step());
+            self.tape.step()?;
+            return Ok(());
         }
 
         // Shift rule step: try to detect and apply a shift rule
