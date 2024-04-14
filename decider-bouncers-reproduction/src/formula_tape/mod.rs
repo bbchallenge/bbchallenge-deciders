@@ -91,7 +91,7 @@ impl RepeaterPos {
 /// ```
 pub struct FormulaTape {
     pub tape: Tape,
-    pub repeaters_pos: Vec<RepeaterPos>, // sorted by beg *and* end (if unwraped the array is a sorted array of positions)
+    pub repeaters_pos: Vec<RepeaterPos>, // sorted by beg *and* end (if flattened the array is a sorted array of positions)
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -115,6 +115,44 @@ impl FormulaTapeError {
 }
 
 impl FormulaTape {
+    /// Returns a repeater's word.
+    ///
+    ///  ```
+    /// use decider_bouncers_reproduction::formula_tape::{FormulaTape, RepeaterPos, FormulaTapeError, v2s};
+    /// use decider_bouncers_reproduction::directional_tm::{Direction, Tape, TapeHead};
+    /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
+    /// let formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,1,1,1,1,1,1,1,1,0,1,1,1,1,0], TapeHead::default(), &[1]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 13, end: 15 }] };
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011(11)0A>10∞");
+    /// assert_eq!(v2s(&formula_tape.get_repeater_word(0).unwrap()), "111");
+    /// assert_eq!(v2s(&formula_tape.get_repeater_word(1).unwrap()), "11");
+    /// ```
+    pub fn get_repeater_word(&self, repeater_index: usize) -> Result<Vec<u8>, FormulaTapeError> {
+        let repeater_pos = self
+            .repeaters_pos
+            .get(repeater_index)
+            .ok_or(FormulaTapeError::InvalidRepeaterIndex)?;
+        let mut word: Vec<u8> = Vec::new();
+
+        for content in self
+            .tape
+            .tape_content
+            .iter()
+            .skip(repeater_pos.beg)
+            .take(repeater_pos.len())
+        {
+            match &content {
+                TapeContent::Symbol(symbol) => word.push(*symbol),
+                _ => return Err(FormulaTapeError::InvalidFormulaTapeError),
+            }
+        }
+
+        if word.is_empty() {
+            return Err(FormulaTapeError::InvalidFormulaTapeError);
+        }
+
+        Ok(word)
+    }
+
     fn pos_is_repeater_beg(&self, pos: usize) -> bool {
         self.repeaters_pos
             .binary_search_by_key(&pos, |repeater_pos| repeater_pos.beg)
@@ -210,10 +248,6 @@ impl FormulaTape {
 
     pub fn head_is_pointing_at_repeater(&self) -> Result<bool, FormulaTapeError> {
         let head = FormulaTapeError::result_from_tm_error(self.tape.get_current_head())?;
-        if self.tape.head_pos == 0 {
-            return Ok(self.pos_is_repeater_beg(self.tape.head_pos + 1)
-                && head.pointing_direction == Direction::RIGHT);
-        }
 
         Ok((self.pos_is_repeater_beg(self.tape.head_pos + 1)
             && head.pointing_direction == Direction::RIGHT)
@@ -336,7 +370,9 @@ impl FormulaTape {
     /// use decider_bouncers_reproduction::formula_tape::{FormulaTape, RepeaterPos, FormulaTapeError, ShiftRule};
     /// use decider_bouncers_reproduction::directional_tm::{Direction, Tape, TapeHead};
     /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
-    /// let mut formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,1,1,1,1,1,0,1,1], TapeHead {state: 0, pointing_direction: Direction::LEFT}, &[0,1,0,1,0,1,1]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 8, end: 10 }] };
+    /// let mut formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,1,1,1,1,1,0,1,1,0,0], TapeHead {state: 3, pointing_direction: Direction::RIGHT}, &[]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 8, end: 10 }] };
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)1110(11)00D>0∞");
+    /// formula_tape.steps(25);
     /// assert_eq!(format!("{formula_tape}"), "0∞(111)1110(11)<A01010110∞");
     /// formula_tape.step();
     /// assert_eq!(format!("{formula_tape}"), "0∞(111)1110<A(01)01010110∞");
@@ -344,6 +380,16 @@ impl FormulaTape {
     /// assert_eq!(format!("{formula_tape}"), "0∞(111)1111B>(01)01010110∞");
     /// let res = formula_tape.step();
     /// assert_eq!(res, Err(FormulaTapeError::NoShiftRule));
+    /// formula_tape.align();
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)1111B>010101(01)10∞");
+    /// formula_tape.steps(12);
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)1111110110D>(01)10∞");
+    /// formula_tape.step();
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011(11)0D>10∞");
+    /// formula_tape.align();
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)1111110(11)110D>10∞");
+    /// formula_tape.step();
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)1111110(11)1100D>0∞");
     /// ```
     pub fn step(&mut self) -> Result<(), FormulaTapeError> {
         // Usual step: perform a TM step if head not pointing at a repeater
@@ -354,6 +400,13 @@ impl FormulaTape {
         // Shift rule step: try to detect and apply a shift rule
         let shift_rule = self.detect_shift_rule()?;
         self.apply_shift_rule(&shift_rule)?;
+        Ok(())
+    }
+
+    pub fn steps(&mut self, num_steps: usize) -> Result<(), FormulaTapeError> {
+        for _ in 0..num_steps {
+            self.step()?;
+        }
         Ok(())
     }
 }

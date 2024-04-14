@@ -1,3 +1,5 @@
+use std::{f32::consts::E, io::repeat};
+
 use super::*;
 
 impl FormulaTape {
@@ -73,7 +75,72 @@ impl FormulaTape {
     }
 
     /// Implements formula tape alignement.
+    ///
+    /// ```
+    /// use decider_bouncers_reproduction::formula_tape::{FormulaTape, RepeaterPos, FormulaTapeError, v2s};
+    /// use decider_bouncers_reproduction::directional_tm::{Direction, Tape, TapeHead};
+    /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
+    /// let mut formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,0,1,1,1,0], TapeHead {state: 3, pointing_direction: Direction::RIGHT}, &[1,0,1,0,0,1,1]), repeaters_pos: vec![RepeaterPos { beg: 4, end: 6 },RepeaterPos { beg: 10, end: 13 }] };
+    /// assert_eq!(format!("{formula_tape}"), "0∞101(11)0D>10(100)110∞");
+    /// formula_tape.align().unwrap();
+    /// assert_eq!(format!("{formula_tape}"), "0∞10(11)10D>101(001)10∞");
+    /// ````
     pub fn align(&mut self) -> Result<(), FormulaTapeError> {
+        let mut current_repeater_index = 0;
+        // Align before head
+        for repeater_index in 0..self.repeaters_pos.len() {
+            let repeater_word = self.get_repeater_word(repeater_index)?;
+            let repeater_pos = self.repeaters_pos[repeater_index];
+            current_repeater_index = repeater_index;
+            if repeater_pos.beg > self.tape.head_pos {
+                break;
+            }
+            if repeater_pos.beg == self.tape.head_pos {
+                return Err(FormulaTapeError::InvalidFormulaTapeError);
+            }
+
+            let left_word = self.finite_word_left_of_repeater(repeater_index)?;
+            for i in 0..left_word.len() {
+                let suffix = &left_word[i..];
+
+                // Test `ar = r'a` with a = suffix and r = repeater_word
+                let composite = [suffix, &repeater_word].concat();
+                if &composite[repeater_word.len()..] == suffix {
+                    let new_repeater_pos = RepeaterPos {
+                        beg: repeater_pos.beg - suffix.len(),
+                        end: repeater_pos.end - suffix.len(),
+                    };
+                    self.repeaters_pos[repeater_index] = new_repeater_pos;
+                    break;
+                }
+            }
+        }
+
+        // Align after head
+        for repeater_index in current_repeater_index..self.repeaters_pos.len() {
+            let repeater_word = self.get_repeater_word(repeater_index)?;
+            let repeater_pos = self.repeaters_pos[repeater_index];
+            if repeater_pos.beg <= self.tape.head_pos {
+                return Err(FormulaTapeError::InvalidFormulaTapeError);
+            }
+
+            let right_word = self.finite_word_right_of_repeater(repeater_index)?;
+            for i in (1..right_word.len() + 1).rev() {
+                let prefix = &right_word[..i];
+
+                // Test `ra = ar'` with a = prefix and r = repeater_word
+                let composite = [&repeater_word, prefix].concat();
+                if &composite[..prefix.len()] == prefix {
+                    let new_repeater_pos = RepeaterPos {
+                        beg: repeater_pos.beg + prefix.len(),
+                        end: repeater_pos.end + prefix.len(),
+                    };
+                    self.repeaters_pos[repeater_index] = new_repeater_pos;
+                    break;
+                }
+            }
+        }
+
         Ok(())
     }
 }
