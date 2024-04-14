@@ -87,7 +87,7 @@ impl FormulaTape {
     /// let mut formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,1,1,1,1,1,0,1], TapeHead {state: 3, pointing_direction: Direction::RIGHT}, &[1,0,1,1,1,1,1,1,1,1,1,1,1]), repeaters_pos: vec![RepeaterPos { beg: 2, end: 4 },RepeaterPos { beg: 5, end: 7 },RepeaterPos { beg: 12, end: 14 }, RepeaterPos { beg: 16, end: 18 }] };
     /// assert_eq!(format!("{formula_tape}"), "0∞1(11)1(11)01D>10(11)11(11)111110∞");
     /// formula_tape.align().unwrap();
-    ///assert_eq!(format!("{formula_tape}"), "0∞(11)(11)1101D>101111111(11)(11)0∞");
+    /// assert_eq!(format!("{formula_tape}"), "0∞(11)(11)1101D>101111111(11)(11)0∞");
     /// ```
     pub fn align(&mut self) -> Result<(), FormulaTapeError> {
         // Align before head
