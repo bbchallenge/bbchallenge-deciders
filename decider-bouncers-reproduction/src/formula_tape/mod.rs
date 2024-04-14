@@ -18,9 +18,9 @@ pub struct ShiftRule {
 /// Returns the string representation of a vector of u8.
 ///
 /// ```
-/// use decider_bouncers_reproduction::formula_tape::vec_u8_to_string;
+/// use decider_bouncers_reproduction::formula_tape::v2s;
 /// let v = vec![0,0,1,1,1,0];
-/// assert_eq!(vec_u8_to_string(&v), "001110");
+/// assert_eq!(v2s(&v), "001110");
 /// ```
 pub fn v2s(v: &[u8]) -> String {
     v.iter().map(|i| i.to_string()).collect::<String>()

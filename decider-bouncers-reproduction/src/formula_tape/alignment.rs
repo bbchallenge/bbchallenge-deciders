@@ -84,14 +84,17 @@ impl FormulaTape {
     /// assert_eq!(format!("{formula_tape}"), "0∞101(11)0D>10(100)110∞");
     /// formula_tape.align().unwrap();
     /// assert_eq!(format!("{formula_tape}"), "0∞10(11)10D>101(001)10∞");
-    /// ````
+    /// let mut formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,1,1,1,1,1,0,1], TapeHead {state: 3, pointing_direction: Direction::RIGHT}, &[1,0,1,1,1,1,1,1,1,1,1,1,1]), repeaters_pos: vec![RepeaterPos { beg: 2, end: 4 },RepeaterPos { beg: 5, end: 7 },RepeaterPos { beg: 12, end: 14 }, RepeaterPos { beg: 16, end: 18 }] };
+    /// assert_eq!(format!("{formula_tape}"), "0∞1(11)1(11)01D>10(11)11(11)111110∞");
+    /// formula_tape.align().unwrap();
+    ///assert_eq!(format!("{formula_tape}"), "0∞(11)(11)1101D>101111111(11)(11)0∞");
+    /// ```
     pub fn align(&mut self) -> Result<(), FormulaTapeError> {
-        let mut current_repeater_index = 0;
         // Align before head
         for repeater_index in 0..self.repeaters_pos.len() {
             let repeater_word = self.get_repeater_word(repeater_index)?;
             let repeater_pos = self.repeaters_pos[repeater_index];
-            current_repeater_index = repeater_index;
+
             if repeater_pos.beg > self.tape.head_pos {
                 break;
             }
@@ -117,9 +120,17 @@ impl FormulaTape {
         }
 
         // Align after head
-        for repeater_index in current_repeater_index..self.repeaters_pos.len() {
+        for repeater_index in (0..self.repeaters_pos.len()).rev() {
             let repeater_word = self.get_repeater_word(repeater_index)?;
             let repeater_pos = self.repeaters_pos[repeater_index];
+
+            if repeater_pos.beg < self.tape.head_pos {
+                break;
+            }
+            if repeater_pos.beg == self.tape.head_pos {
+                return Err(FormulaTapeError::InvalidFormulaTapeError);
+            }
+
             if repeater_pos.beg <= self.tape.head_pos {
                 return Err(FormulaTapeError::InvalidFormulaTapeError);
             }
