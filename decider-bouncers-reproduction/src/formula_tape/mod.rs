@@ -2,6 +2,7 @@ use crate::directional_tm;
 use crate::directional_tm::{Direction, Tape, TapeContent, TapeHead};
 use std::fmt;
 
+mod alignment;
 mod shift_rule_detection;
 
 /// Represents a bouncer shift rule (c.f. bouncer writeup).
@@ -99,6 +100,7 @@ pub enum FormulaTapeError {
     InvalidFormulaTapeError,
     NoShiftRule,
     ShiftRuleNotApplicable,
+    InvalidRepeaterIndex,
 }
 
 impl FormulaTapeError {
