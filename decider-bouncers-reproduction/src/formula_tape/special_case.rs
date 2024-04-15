@@ -3,7 +3,7 @@ use super::*;
 impl FormulaTape {
     /// Detects if the formula tape is a *special* case of an other, given formula tape.
     ///
-    /// f' is a special case of f if f' can be obtained from f by replacying repeaters words of the form (r) by r^n(r)r^m for some n,m>=0.
+    /// f' is a special case of A(f) if A(f') can be obtained from f by replacying repeaters words of the form (r) by r^n(r)r^m for some n,m>=0.
     ///
     /// ```
     /// use decider_bouncers_reproduction::formula_tape::{FormulaTape, RepeaterPos, FormulaTapeError};
@@ -15,18 +15,48 @@ impl FormulaTape {
     /// let formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,0], TapeHead {state: 3, pointing_direction: Direction::RIGHT}, &[]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 11, end: 13 }] };
     /// assert_eq!(format!("{formula_tape}"), "0∞(111)1111110(11)1100D>0∞");
     /// assert_eq!(formula_tape.is_special_case_of(&model_formula_tape), Ok(true));
-    /// ````
+    /// let formula_tape_1 = FormulaTape { tape: Tape::new(machine_str, &[1,1], TapeHead::default(), &[]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 2 }] };
+    /// let formula_tape_2 = FormulaTape { tape: Tape::new(machine_str, &[1,1,1], TapeHead::default(), &[]), repeaters_pos: vec![RepeaterPos { beg: 3, end: 4 }] };
+    /// assert_eq!(format!("{formula_tape_1}"), "0∞(1)1A>0∞");
+    /// assert_eq!(format!("{formula_tape_2}"), "0∞11(1)A>0∞");
+    /// assert_eq!(formula_tape_2.is_special_case_of(&formula_tape_1), Ok(true));
+    /// assert_eq!(formula_tape_1.is_special_case_of(&formula_tape_2), Ok(false));
+    /// ```
     pub fn is_special_case_of(
         &self,
         model_formula_tape: &FormulaTape,
     ) -> Result<bool, FormulaTapeError> {
+        let my_head = self.tape.get_current_head()?;
+        let model_head = model_formula_tape.tape.get_current_head()?;
+
+        if my_head != model_head {
+            return Ok(false);
+        }
+
         // Working on aligned formula makes detection easier
         let mut aligned_self = self.clone();
         aligned_self.align()?;
         let mut aligned_model = model_formula_tape.clone();
         aligned_model.align()?;
 
+        // println!("\t{}", aligned_self);
+        // println!("\t{}", aligned_model);
+
         if aligned_self.repeaters_pos.len() != aligned_model.repeaters_pos.len() {
+            return Ok(false);
+        }
+
+        let first_repeater_pos = aligned_self.repeaters_pos[0];
+        if first_repeater_pos.beg < aligned_self.tape.head_pos {
+            let first_wall = aligned_self.finite_word_left_of_repeater(0)?;
+            let model_first_wall = aligned_model.finite_word_left_of_repeater(0)?;
+
+            if first_wall != model_first_wall {
+                return Ok(false);
+            }
+        } else if aligned_self.tape.tape_content.make_contiguous()[..aligned_self.tape.head_pos]
+            != aligned_model.tape.tape_content.make_contiguous()[..aligned_model.tape.head_pos]
+        {
             return Ok(false);
         }
 
@@ -87,8 +117,8 @@ impl FormulaTape {
                 return Err(FormulaTapeError::InvalidFormulaTapeError);
             }
 
-            let self_left_word = aligned_self.finite_word_right_of_repeater(repeater_index)?;
-            let model_left_word = aligned_model.finite_word_right_of_repeater(repeater_index)?;
+            let self_left_word = aligned_self.finite_word_left_of_repeater(repeater_index)?;
+            let model_left_word = aligned_model.finite_word_left_of_repeater(repeater_index)?;
 
             // Model must be smaller than instance
             if model_left_word.len() > self_left_word.len() {
@@ -116,6 +146,23 @@ impl FormulaTape {
                 return Ok(false);
             }
         }
+
+        let last_repeater_pos = aligned_self.repeaters_pos[aligned_self.repeaters_pos.len() - 1];
+        if last_repeater_pos.beg > aligned_self.tape.head_pos {
+            let last_wall =
+                aligned_self.finite_word_right_of_repeater(aligned_self.repeaters_pos.len() - 1)?;
+            let model_last_wall = aligned_model
+                .finite_word_right_of_repeater(aligned_model.repeaters_pos.len() - 1)?;
+
+            if last_wall != model_last_wall {
+                return Ok(false);
+            }
+        } else if aligned_self.tape.tape_content.make_contiguous()[aligned_self.tape.head_pos..]
+            != aligned_model.tape.tape_content.make_contiguous()[aligned_model.tape.head_pos..]
+        {
+            return Ok(false);
+        }
+
         Ok(true)
     }
 }

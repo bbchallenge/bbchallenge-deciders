@@ -1,5 +1,6 @@
 use crate::directional_tm;
 use crate::directional_tm::{Direction, Tape, TapeContent, TapeHead};
+use std::collections::HashSet;
 use std::fmt;
 
 mod alignment;
@@ -7,6 +8,7 @@ mod shift_rule_detection;
 mod special_case;
 
 /// Represents a bouncer shift rule (c.f. bouncer writeup).
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct ShiftRule {
     pub head: TapeHead,
     pub tail: Vec<u8>,
@@ -77,6 +79,21 @@ impl RepeaterPos {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum FormulaTapeError {
+    TMError(directional_tm::TMError),
+    InvalidFormulaTapeError,
+    NoShiftRule,
+    ShiftRuleNotApplicable,
+    InvalidRepeaterIndex,
+}
+
+impl From<directional_tm::TMError> for FormulaTapeError {
+    fn from(tm_error: directional_tm::TMError) -> Self {
+        FormulaTapeError::TMError(tm_error)
+    }
+}
+
 /// Formula tape (wall-repeater formula tape) as defined in the bouncers writeup.
 ///
 /// ```
@@ -94,20 +111,75 @@ impl RepeaterPos {
 pub struct FormulaTape {
     pub tape: Tape,
     pub repeaters_pos: Vec<RepeaterPos>, // sorted by beg *and* end (if flattened the array is a sorted array of positions)
+    pub used_shift_rules: HashSet<ShiftRule>,
 }
+use std::str::FromStr;
+impl FromStr for FormulaTape {
+    type Err = FormulaTapeError;
+    /// Converts strings such as `0∞(111)111111011(11)0A>10∞` to FormulaTape.
+    ///
+    /// ```
+    /// use std::str::FromStr;
+    /// use decider_bouncers_reproduction::formula_tape::{FormulaTape, RepeaterPos};
+    /// use decider_bouncers_reproduction::directional_tm::{Direction, Tape, TapeHead};
+    /// let formula_tape = FormulaTape { tape: Tape::new("", &[1,1,1,1,1,1,1,1,1,0,1,1,1,1,0], TapeHead::default(), &[1]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 13, end: 15 }] };
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011(11)0A>10∞");
+    /// //assert_eq!(FormulaTape::from_str("0∞(111)111111011(11)0A>10∞"), Ok(formula_tape));
+    /// let formula_tape = FormulaTape::from_str("<E000011110(11110111101111011110)000(1111011110)000(11110)000(11110)01111111").unwrap();
+    /// assert_eq!(format!("{formula_tape}"), "<E000011110(11110111101111011110)000(1111011110)000(11110)000(11110)01111111");
+    /// let formula_tape = FormulaTape::from_str("0∞1(11)1(11)01D>10(11)11(11)111110∞").unwrap();
+    /// assert_eq!(format!("{formula_tape}"), "0∞1(11)1(11)01D>10(11)11(11)111110∞");
+    /// let formula_tape = FormulaTape::from_str("0∞1(11)1(11)01D>10(11)11(11)11111").unwrap();
+    /// assert_eq!(format!("{formula_tape}"), "0∞1(11)1(11)01D>10(11)11(11)11111");
+    /// let formula_tape = FormulaTape::from_str("1(11)1(11)01D>10(11)11(11)111110∞").unwrap();
+    /// assert_eq!(format!("{formula_tape}"), "1(11)1(11)01D>10(11)11(11)111110∞");
+    /// ```
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let tape = Tape::from_str(&s.replace(['(', ')'], ""))?;
+        let starts_with_infinite: i32 = s.starts_with("0∞") as i32;
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum FormulaTapeError {
-    TMError(directional_tm::TMError),
-    InvalidFormulaTapeError,
-    NoShiftRule,
-    ShiftRuleNotApplicable,
-    InvalidRepeaterIndex,
-}
+        let s = s.replace("0∞", "");
+        let mut repeaters_pos: Vec<RepeaterPos> = Vec::new();
+        let mut pos = 0;
+        let mut in_repeater = false;
+        let mut num_non_zero_one_symbols = 0;
+        let mut head_seen = 0;
 
-impl From<directional_tm::TMError> for FormulaTapeError {
-    fn from(tm_error: directional_tm::TMError) -> Self {
-        FormulaTapeError::TMError(tm_error)
+        for (i, c) in s.chars().enumerate() {
+            if c == '>' || c == '<' {
+                head_seen = 1;
+            }
+
+            if c == '(' {
+                if in_repeater {
+                    return Err(FormulaTapeError::InvalidFormulaTapeError);
+                }
+                in_repeater = true;
+                num_non_zero_one_symbols += 1;
+                pos = i;
+                if head_seen == 1 {
+                    pos -= 2;
+                }
+            } else if c == ')' {
+                if !in_repeater {
+                    return Err(FormulaTapeError::InvalidFormulaTapeError);
+                }
+                repeaters_pos.push(RepeaterPos {
+                    beg: pos + 1 - num_non_zero_one_symbols
+                        + starts_with_infinite as usize
+                        + head_seen,
+                    end: i - head_seen - num_non_zero_one_symbols + starts_with_infinite as usize,
+                });
+                num_non_zero_one_symbols += 1;
+                in_repeater = false;
+            }
+        }
+
+        Ok(FormulaTape {
+            tape,
+            repeaters_pos,
+            used_shift_rules: HashSet::<ShiftRule>::new(),
+        })
     }
 }
 
@@ -368,6 +440,7 @@ impl FormulaTape {
     /// use decider_bouncers_reproduction::directional_tm::{Direction, Tape, TapeHead};
     /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
     /// let mut formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,1,1,1,1,1,0,1,1,0,0], TapeHead {state: 3, pointing_direction: Direction::RIGHT}, &[]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 8, end: 10 }] };
+    /// let initial_formula_tape = formula_tape.clone();
     /// assert_eq!(format!("{formula_tape}"), "0∞(111)1110(11)00D>0∞");
     /// formula_tape.steps(25);
     /// assert_eq!(format!("{formula_tape}"), "0∞(111)1110(11)<A01010110∞");
@@ -387,6 +460,7 @@ impl FormulaTape {
     /// assert_eq!(format!("{formula_tape}"), "0∞(111)1111110(11)110D>10∞");
     /// formula_tape.step();
     /// assert_eq!(format!("{formula_tape}"), "0∞(111)1111110(11)1100D>0∞");
+    /// assert!(formula_tape.is_special_case_of(&initial_formula_tape).unwrap());
     /// ```
     pub fn step(&mut self) -> Result<(), FormulaTapeError> {
         // Usual step: perform a TM step if head not pointing at a repeater
@@ -396,6 +470,7 @@ impl FormulaTape {
 
         // Shift rule step: try to detect and apply a shift rule
         let shift_rule = self.detect_shift_rule()?;
+        self.used_shift_rules.insert(shift_rule.clone());
         self.apply_shift_rule(&shift_rule)?;
         Ok(())
     }
@@ -406,6 +481,45 @@ impl FormulaTape {
         }
         Ok(())
     }
+
+    pub fn set_machine_str(&mut self, machine_std_format: &str) {
+        self.tape.set_machine_str(machine_std_format);
+    }
+
+    /// Returns true if the formula tape once reaches a special-case of itself (c.f. bouncers writeup).
+    ///
+    /// ```
+    /// use std::str::FromStr;
+    /// use decider_bouncers_reproduction::formula_tape::{FormulaTape, RepeaterPos, FormulaTapeError};
+    /// use decider_bouncers_reproduction::directional_tm::{Direction, Tape, TapeHead};
+    /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
+    /// let mut formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,1,1,1,1,1,0,1,1,0,0], TapeHead {state: 3, pointing_direction: Direction::RIGHT}, &[]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 8, end: 10 }] };
+    /// assert_eq!(format!("{formula_tape}"), "0∞(111)1110(11)00D>0∞");
+    /// assert_eq!(formula_tape.prove_non_halt(200_000), Ok(true));
+    /// let machine_str = "1RB0RD_1LC1LE_1RA1LB_---0RC_1LB0LE";
+    /// let mut formula_tape = FormulaTape::from_str("0∞<E000011110(11110111101111011110)000(1111011110)000(11110)000(11110)011111110∞").unwrap();
+    /// formula_tape.set_machine_str(machine_str);
+    /// assert_eq!(format!("{formula_tape}"), "0∞<E000011110(11110111101111011110)000(1111011110)000(11110)000(11110)011111110∞");
+    /// assert_eq!(formula_tape.prove_non_halt(200_000), Ok(true));
+    /// ````
+    pub fn prove_non_halt(&mut self, step_limit: usize) -> Result<bool, FormulaTapeError> {
+        let initial_formula_tape = self.clone();
+        self.align()?;
+        println!("0 {}", self);
+        for k in 0..step_limit {
+            self.step()?;
+            self.align()?;
+
+            if self.head_is_pointing_at_repeater()? {
+                println!("{} {}", k + 1, self);
+            }
+            if self.is_special_case_of(&initial_formula_tape)? {
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
+    }
 }
 
 impl fmt::Display for FormulaTape {
@@ -415,7 +529,9 @@ impl fmt::Display for FormulaTape {
             match &self.tape.tape_content[i] {
                 TapeContent::InfiniteZero => write!(f, "0∞")?,
                 TapeContent::Symbol(x) => {
-                    if self.pos_is_repeater_beg(i) {
+                    if self.pos_is_repeater_beg(i) && self.pos_is_repeater_end(i + 1) {
+                        write!(f, "({})", x)?;
+                    } else if self.pos_is_repeater_beg(i) {
                         write!(f, "({}", x)?;
                     } else if self.pos_is_repeater_end(i + 1) {
                         write!(f, "{})", x)?;
