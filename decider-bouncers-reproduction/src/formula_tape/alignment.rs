@@ -1,5 +1,3 @@
-use std::{f32::consts::E, io::repeat};
-
 use super::*;
 
 impl FormulaTape {

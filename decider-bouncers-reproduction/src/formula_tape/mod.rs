@@ -90,6 +90,7 @@ impl RepeaterPos {
 /// let formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,1,1,1,1,1,1,1,1,0,1,1], TapeHead::default(), &[1,1,0,1]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 14, end: 16 }] };
 /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011A>(11)010∞");
 /// ```
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct FormulaTape {
     pub tape: Tape,
     pub repeaters_pos: Vec<RepeaterPos>, // sorted by beg *and* end (if flattened the array is a sorted array of positions)
