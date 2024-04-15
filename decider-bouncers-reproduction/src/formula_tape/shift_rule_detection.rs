@@ -5,6 +5,7 @@ impl FormulaTape {
     /// Detects a shift rule if any exists.
     ///
     /// ```
+    /// use std::str::FromStr;
     /// use decider_bouncers_reproduction::formula_tape::{FormulaTape, RepeaterPos, FormulaTapeError, ShiftRule};
     /// use decider_bouncers_reproduction::directional_tm::{Direction, Tape, TapeHead};
     /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
@@ -22,6 +23,13 @@ impl FormulaTape {
     /// let shift_rule = formula_tape.detect_shift_rule().unwrap();
     /// assert_eq!(format!("{shift_rule}"), "0D>(01) → (11)0D>");
     /// assert_eq!(shift_rule.num_steps, 4);
+    /// let machine_str = "1RB0RD_1LC1LE_1RA1LB_---0RC_1LB0LE";
+    /// let formula_tape_str =
+    ///     "0∞11111100111001A>(11110111101111011110)000(1111011110)000(11110)000(11110)011111110∞";
+    /// let mut formula_tape = FormulaTape::from_str(formula_tape_str).unwrap();
+    /// formula_tape.set_machine_str(machine_str);
+    /// let shift_rule = formula_tape.detect_shift_rule().unwrap();
+    /// assert_eq!(format!("{shift_rule}"), "A>(11110111101111011110) → (11001110011100111001)A>");
     /// ```
     ///
     /// TODO: this function could be factorised / improved.
