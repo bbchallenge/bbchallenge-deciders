@@ -111,7 +111,6 @@ impl From<directional_tm::TMError> for FormulaTapeError {
 pub struct FormulaTape {
     pub tape: Tape,
     pub repeaters_pos: Vec<RepeaterPos>, // sorted by beg *and* end (if flattened the array is a sorted array of positions)
-    pub used_shift_rules: HashSet<ShiftRule>,
 }
 use std::str::FromStr;
 impl FromStr for FormulaTape {
@@ -178,7 +177,6 @@ impl FromStr for FormulaTape {
         Ok(FormulaTape {
             tape,
             repeaters_pos,
-            used_shift_rules: HashSet::<ShiftRule>::new(),
         })
     }
 }
@@ -470,7 +468,7 @@ impl FormulaTape {
 
         // Shift rule step: try to detect and apply a shift rule
         let shift_rule = self.detect_shift_rule()?;
-        self.used_shift_rules.insert(shift_rule.clone());
+        println!("{} {} steps", shift_rule, shift_rule.num_steps);
         self.apply_shift_rule(&shift_rule)?;
         Ok(())
     }

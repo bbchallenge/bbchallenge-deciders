@@ -83,7 +83,8 @@ impl FormulaTape {
                                         head: initial_head,
                                         tail: vec![],
                                         lhs_repeater,
-                                        rhs_repeater: final_left_word_head[..lhs_repeater_size]
+                                        rhs_repeater: final_left_word_head
+                                            [final_left_word_head.len() - lhs_repeater_size..]
                                             .to_vec(),
                                         num_steps,
                                     });
