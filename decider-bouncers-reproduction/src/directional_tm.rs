@@ -166,7 +166,7 @@ impl TapeContent {
 /// Note that in this setup the tape also contain the head, hence completely represents a (partial) tape.
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct Tape {
-    machine_transition: TMTransitionTable,
+    pub machine_transition: TMTransitionTable,
     pub tape_content: VecDeque<TapeContent>,
     pub head_pos: usize,
     step_count: i32,

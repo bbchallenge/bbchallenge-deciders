@@ -29,12 +29,12 @@ fn main() {
     // let res = formula_tape.prove_non_halt(200_000);
     // println!("{:?}", res);
 
-    let machine_str = "1RB0LC_0LA1RC_0LD0LE_1LA1RA_---1LC";
-    let formula_tape_str = "0∞<C(10)00(0)0∞";
-    let mut formula_tape = FormulaTape::from_str(formula_tape_str).unwrap();
-    formula_tape.set_machine_str(machine_str);
-    assert_eq!(format!("{formula_tape}"), formula_tape_str);
+    // let machine_str = "1RB0LC_0LA1RC_0LD0LE_1LA1RA_---1LC";
+    // let formula_tape_str = "0∞<C(10)00(0)0∞";
+    // let mut formula_tape = FormulaTape::from_str(formula_tape_str).unwrap();
+    // formula_tape.set_machine_str(machine_str);
+    // assert_eq!(format!("{formula_tape}"), formula_tape_str);
 
-    let res = formula_tape.prove_non_halt(100);
-    println!("{:?}", res);
+    // let res = formula_tape.prove_non_halt(100);
+    // println!("{:?}", res);
 }

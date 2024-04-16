@@ -1,11 +1,15 @@
 use crate::directional_tm;
 use crate::directional_tm::{Direction, Tape, TapeContent, TapeHead};
-use std::collections::HashSet;
 use std::fmt;
+use std::str::FromStr;
 
 mod alignment;
+mod bouncer_certificate;
 mod shift_rule_detection;
 mod special_case;
+mod test;
+
+use bouncer_certificate::*;
 
 /// Represents a bouncer shift rule (c.f. bouncer writeup).
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
@@ -28,8 +32,43 @@ pub fn v2s(v: &[u8]) -> String {
     v.iter().map(|i| i.to_string()).collect::<String>()
 }
 
+impl ShiftRule {
+    /// Returns the string representation of a shift rule in savask format.
+    ///
+    /// ```
+    /// use decider_bouncers_reproduction::formula_tape::{ShiftRule};
+    /// use decider_bouncers_reproduction::directional_tm::{TapeHead, Direction};
+    /// let shift_rule = ShiftRule { head: TapeHead::default(), tail: vec![1,1,0], lhs_repeater: vec![1,1], rhs_repeater: vec![0,0], num_steps: 2};
+    /// assert_eq!(shift_rule.to_savask_format(), "110A>11 --> 00110A>");
+    /// let shift_rule = ShiftRule { head: TapeHead { state: 3, pointing_direction: Direction::LEFT }, tail: vec![1,1,0], lhs_repeater: vec![1,1], rhs_repeater: vec![0,0], num_steps: 2 };
+    /// assert_eq!(shift_rule.to_savask_format(), "11<D110 --> <D11000");
+    /// ````
+    pub fn to_savask_format(&self) -> String {
+        match self.head.pointing_direction {
+            Direction::RIGHT => format!(
+                "{}{}{} --> {}{}{}",
+                v2s(&self.tail),
+                self.head,
+                v2s(&self.lhs_repeater),
+                v2s(&self.rhs_repeater),
+                v2s(&self.tail),
+                self.head
+            ),
+            Direction::LEFT => format!(
+                "{}{}{} --> {}{}{}",
+                v2s(&self.lhs_repeater),
+                self.head,
+                v2s(&self.tail),
+                self.head,
+                v2s(&self.tail),
+                v2s(&self.rhs_repeater),
+            ),
+        }
+    }
+}
+
 impl fmt::Display for ShiftRule {
-    /// Returns the string representation of a shift rule. We store additional num_steps information to be able to display it.
+    /// Returns the string representation of a shift rule.
     ///
     /// ```
     /// use decider_bouncers_reproduction::formula_tape::{ShiftRule};
@@ -112,7 +151,7 @@ pub struct FormulaTape {
     pub tape: Tape,
     pub repeaters_pos: Vec<RepeaterPos>, // sorted by beg *and* end (if flattened the array is a sorted array of positions)
 }
-use std::str::FromStr;
+
 impl FromStr for FormulaTape {
     type Err = FormulaTapeError;
     /// Converts strings such as `0∞(111)111111011(11)0A>10∞` to FormulaTape.
@@ -460,17 +499,17 @@ impl FormulaTape {
     /// assert_eq!(format!("{formula_tape}"), "0∞(111)1111110(11)1100D>0∞");
     /// assert!(formula_tape.is_special_case_of(&initial_formula_tape).unwrap());
     /// ```
-    pub fn step(&mut self) -> Result<(), FormulaTapeError> {
+    pub fn step(&mut self) -> Result<Option<ShiftRule>, FormulaTapeError> {
         // Usual step: perform a TM step if head not pointing at a repeater
         if !self.head_is_pointing_at_repeater()? {
-            return Ok(self.tape.step()?);
+            self.tape.step()?;
+            return Ok(None);
         }
 
         // Shift rule step: try to detect and apply a shift rule
         let shift_rule = self.detect_shift_rule()?;
-        println!("{} {} steps", shift_rule, shift_rule.num_steps);
         self.apply_shift_rule(&shift_rule)?;
-        Ok(())
+        Ok(Some(shift_rule))
     }
 
     pub fn steps(&mut self, num_steps: usize) -> Result<(), FormulaTapeError> {
@@ -493,30 +532,65 @@ impl FormulaTape {
     /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
     /// let mut formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,1,1,1,1,1,0,1,1,0,0], TapeHead {state: 3, pointing_direction: Direction::RIGHT}, &[]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 8, end: 10 }] };
     /// assert_eq!(format!("{formula_tape}"), "0∞(111)1110(11)00D>0∞");
-    /// assert_eq!(formula_tape.prove_non_halt(200_000), Ok(true));
+    /// assert!(formula_tape.prove_non_halt(200_000).unwrap().is_some());
     /// let machine_str = "1RB0RD_1LC1LE_1RA1LB_---0RC_1LB0LE";
     /// let mut formula_tape = FormulaTape::from_str("0∞<E000011110(11110111101111011110)000(1111011110)000(11110)000(11110)011111110∞").unwrap();
     /// formula_tape.set_machine_str(machine_str);
     /// assert_eq!(format!("{formula_tape}"), "0∞<E000011110(11110111101111011110)000(1111011110)000(11110)000(11110)011111110∞");
-    /// assert_eq!(formula_tape.prove_non_halt(200_000), Ok(true));
+    /// assert!(formula_tape.prove_non_halt(200_000).unwrap().is_some());
     /// ````
-    pub fn prove_non_halt(&mut self, step_limit: usize) -> Result<bool, FormulaTapeError> {
+    pub fn prove_non_halt(
+        &mut self,
+        step_limit: usize,
+    ) -> Result<Option<BouncerCertificate>, FormulaTapeError> {
         let initial_formula_tape = self.clone();
         self.align()?;
-        println!("0 {}", self);
+
         for k in 0..step_limit {
             self.step()?;
             self.align()?;
 
-            if self.head_is_pointing_at_repeater()? {
-                println!("{} {}", k + 1, self);
-            }
             if self.is_special_case_of(&initial_formula_tape)? {
-                return Ok(true);
+                return Ok(Some(BouncerCertificate {
+                    machine_std_format: self.tape.machine_transition.machine_std_format.clone(),
+                    formula_tape: initial_formula_tape.clone(),
+                    num_macro_steps_until_special_case: k + 1,
+                }));
             }
         }
 
-        Ok(false)
+        Ok(None)
+    }
+}
+
+impl FormulaTape {
+    pub fn to_savask_format(&self) -> String {
+        let mut to_return = String::new();
+
+        for i in 0..self.tape.tape_content.len() {
+            match &self.tape.tape_content[i] {
+                TapeContent::InfiniteZero => {}
+                TapeContent::Symbol(x) => {
+                    if self.pos_is_repeater_beg(i) && self.pos_is_repeater_end(i + 1) {
+                        to_return += &format!(" ({}) ", x);
+                    } else if self.pos_is_repeater_beg(i) {
+                        to_return += &format!(" ({}", x);
+                    } else if self.pos_is_repeater_end(i + 1) {
+                        to_return += &format!("{}) ", x);
+                    } else {
+                        to_return += &format!("{}", x);
+                    }
+                }
+                TapeContent::Head(head) => {
+                    if i != self.tape.head_pos {
+                        panic!("Stored head position {} is not consistent with actual head position {} in tape.", self.tape.head_pos, i);
+                    }
+
+                    to_return += &format!(" {} ", head);
+                }
+            }
+        }
+        to_return
     }
 }
 
