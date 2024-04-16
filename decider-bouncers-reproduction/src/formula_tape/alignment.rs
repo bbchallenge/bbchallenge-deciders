@@ -61,8 +61,8 @@ impl FormulaTape {
             .ok_or(FormulaTapeError::InvalidRepeaterIndex)?;
         let mut pos = repeater_pos.end;
         let mut word: Vec<u8> = Vec::new();
-        while pos < self.tape.len() && !self.pos_is_repeater_beg(pos as usize) {
-            match &self.tape.tape_content[pos as usize] {
+        while pos < self.tape.len() && !self.pos_is_repeater_beg(pos) {
+            match &self.tape.tape_content[pos] {
                 TapeContent::Symbol(symbol) => word.push(*symbol),
                 TapeContent::Head(_) => break,
                 TapeContent::InfiniteZero => break,

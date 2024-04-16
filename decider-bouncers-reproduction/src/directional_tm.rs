@@ -190,8 +190,8 @@ impl FromStr for Tape {
         let mut tape_content: VecDeque<TapeContent> = VecDeque::new();
         let mut has_initial_infinite_zero = 0;
         let mut has_final_infinite_zero = false;
-        let mut head = TapeHead::default();
-        let mut head_pos = 0;
+        let head: TapeHead;
+        let head_pos: usize;
 
         for (i, _) in s.match_indices("0∞") {
             if i == 0 {
@@ -325,9 +325,11 @@ impl Tape {
         self.tape_content.len()
     }
 
-    pub fn finite_words_left_right_of_head(&self) -> Result<(Vec<u8>, Vec<u8>), TMError> {
-        let head = self.get_current_head()?;
+    pub fn is_empty(&self) -> bool {
+        self.tape_content.is_empty()
+    }
 
+    pub fn finite_words_left_right_of_head(&self) -> Result<(Vec<u8>, Vec<u8>), TMError> {
         let left_word = self
             .tape_content
             .iter()

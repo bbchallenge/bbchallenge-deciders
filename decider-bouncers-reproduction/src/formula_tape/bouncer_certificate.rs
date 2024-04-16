@@ -56,7 +56,6 @@ impl BouncerCertificate {
 
             if working_formula_tape.is_special_case_of(&initial_formula_tape)? {
                 to_return += &format!("\tSTEP {}", k - last_step);
-                last_step = k + 1;
                 to_return += "\n";
                 to_return += &working_formula_tape.to_savask_format();
                 to_return += "\tEND\n";
