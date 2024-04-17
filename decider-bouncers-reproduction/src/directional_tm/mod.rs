@@ -171,7 +171,7 @@ pub struct Tape {
     pub machine_transition: TMTransitionTable,
     pub tape_content: VecDeque<TapeContent>,
     pub head_pos: usize,
-    step_count: i32,
+    pub step_count: i32,
 }
 
 impl fmt::Display for Tape {

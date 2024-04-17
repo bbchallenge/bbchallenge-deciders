@@ -5,6 +5,7 @@ use std::str::FromStr;
 
 mod alignment;
 mod bouncer_certificate;
+mod formula_tape_guessing;
 mod parsing;
 mod shift_rule_detection;
 mod special_case;
