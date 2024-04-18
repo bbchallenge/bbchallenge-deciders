@@ -43,7 +43,7 @@ fn no_guessing_prove_bouncer_6_416_853() {
 fn guess_formula_tape_6_416_853() {
     use formula_tape_guessing::guess_formula_tape;
     let machine_str = "1RB0LC_0LA1RC_0LD0LE_1LA1RA_---1LC";
-    guess_formula_tape(machine_str, 500).unwrap();
+    guess_formula_tape(machine_str, 100).unwrap();
     assert!(false)
 }
 
@@ -51,6 +51,6 @@ fn guess_formula_tape_6_416_853() {
 fn guess_formula_tape_43_477_769() {
     use formula_tape_guessing::guess_formula_tape;
     let machine_str = "1RB0RD_1LC1LE_1RA1LB_---0RC_1LB0LE";
-    guess_formula_tape(machine_str, 500).unwrap();
+    guess_formula_tape(machine_str, 5000).unwrap();
     assert!(false)
 }
