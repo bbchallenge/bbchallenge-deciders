@@ -107,9 +107,11 @@ fn decider_bouncer_13_138_739() {
 
 #[test]
 fn decider_bouncer_83_795_500() {
+    // This bouncer encounters a looper shift rule on
+    // 0∞110011001100A>(11000100)01000100010∞
     use super::bouncers_decider::bouncers_decider;
     let machine_str = "1RB1LD_1RC1RE_1LA0LC_0RA0LA_0RD---";
-    let cert = bouncers_decider(machine_str, 10000, 10000, 10)
+    let cert = bouncers_decider(machine_str, 200, 10000, 10)
         .unwrap()
         .unwrap();
 

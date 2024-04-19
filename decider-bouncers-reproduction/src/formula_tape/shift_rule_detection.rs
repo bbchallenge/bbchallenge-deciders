@@ -65,6 +65,9 @@ impl FormulaTape {
                 Ok(()) => {
                     // Cycle detection
                     if tapes_seen.contains(&shift_rule_tape.tape_content) {
+                        // Bouncer "1RB1LD_1RC1RE_1LA0LC_0RA0LA_0RD---" encounters a looper shift rule on:
+                        // 0∞110011001100A>(11000100)01000100010∞
+
                         return Err(FormulaTapeError::NoShiftRule);
                     }
 
