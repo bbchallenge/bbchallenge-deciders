@@ -477,6 +477,8 @@ impl Tape {
             state: curr_transition.state_goto,
             pointing_direction: curr_transition.direction,
         };
+        // println!("hieihei");
+        // println!("{:?}", curr_transition);
 
         // Extend tape if head pointing at 0^\infty extremity
         match curr_read_content {

@@ -1,4 +1,5 @@
 use super::*;
+use std::cmp::max;
 use std::collections::{HashSet, VecDeque};
 
 impl FormulaTape {
@@ -30,17 +31,23 @@ impl FormulaTape {
     /// formula_tape.set_machine_str(machine_str);
     /// let shift_rule = formula_tape.detect_shift_rule().unwrap();
     /// assert_eq!(format!("{shift_rule}"), "A>(11110111101111011110) → (11001110011100111001)A>");
+    /// let mut formula_tape = FormulaTape::from_str("0∞(11001100)<A0110∞").unwrap();
+    /// formula_tape.set_machine_str("1RB1LD_1RC1RE_1LA0LC_0RA0LA_0RD---");
+    /// let shift_rule = formula_tape.detect_shift_rule().unwrap();
+    /// assert_eq!(format!("{shift_rule}"), "(11001100)<A01 → <A01(10001000)");
     /// ```
     ///
     /// TODO: this function could be factorised / improved.
     pub fn detect_shift_rule(&self) -> Result<ShiftRule, FormulaTapeError> {
         let mut shift_rule_tape = self.shift_rule_tape()?;
+        // println!("DETECT SHIFT RULE");
+        // println!("{}", shift_rule_tape);
         // Doing HashSet<Tape> was bugging because tape's step count increases
-        let mut tapes_seen: HashSet<VecDeque<TapeContent>> = HashSet::new();
+        let mut tapes_seen: HashSet<String> = HashSet::new();
 
         let initial_tape = shift_rule_tape.clone();
         let initial_head = initial_tape.get_current_head()?;
-        tapes_seen.insert(initial_tape.tape_content.clone());
+        tapes_seen.insert(initial_tape.to_string());
 
         let (left_word_head, right_word_head) = initial_tape.finite_words_left_right_of_head()?;
         let lhs_repeater = match initial_head.pointing_direction {
@@ -64,27 +71,33 @@ impl FormulaTape {
             match res {
                 Ok(()) => {
                     // Cycle detection
-                    if tapes_seen.contains(&shift_rule_tape.tape_content) {
+                    if tapes_seen.contains(&shift_rule_tape.to_string()) {
                         // Bouncer "1RB1LD_1RC1RE_1LA0LC_0RA0LA_0RD---" encounters a looper shift rule on:
                         // 0∞110011001100A>(11000100)01000100010∞
-
+                        // //println!("here");
+                        // for tape in tapes_seen.iter() {
+                        //     println!("{}", tape);
+                        // }
                         return Err(FormulaTapeError::NoShiftRule);
                     }
 
-                    tapes_seen.insert(shift_rule_tape.tape_content.clone());
+                    tapes_seen.insert(shift_rule_tape.to_string());
                     min_read_pos = min_read_pos.min(
                         shift_rule_tape
                             .get_current_read_pos()
                             .unwrap_or(min_read_pos),
                     );
-                    max_read_pos = shift_rule_tape
-                        .get_current_read_pos()
-                        .unwrap_or(max_read_pos);
+                    max_read_pos = max(
+                        max_read_pos,
+                        shift_rule_tape
+                            .get_current_read_pos()
+                            .unwrap_or(max_read_pos),
+                    );
                     num_steps += 1;
                 }
                 Err(directional_tm::TMError::OutOfTapeError) => {
                     let final_head = shift_rule_tape.get_current_head()?;
-
+                    //println!("OUT OF TAPE {} {}", initial_head, final_head);
                     if initial_head == final_head {
                         let (final_left_word_head, final_right_word_head) =
                             shift_rule_tape.finite_words_left_right_of_head()?;
@@ -142,7 +155,9 @@ impl FormulaTape {
                             }
                             Direction::LEFT => {
                                 // Empty tail
+                                //println!("{} {}", max_read_pos, initial_tape.head_pos);
                                 if max_read_pos <= initial_tape.head_pos {
+                                    //println!("EMPTY TAIL");
                                     return Ok(ShiftRule {
                                         head: initial_head,
                                         tail: vec![],
@@ -165,13 +180,19 @@ impl FormulaTape {
                                 let (_, tail_and_repeater) =
                                     interesting_final_tape.finite_words_left_right_of_head()?;
 
-                                if tail
-                                    == tail_and_repeater
-                                        [0..(tail_and_repeater.len() - lhs_repeater_size)]
-                                {
-                                    let rhs_repeater = tail_and_repeater
-                                        [0..(tail_and_repeater.len() - lhs_repeater_size)]
-                                        .to_vec();
+                                // println!("{}", self);
+                                // println!("{}", interesting_final_tape);
+                                // println!("{} {}", initial_head, final_head);
+                                // println!(
+                                //     "t:{} rt:{} r:{}",
+                                //     v2s(&tail),
+                                //     v2s(&tail_and_repeater),
+                                //     v2s(&lhs_repeater)
+                                // );
+                                if tail == tail_and_repeater[..tail.len()] {
+                                    //println!("FOUND SHIFT RULE");
+                                    let rhs_repeater = tail_and_repeater[tail.len()..].to_vec();
+                                    //println!("{} {}", v2s(&tail), v2s(&rhs_repeater));
                                     return Ok(ShiftRule {
                                         head: initial_head,
                                         tail: tail.to_vec(),

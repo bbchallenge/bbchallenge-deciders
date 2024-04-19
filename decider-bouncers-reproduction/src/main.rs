@@ -1,8 +1,6 @@
 use decider_bouncers_reproduction::directional_tm::TMError;
 use decider_bouncers_reproduction::formula_tape::bouncer_certificate::BouncerCertificate;
-use decider_bouncers_reproduction::formula_tape::bouncers_decider::{
-    bouncers_decider, bouncers_decider_all_formulas,
-};
+use decider_bouncers_reproduction::formula_tape::bouncers_decider::bouncers_decider;
 use decider_bouncers_reproduction::formula_tape::FormulaTapeError;
 
 use indicatif::{ParallelProgressIterator, ProgressStyle};
@@ -41,16 +39,16 @@ fn main() -> io::Result<()> {
         .map(|machine_std_format| {
             (
                 machine_std_format.clone(),
-                bouncers_decider_all_formulas(machine_std_format, 10000, 1000, 10),
+                bouncers_decider(machine_std_format, 10000, 1000, 10),
             )
         })
         .collect();
 
     let mut nb_solved = 0;
     for (machine, res) in results.iter_mut() {
-        // if res.is_err() {
-        //     println!("Not solved:\n{}", machine);
-        // }
+        if res.is_err() {
+            println!("Not solved:\n{}", machine);
+        }
 
         let res = match res {
             Ok(res) => res,

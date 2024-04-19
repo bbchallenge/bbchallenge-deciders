@@ -108,7 +108,7 @@ impl fmt::Display for ShiftRule {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// Begin and end indexes of a repeater in a formula tape.
 pub struct RepeaterPos {
     pub beg: usize,
@@ -150,7 +150,7 @@ impl From<directional_tm::TMError> for FormulaTapeError {
 /// let formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,1,1,1,1,1,1,1,1,0,1,1], TapeHead::default(), &[1,1,0,1]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 14, end: 16 }] };
 /// assert_eq!(format!("{formula_tape}"), "0∞(111)111111011A>(11)010∞");
 /// ```
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct FormulaTape {
     pub tape: Tape,
     pub repeaters_pos: Vec<RepeaterPos>, // sorted by beg *and* end (if flattened the array is a sorted array of positions)
@@ -497,14 +497,14 @@ impl FormulaTape {
     /// ````
     pub fn prove_non_halt(
         &mut self,
-        step_limit: usize,
+        macro_step_limit: usize,
         step_count: usize,
     ) -> Result<Option<BouncerCertificate>, FormulaTapeError> {
         let initial_formula_tape = self.clone();
         self.align()?;
 
-        for k in 0..step_limit {
-            //println!("Before step: {}", self);
+        for k in 0..macro_step_limit {
+            //println!("Before step: {} {} {}", self, k, macro_step_limit);
             self.step()?;
             //println!("After step: {}", self);
             self.align()?;
