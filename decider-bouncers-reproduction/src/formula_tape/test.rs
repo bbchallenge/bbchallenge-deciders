@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::*;
 #[test]
 /// Proving that https://bbchallenge.org/43477769 is a bouncer (i.e. non-halting) from a given formula tape (i.e. formula tape not guessed).
@@ -119,4 +121,83 @@ fn decider_bouncer_83_795_500() {
 
     assert_eq!(cert.num_steps_until_formula_tape, 705);
     assert_eq!(cert.num_macro_steps_until_special_case, 97);
+}
+
+// Testing formula tape iterator
+#[test]
+fn iterate_formula_tapes_bouncer_88_427_177() -> Result<(), FormulaTapeError> {
+    use super::bouncers_decider::bouncers_decider;
+    use super::formula_tape_guessing::{
+        guess_formula_tape_given_record_breaking_tapes,
+        guess_formula_tapes_given_record_breaking_tapes, PotentialFormulaTape,
+    };
+    use itertools::Itertools;
+    use std::collections::HashMap;
+    // Machine "1RB---_0RC0RD_1LD1RE_0LE---_1RB0LB" is not solved with the first formula tape guessed.
+    let machine_str = "1RB---_0RC0RD_1LD1RE_0LE---_1RB0LB";
+    let mut record_breaking_tapes: HashMap<TapeHead, Vec<Tape>> = HashMap::new();
+    let mut tape = Tape::new_initial(machine_str);
+    record_breaking_tapes.insert(tape.get_current_head()?, vec![tape.clone()]);
+
+    let step_limit = 10000;
+    for _ in 0..step_limit {
+        tape.step()?;
+
+        if tape.get_current_read_pos()? == 0 || tape.get_current_read_pos()? == tape.len() - 1 {
+            match record_breaking_tapes.get_mut(&tape.get_current_head()?) {
+                Some(tapes) => {
+                    tapes.push(tape.clone());
+                }
+                None => {
+                    record_breaking_tapes.insert(tape.get_current_head()?, vec![tape.clone()]);
+                }
+            }
+        }
+    }
+
+    let mut another_found = false;
+    for head in record_breaking_tapes.keys().sorted() {
+        let tapes = record_breaking_tapes.get(head).unwrap();
+        println!("HEAD {}", head);
+        let res = guess_formula_tapes_given_record_breaking_tapes(&tapes);
+
+        if res.is_empty() {
+            continue;
+        }
+
+        println!("Ground truth formula tapes");
+        for (formula_tape, steps) in res.iter() {
+            println!("{} {}", formula_tape, steps);
+        }
+
+        let mut potential_formula = PotentialFormulaTape {
+            record_breaking_tapes: tapes.clone(),
+            tested_tape_length: HashSet::new(),
+            current_index_in_tapes_length: 0,
+            tested_len1_len2_pairs: HashSet::new(),
+            tested_len_diff_and_step_diff2: Vec::new(),
+        };
+        let (formula_tape, steps) = potential_formula.next().unwrap();
+        println!("{} {}", formula_tape, steps);
+        println!(
+            "{:?} {} {:?}",
+            potential_formula.tested_tape_length,
+            potential_formula.current_index_in_tapes_length,
+            potential_formula.tested_len1_len2_pairs
+        );
+        if !potential_formula.next().is_none() {
+            another_found = true;
+            println!("{} {}", formula_tape, steps);
+            println!(
+                "{:?} {} {:?}",
+                potential_formula.tested_tape_length,
+                potential_formula.current_index_in_tapes_length,
+                potential_formula.tested_len1_len2_pairs
+            );
+        }
+
+        break;
+    }
+    assert!(another_found);
+    Ok(())
 }
