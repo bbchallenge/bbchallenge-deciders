@@ -1,5 +1,5 @@
 use super::*;
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 
 impl FormulaTape {
     /// Detects a shift rule if any exists.
@@ -35,11 +35,12 @@ impl FormulaTape {
     /// TODO: this function could be factorised / improved.
     pub fn detect_shift_rule(&self) -> Result<ShiftRule, FormulaTapeError> {
         let mut shift_rule_tape = self.shift_rule_tape()?;
-        let mut tapes_seen: HashSet<Tape> = HashSet::new();
+        // Doing HashSet<Tape> was bugging because tape's step count increases
+        let mut tapes_seen: HashSet<VecDeque<TapeContent>> = HashSet::new();
 
         let initial_tape = shift_rule_tape.clone();
         let initial_head = initial_tape.get_current_head()?;
-        tapes_seen.insert(initial_tape.clone());
+        tapes_seen.insert(initial_tape.tape_content.clone());
 
         let (left_word_head, right_word_head) = initial_tape.finite_words_left_right_of_head()?;
         let lhs_repeater = match initial_head.pointing_direction {
@@ -59,14 +60,15 @@ impl FormulaTape {
 
         loop {
             let res = shift_rule_tape.step();
-
+            //println!("{}", shift_rule_tape);
             match res {
                 Ok(()) => {
                     // Cycle detection
-                    if tapes_seen.contains(&shift_rule_tape) {
+                    if tapes_seen.contains(&shift_rule_tape.tape_content) {
                         return Err(FormulaTapeError::NoShiftRule);
                     }
-                    tapes_seen.insert(shift_rule_tape.clone());
+
+                    tapes_seen.insert(shift_rule_tape.tape_content.clone());
                     min_read_pos = min_read_pos.min(
                         shift_rule_tape
                             .get_current_read_pos()
@@ -80,7 +82,7 @@ impl FormulaTape {
                 Err(directional_tm::TMError::OutOfTapeError) => {
                     let final_head = shift_rule_tape.get_current_head()?;
 
-                    if initial_head.state == final_head.state {
+                    if initial_head == final_head {
                         let (final_left_word_head, final_right_word_head) =
                             shift_rule_tape.finite_words_left_right_of_head()?;
                         match initial_head.pointing_direction {
@@ -112,6 +114,15 @@ impl FormulaTape {
                                 let (repeater_and_tail, _) =
                                     interesting_final_tape.finite_words_left_right_of_head()?;
 
+                                //println!("{}", self);
+                                //println!("{}", interesting_final_tape);
+                                //println!("{} {}", initial_head, final_head);
+                                // //println!(
+                                //     "t:{} rt:{} r:{}",
+                                //     v2s(&tail),
+                                //     v2s(&repeater_and_tail),
+                                //     v2s(&lhs_repeater)
+                                // );
                                 if tail == repeater_and_tail[lhs_repeater.len()..] {
                                     let rhs_repeater =
                                         repeater_and_tail[..lhs_repeater.len()].to_vec();

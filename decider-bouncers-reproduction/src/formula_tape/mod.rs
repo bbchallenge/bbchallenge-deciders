@@ -4,9 +4,9 @@ use std::fmt;
 use std::str::FromStr;
 
 mod alignment;
-mod bouncer_certificate;
+pub mod bouncer_certificate;
 
-mod bouncers_decider;
+pub mod bouncers_decider;
 mod formula_tape_guessing;
 mod memo;
 mod parsing;
@@ -411,6 +411,7 @@ impl FormulaTape {
     /// ```
     /// use decider_bouncers_reproduction::formula_tape::{FormulaTape, RepeaterPos, FormulaTapeError, ShiftRule};
     /// use decider_bouncers_reproduction::directional_tm::{Direction, Tape, TapeHead};
+    /// use std::str::FromStr;
     /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
     /// let mut formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,1,1,1,1,1,0,1,1,0,0], TapeHead {state: 3, pointing_direction: Direction::RIGHT}, &[]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 8, end: 10 }] };
     /// let initial_formula_tape = formula_tape.clone();
@@ -434,16 +435,35 @@ impl FormulaTape {
     /// formula_tape.step();
     /// assert_eq!(format!("{formula_tape}"), "0∞(111)1111110(11)1100D>0∞");
     /// assert!(formula_tape.is_special_case_of(&initial_formula_tape).unwrap());
+    /// let mut formula_tape = FormulaTape::from_str("0∞<A(11)1110(111111110111111110111111110)10∞").unwrap();
+    /// formula_tape.set_machine_str("1RB1LD_1RC0RC_1RD1RA_1LE1LA_---0LA");
+    /// formula_tape.step();
+    /// assert_eq!(format!("{formula_tape}"), "0∞1B>(11)1110(111111110111111110111111110)10∞");
     /// ```
     pub fn step(&mut self) -> Result<Option<ShiftRule>, FormulaTapeError> {
         // Usual step: perform a TM step if head not pointing at a repeater
+        //println!("STEP");
+        //println!("{}", self.tape.head_pos);
         if !self.head_is_pointing_at_repeater()? {
+            //println!("SYMBOL");
+            let old_head = self.tape.get_current_head()?;
+            let old_len = self.tape.len();
             self.tape.step()?;
+
+            // Need to update repeaters in the case where the tape was left-extended
+            if self.tape.len() > old_len && old_head.pointing_direction == Direction::LEFT {
+                for i in 0..self.repeaters_pos.len() {
+                    self.repeaters_pos[i].beg += 1;
+                    self.repeaters_pos[i].end += 1;
+                }
+            }
             return Ok(None);
         }
 
+        //println!("Shift detection");
         // Shift rule step: try to detect and apply a shift rule
         let shift_rule = self.detect_shift_rule()?;
+        //println!("Shift rule: {:?}", shift_rule);
         self.apply_shift_rule(&shift_rule)?;
         Ok(Some(shift_rule))
     }
@@ -484,8 +504,11 @@ impl FormulaTape {
         self.align()?;
 
         for k in 0..step_limit {
+            //println!("Before step: {}", self);
             self.step()?;
+            //println!("After step: {}", self);
             self.align()?;
+            //println!("After align: {}", self);
 
             if self.is_special_case_of(&initial_formula_tape)? {
                 return Ok(Some(BouncerCertificate {

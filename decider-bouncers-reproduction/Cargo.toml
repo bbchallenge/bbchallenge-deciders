@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 itertools = "0.12.1"
 ndarray = "0.15.6"
+rayon = "1.10.0"
+indicatif = { version = "*", features = ["rayon"] }

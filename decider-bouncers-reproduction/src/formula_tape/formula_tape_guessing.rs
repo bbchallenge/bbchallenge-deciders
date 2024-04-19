@@ -1,12 +1,6 @@
-use self::directional_tm::TMError;
-
 use super::*;
 
-use std::{
-    collections::{HashMap, HashSet, VecDeque},
-    path::Display,
-    vec,
-};
+use std::{collections::HashSet, vec};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum FormulaTapeAtoms {
@@ -147,6 +141,9 @@ fn fit_formula_tape_from_triple(tape0: Tape, tape1: Tape, tape2: Tape) -> Option
     let tape0 = remove_head_and_infinite_0(tape0);
     let tape1 = remove_head_and_infinite_0(tape1);
     let tape2 = remove_head_and_infinite_0(tape2);
+
+    //println!("Testing triplet");
+    //println!("{} {} {}", v2s(&tape0), v2s(&tape1), v2s(&tape2));
 
     // Using implem from https://github.com/meithecatte/busycoq/blob/master/beaver/src/decider/bouncers.rs#L574
     #[derive(Clone, Copy)]

@@ -20,6 +20,11 @@ impl FormulaTape {
             .repeaters_pos
             .get(repeater_index)
             .ok_or(FormulaTapeError::InvalidRepeaterIndex)?;
+
+        if self.pos_is_repeater_end(repeater_pos.beg) {
+            return Ok(Vec::new());
+        }
+
         let mut pos = (repeater_pos.beg - 1) as i32;
         let mut word: Vec<u8> = Vec::new();
         while pos >= 0 {
@@ -77,6 +82,7 @@ impl FormulaTape {
     /// ```
     /// use decider_bouncers_reproduction::formula_tape::{FormulaTape, RepeaterPos, FormulaTapeError, v2s};
     /// use decider_bouncers_reproduction::directional_tm::{Direction, Tape, TapeHead};
+    /// use std::str::FromStr;
     /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
     /// let mut formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,0,1,1,1,0], TapeHead {state: 3, pointing_direction: Direction::RIGHT}, &[1,0,1,0,0,1,1]), repeaters_pos: vec![RepeaterPos { beg: 4, end: 6 },RepeaterPos { beg: 10, end: 13 }] };
     /// assert_eq!(format!("{formula_tape}"), "0∞101(11)0D>10(100)110∞");
@@ -86,9 +92,13 @@ impl FormulaTape {
     /// assert_eq!(format!("{formula_tape}"), "0∞1(11)1(11)01D>10(11)11(11)111110∞");
     /// formula_tape.align().unwrap();
     /// assert_eq!(format!("{formula_tape}"), "0∞(11)(11)1101D>101111111(11)(11)0∞");
+    /// let mut formula_tape = FormulaTape::from_str("0∞11(0)(11000)11000110001100011000110001100011<C00∞").unwrap();
+    /// formula_tape.align().unwrap();
+    /// assert_eq!(format!("{formula_tape}"), "0∞11(0)(11000)11000110001100011000110001100011<C00∞");
     /// ```
     pub fn align(&mut self) -> Result<(), FormulaTapeError> {
         // Align before head
+        //println!("To align: {}", self);
         for repeater_index in 0..self.repeaters_pos.len() {
             let repeater_word = self.get_repeater_word(repeater_index)?;
             let repeater_pos = self.repeaters_pos[repeater_index];
@@ -101,6 +111,8 @@ impl FormulaTape {
             }
 
             let left_word = self.finite_word_left_of_repeater(repeater_index)?;
+            //println!("repeater_word: {}", v2s(&repeater_word));
+            //println!("left_word: {}", v2s(&left_word));
             for i in 0..left_word.len() {
                 let suffix = &left_word[i..];
 

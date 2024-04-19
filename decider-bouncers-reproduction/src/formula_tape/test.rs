@@ -76,3 +76,45 @@ fn decide_bouncer_6_416_853() {
     assert_eq!(cert.num_steps_until_formula_tape, 705);
     assert_eq!(cert.num_macro_steps_until_special_case, 97);
 }
+
+#[test]
+fn decider_bouncer_892_918() {
+    use super::bouncers_decider::bouncers_decider;
+    let machine_str = "1RB---_0LC0RB_1RA1LD_1LE1LD_1LB1LC";
+    let cert = bouncers_decider(machine_str, 10000, 10000, 10)
+        .unwrap()
+        .unwrap();
+
+    println!("Formula tape: {}", cert.formula_tape);
+
+    assert_eq!(cert.num_steps_until_formula_tape, 4835);
+    assert_eq!(cert.num_macro_steps_until_special_case, 2134);
+}
+
+#[test]
+fn decider_bouncer_13_138_739() {
+    use super::bouncers_decider::bouncers_decider;
+    let machine_str = "1RB1LD_1RC0RC_1RD1RA_1LE1LA_---0LA";
+    let cert = bouncers_decider(machine_str, 10000, 10000, 10)
+        .unwrap()
+        .unwrap();
+
+    println!("Formula tape: {}", cert.formula_tape);
+
+    assert_eq!(cert.num_steps_until_formula_tape, 705);
+    assert_eq!(cert.num_macro_steps_until_special_case, 97);
+}
+
+#[test]
+fn decider_bouncer_83_795_500() {
+    use super::bouncers_decider::bouncers_decider;
+    let machine_str = "1RB1LD_1RC1RE_1LA0LC_0RA0LA_0RD---";
+    let cert = bouncers_decider(machine_str, 10000, 10000, 10)
+        .unwrap()
+        .unwrap();
+
+    println!("Formula tape: {}", cert.formula_tape);
+
+    assert_eq!(cert.num_steps_until_formula_tape, 705);
+    assert_eq!(cert.num_macro_steps_until_special_case, 97);
+}

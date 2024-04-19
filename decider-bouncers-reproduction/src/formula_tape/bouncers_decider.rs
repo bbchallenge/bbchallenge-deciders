@@ -44,13 +44,14 @@ pub fn bouncers_decider(
             guess_formula_tape_given_record_breaking_tapes(tapes)
         {
             num_formula_tested += 1;
+            //println!("Formula tape: {}", formula_tape);
             if let Some(cert) = formula_tape.prove_non_halt(macro_step_limit, step_count)? {
                 return Ok(Some(cert.clone()));
             }
 
-            if num_formula_tested >= formula_tape_limit {
-                return Ok(None);
-            }
+            // if num_formula_tested >= formula_tape_limit {
+            //     return Ok(None);
+            // }
         }
         //println!();
     }

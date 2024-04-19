@@ -1,40 +1,77 @@
-use decider_bouncers_reproduction::directional_tm::{Direction, Tape, TapeHead};
-use decider_bouncers_reproduction::formula_tape::{
-    FormulaTape, FormulaTapeError, RepeaterPos, ShiftRule,
-};
-use std::str::FromStr;
-fn main() {
-    // let machine_str = "1RB0RD_1LC1LE_1RA1LB_---0RC_1LB0LE";
-    // let formula_tape_str =
-    //     "0∞<E000011110(11110111101111011110)000(1111011110)000(11110)000(11110)011111110∞";
-    // let mut formula_tape = FormulaTape::from_str(formula_tape_str).unwrap();
-    // formula_tape.set_machine_str(machine_str);
-    // assert_eq!(format!("{formula_tape}"), formula_tape_str);
+use decider_bouncers_reproduction::directional_tm::TMError;
+use decider_bouncers_reproduction::formula_tape::bouncer_certificate::BouncerCertificate;
+use decider_bouncers_reproduction::formula_tape::bouncers_decider::bouncers_decider;
+use decider_bouncers_reproduction::formula_tape::FormulaTapeError;
 
-    // let res = formula_tape.prove_non_halt(200_000);
-    // println!("{:?}", res);
-    // let formula_tape_str =
-    //     "0∞11111100111001A>(11110111101111011110)000(1111011110)000(11110)000(11110)011111110∞";
-    // let mut formula_tape = FormulaTape::from_str(formula_tape_str).unwrap();
-    // formula_tape.set_machine_str(machine_str);
+use indicatif::{ParallelProgressIterator, ProgressStyle};
+use rayon::prelude::*;
+use std::fs::File;
+use std::io::{self, prelude::*, BufReader};
 
-    // formula_tape.detect_shift_rule().unwrap();
+fn main() -> io::Result<()> {
+    let file = File::open("bb5_undecided_machines.csv")?;
+    let reader = BufReader::new(file);
 
-    // let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
-    // let formula_tape_str = "0∞(111)1110(11)00D>0∞";
-    // let mut formula_tape = FormulaTape::from_str(formula_tape_str).unwrap();
-    // formula_tape.set_machine_str(machine_str);
-    // assert_eq!(format!("{formula_tape}"), formula_tape_str);
+    let mut i = 0;
+    let mut machines: Vec<String> = Vec::new();
+    for line in reader.lines() {
+        if i == 0 {
+            i += 1;
+            continue;
+        }
 
-    // let res = formula_tape.prove_non_halt(200_000);
-    // println!("{:?}", res);
+        let line = line?;
+        let machine_std_format = line.split(',').collect::<Vec<&str>>()[1];
+        machines.push(machine_std_format.to_string());
 
-    // let machine_str = "1RB0LC_0LA1RC_0LD0LE_1LA1RA_---1LC";
-    // let formula_tape_str = "0∞<C(10)00(0)0∞";
-    // let mut formula_tape = FormulaTape::from_str(formula_tape_str).unwrap();
-    // formula_tape.set_machine_str(machine_str);
-    // assert_eq!(format!("{formula_tape}"), formula_tape_str);
+        i += 1;
+    }
 
-    // let res = formula_tape.prove_non_halt(100);
-    // println!("{:?}", res);
+    let style = ProgressStyle::with_template(
+        "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
+    )
+    .unwrap()
+    .progress_chars("##-");
+
+    let mut results: Vec<(String, Result<Option<BouncerCertificate>, FormulaTapeError>)> = machines
+        .par_iter()
+        .progress_with_style(style)
+        .map(|machine_std_format| {
+            (
+                machine_std_format.clone(),
+                bouncers_decider(machine_std_format, 10000, 1000, 10),
+            )
+        })
+        .collect();
+
+    let mut nb_solved = 0;
+    for (machine, res) in results.iter_mut() {
+        let res = match res {
+            Ok(res) => res,
+            Err(e) => match e {
+                FormulaTapeError::TMError(TMError::MachineHasHalted) => {
+                    continue;
+                }
+                FormulaTapeError::NoShiftRule => {
+                    continue;
+                }
+                FormulaTapeError::InvalidFormulaTapeError => {
+                    println!("{}", machine);
+                    panic!("Error: {:?}", e);
+                }
+                _ => {
+                    println!("{}", machine);
+                    panic!("Error: {:?}", e);
+                }
+            },
+        };
+
+        if let Some(cert) = res {
+            nb_solved += 1;
+        }
+    }
+
+    println!("{}", nb_solved);
+
+    Ok(())
 }
