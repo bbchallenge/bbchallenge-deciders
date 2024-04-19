@@ -4,6 +4,7 @@ use super::*;
 pub struct BouncerCertificate {
     pub machine_std_format: String,
     pub formula_tape: FormulaTape,
+    pub num_steps_until_formula_tape: usize,
     pub num_macro_steps_until_special_case: usize,
 }
 

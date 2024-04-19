@@ -9,7 +9,7 @@ fn no_guessing_prove_bouncer_43_477_769() {
     formula_tape.set_machine_str(machine_str);
     assert_eq!(format!("{formula_tape}"), formula_tape_str);
 
-    let cert = formula_tape.prove_non_halt(200_000).unwrap().unwrap();
+    let cert = formula_tape.prove_non_halt(200_000, 0).unwrap().unwrap();
     assert_eq!(cert.num_macro_steps_until_special_case, 1118);
 }
 
@@ -22,7 +22,7 @@ fn no_guessing_prove_bouncer_88_427_177() {
     formula_tape.set_machine_str(machine_str);
     assert_eq!(format!("{formula_tape}"), formula_tape_str);
 
-    let cert = formula_tape.prove_non_halt(200_000).unwrap().unwrap();
+    let cert = formula_tape.prove_non_halt(200_000, 0).unwrap().unwrap();
     assert_eq!(cert.num_macro_steps_until_special_case, 41);
 }
 
@@ -35,22 +35,32 @@ fn no_guessing_prove_bouncer_6_416_853() {
     formula_tape.set_machine_str(machine_str);
     assert_eq!(format!("{formula_tape}"), formula_tape_str);
 
-    let cert = formula_tape.prove_non_halt(200_000).unwrap().unwrap();
+    let cert = formula_tape.prove_non_halt(200_000, 0).unwrap().unwrap();
     assert_eq!(cert.num_macro_steps_until_special_case, 13);
 }
 
 #[test]
-fn guess_formula_tape_6_416_853() {
-    use formula_tape_guessing::guess_formula_tape;
+fn decide_bouncer_6_416_853() {
+    use super::bouncers_decider::bouncers_decider;
     let machine_str = "1RB0LC_0LA1RC_0LD0LE_1LA1RA_---1LC";
-    guess_formula_tape(machine_str, 100).unwrap();
-    assert!(false)
+    let cert = bouncers_decider(machine_str, 1000, 2000, 10)
+        .unwrap()
+        .unwrap();
+
+    println!("Formula tape: {}", cert.formula_tape);
+
+    assert_eq!(cert.num_steps_until_formula_tape, 705);
+    assert_eq!(cert.num_macro_steps_until_special_case, 97);
 }
 
 #[test]
-fn guess_formula_tape_43_477_769() {
-    use formula_tape_guessing::guess_formula_tape;
+fn decide_bouncer_43_477_769() {
+    use super::bouncers_decider::bouncers_decider;
     let machine_str = "1RB0RD_1LC1LE_1RA1LB_---0RC_1LB0LE";
-    guess_formula_tape(machine_str, 5000).unwrap();
-    assert!(false)
+    let cert: BouncerCertificate = bouncers_decider(machine_str, 6000, 2000, 10)
+        .unwrap()
+        .unwrap();
+    println!("Formula tape:\n{}", cert.formula_tape);
+    assert_eq!(cert.num_steps_until_formula_tape, 1365);
+    assert_eq!(cert.num_macro_steps_until_special_case, 1892);
 }

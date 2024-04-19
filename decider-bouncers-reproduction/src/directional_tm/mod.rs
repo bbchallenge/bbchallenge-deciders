@@ -10,7 +10,7 @@ pub enum TMError {
     InvalidTapeError,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Ord, PartialOrd)]
 pub enum Direction {
     LEFT,
     RIGHT,
@@ -88,7 +88,7 @@ impl TMTransitionTable {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct TapeHead {
     pub state: u8,
     pub pointing_direction: Direction,

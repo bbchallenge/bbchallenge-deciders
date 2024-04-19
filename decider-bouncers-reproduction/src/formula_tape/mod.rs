@@ -5,7 +5,10 @@ use std::str::FromStr;
 
 mod alignment;
 mod bouncer_certificate;
+
+mod bouncers_decider;
 mod formula_tape_guessing;
+mod memo;
 mod parsing;
 mod shift_rule_detection;
 mod special_case;
@@ -465,16 +468,17 @@ impl FormulaTape {
     /// let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
     /// let mut formula_tape = FormulaTape { tape: Tape::new(machine_str, &[1,1,1,1,1,1,0,1,1,0,0], TapeHead {state: 3, pointing_direction: Direction::RIGHT}, &[]), repeaters_pos: vec![RepeaterPos { beg: 1, end: 4 },RepeaterPos { beg: 8, end: 10 }] };
     /// assert_eq!(format!("{formula_tape}"), "0∞(111)1110(11)00D>0∞");
-    /// assert!(formula_tape.prove_non_halt(200_000).unwrap().is_some());
+    /// assert!(formula_tape.prove_non_halt(200_000,0).unwrap().is_some());
     /// let machine_str = "1RB0RD_1LC1LE_1RA1LB_---0RC_1LB0LE";
     /// let mut formula_tape = FormulaTape::from_str("0∞<E000011110(11110111101111011110)000(1111011110)000(11110)000(11110)011111110∞").unwrap();
     /// formula_tape.set_machine_str(machine_str);
     /// assert_eq!(format!("{formula_tape}"), "0∞<E000011110(11110111101111011110)000(1111011110)000(11110)000(11110)011111110∞");
-    /// assert!(formula_tape.prove_non_halt(200_000).unwrap().is_some());
+    /// assert!(formula_tape.prove_non_halt(200_000,0).unwrap().is_some());
     /// ````
     pub fn prove_non_halt(
         &mut self,
         step_limit: usize,
+        step_count: usize,
     ) -> Result<Option<BouncerCertificate>, FormulaTapeError> {
         let initial_formula_tape = self.clone();
         self.align()?;
@@ -487,6 +491,7 @@ impl FormulaTape {
                 return Ok(Some(BouncerCertificate {
                     machine_std_format: self.tape.machine_transition.machine_std_format.clone(),
                     formula_tape: initial_formula_tape.clone(),
+                    num_steps_until_formula_tape: step_count,
                     num_macro_steps_until_special_case: k + 1,
                 }));
             }

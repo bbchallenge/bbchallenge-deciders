@@ -22,6 +22,17 @@ struct FormulaTapeSearchConfiguration {
     proto_formula_tape: Vec<FormulaTapeAtoms>,
 }
 
+fn vproto2s(v: &Vec<FormulaTapeAtoms>) -> String {
+    let mut s = String::new();
+    for atom in v.iter() {
+        match atom {
+            FormulaTapeAtoms::Symbol(symbol) => s.push_str(&format!("{}", symbol)),
+            FormulaTapeAtoms::Repeater(repeater) => s.push_str(&format!("({})", v2s(repeater))),
+        }
+    }
+    s
+}
+
 impl std::fmt::Display for FormulaTapeSearchConfiguration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(
@@ -53,7 +64,6 @@ fn proto_formula_tape_to_formula_tape(
         1
     };
 
-    //println!("HEY HEY {:?}", proto_formula_tape);
     let mut repeater_offset = 0;
     for (i, atom) in proto_formula_tape.iter().enumerate() {
         match atom {
@@ -128,106 +138,140 @@ fn remove_head_and_infinite_0(tape: Tape) -> Vec<u8> {
         .collect::<Vec<u8>>();
 }
 
-fn fit_formula_tape_from_triple(tape1: Tape, tape2: Tape, tape3: Tape) -> Option<FormulaTape> {
-    //println!("Testing tiplet");
+use memo::Memo;
+use std::num::NonZeroU32;
 
-    let machine_str = tape1.machine_transition.machine_std_format.clone();
-    let head = tape1.get_current_head().unwrap();
+fn fit_formula_tape_from_triple(tape0: Tape, tape1: Tape, tape2: Tape) -> Option<FormulaTape> {
+    let machine_str = tape0.machine_transition.machine_std_format.clone();
+    let head = tape0.get_current_head().unwrap();
+    let tape0 = remove_head_and_infinite_0(tape0);
     let tape1 = remove_head_and_infinite_0(tape1);
     let tape2 = remove_head_and_infinite_0(tape2);
-    let tape3 = remove_head_and_infinite_0(tape3);
 
-    //println!("{}\n{}\n{}\n", v2s(&tape1), v2s(&tape2), v2s(&tape3));
+    // Using implem from https://github.com/meithecatte/busycoq/blob/master/beaver/src/decider/bouncers.rs#L574
+    #[derive(Clone, Copy)]
+    struct DPResult(NonZeroU32);
 
-    let n = tape1.len();
+    enum Step {
+        Sym,
+        Repeat(usize),
+        End,
+    }
 
-    let mut conf: VecDeque<FormulaTapeSearchConfiguration> = VecDeque::new();
-    let mut conf_seen: HashSet<FormulaTapeSearchConfiguration> = HashSet::new();
-    conf.push_front((0, 0, 0).into());
+    impl DPResult {
+        const NO_SOLUTION: u32 = u32::MAX;
+        const SYMBOL: u32 = u32::MAX - 1;
+        const END: u32 = u32::MAX - 2;
+        const MAX_REPEATER: u32 = u32::MAX - 3;
 
-    while !conf.is_empty() {
-        let curr_conf = conf.pop_front().unwrap();
-        if conf.contains(&curr_conf) {
-            continue;
-        }
-        //println!("{}", curr_conf);
-        conf_seen.insert(curr_conf.clone());
-
-        let FormulaTapeSearchConfiguration {
-            pos_tape1,
-            pos_tape2,
-            pos_tape3,
-            proto_formula_tape,
-        } = curr_conf;
-
-        if pos_tape1 == tape1.len() - 1
-            && pos_tape2 == tape2.len() - 1
-            && pos_tape3 == tape3.len() - 1
-        {
-            let formula_tape =
-                proto_formula_tape_to_formula_tape(&machine_str, head, proto_formula_tape);
-            println!("FOUND: {}", formula_tape);
-            return Some(formula_tape);
+        fn ok(self) -> bool {
+            self.0.get() != Self::NO_SOLUTION
         }
 
-        if pos_tape1 < tape1.len()
-            && pos_tape2 < tape2.len()
-            && pos_tape3 < tape3.len()
-            && tape1[pos_tape1] == tape2[pos_tape2]
-            && tape2[pos_tape2] == tape3[pos_tape3]
-        {
-            let mut proto_formula_tape = proto_formula_tape.clone();
-            proto_formula_tape.push(FormulaTapeAtoms::Symbol(tape1[pos_tape1]));
-            let to_push: FormulaTapeSearchConfiguration = (
-                pos_tape1 + 1,
-                pos_tape2 + 1,
-                pos_tape3 + 1,
-                proto_formula_tape,
-            )
-                .into();
-            //println!("CASE 1\n{}", to_push);
-            conf.push_front(to_push);
+        fn fail() -> Self {
+            DPResult(NonZeroU32::new(Self::NO_SOLUTION).unwrap())
         }
 
-        for i in (pos_tape2 + 1..=tape2.len()).rev() {
-            let prefix: &[u8] = &tape2[pos_tape2..i];
+        fn symbol() -> Self {
+            DPResult(NonZeroU32::new(Self::SYMBOL).unwrap())
+        }
 
-            if pos_tape3 + prefix.len() >= tape3.len()
-                || pos_tape3 + 2 * prefix.len() >= tape3.len()
-            {
-                continue;
+        fn repeater(k: usize) -> Self {
+            let k: u32 = k.try_into().unwrap();
+            if k > Self::MAX_REPEATER {
+                panic!("Repeater too large");
             }
 
-            if &tape3[pos_tape3..pos_tape3 + prefix.len()] == prefix
-                && &tape3[pos_tape3 + prefix.len()..pos_tape3 + 2 * prefix.len()] == prefix
-            {
-                let mut proto_formula_tape = proto_formula_tape.clone();
-                proto_formula_tape.push(FormulaTapeAtoms::Repeater(Vec::from(prefix)));
-                let to_push: FormulaTapeSearchConfiguration = (
-                    pos_tape1,
-                    pos_tape2 + prefix.len(),
-                    pos_tape3 + 2 * prefix.len(),
-                    proto_formula_tape.clone(),
-                )
-                    .into();
-                //println!("CASE 2\n{}", to_push);
+            DPResult(NonZeroU32::new(k).unwrap())
+        }
 
-                conf.push_back(to_push);
+        fn end() -> Self {
+            DPResult(NonZeroU32::new(Self::END).unwrap())
+        }
+
+        fn decode(self) -> Option<Step> {
+            match self.0.get() {
+                Self::NO_SOLUTION => None,
+                Self::SYMBOL => Some(Step::Sym),
+                Self::END => Some(Step::End),
+                k => Some(Step::Repeat(k as usize)),
             }
         }
     }
 
-    for i in 0..n {}
+    let f = |(i0, d), memo: &Memo<DPResult, _, _>| -> DPResult {
+        let i1 = i0 + d;
+        let i2 = i0 + 2 * d;
 
-    None
+        // If i0 and i1 point to the end, then i2 also does
+        if i0 == tape0.len() && i1 == tape1.len() {
+            return DPResult::end();
+        }
+
+        if i0 < tape0.len()
+            && i1 < tape1.len()
+            && i2 < tape2.len()
+            && tape0[i0] == tape1[i1]
+            && tape1[i1] == tape2[i2]
+            && memo.get((i0 + 1, d)).ok()
+        {
+            return DPResult::symbol();
+        }
+
+        let remaining_s0: usize = tape0.len() - i0;
+        let remaining_s1 = tape1.len() - i1;
+        let longest_match = tape1
+            .iter()
+            .skip(i1)
+            .zip(tape2.iter().skip(i2))
+            .take(remaining_s1 - remaining_s0)
+            .take_while(|&(a, b)| a == b)
+            .count();
+        for k in (1..=longest_match).rev() {
+            if tape2[i2..i2 + k] == tape2[i2 + k..i2 + 2 * k] && memo.get((i0, d + k)).ok() {
+                return DPResult::repeater(k);
+            }
+        }
+
+        DPResult::fail()
+    };
+
+    let mut proto_formula_tape: Vec<FormulaTapeAtoms> = vec![];
+
+    let memo = Memo::new((tape0.len() + 1, tape1.len() - tape0.len() + 1), &f);
+    let mut i0 = 0;
+    let mut d = 0;
+
+    loop {
+        match memo.get((i0, d)).decode()? {
+            Step::Sym => {
+                proto_formula_tape.push(FormulaTapeAtoms::Symbol(tape0[i0]));
+                i0 += 1;
+            }
+            Step::Repeat(k) => {
+                proto_formula_tape.push(FormulaTapeAtoms::Repeater(
+                    tape1[i0 + d..i0 + d + k].to_vec(),
+                ));
+
+                d += k;
+            }
+            Step::End => {
+                return Some(proto_formula_tape_to_formula_tape(
+                    &machine_str,
+                    head,
+                    proto_formula_tape,
+                ))
+            }
+        }
+    }
 }
 
-fn guess_formula_tape_given_record_breaking_tapes(
+pub fn guess_formula_tape_given_record_breaking_tapes(
     record_breaking_tapes: &Vec<Tape>,
-) -> Option<FormulaTape> {
-    for tape in record_breaking_tapes.iter() {
-        //println!("{} {} {}", tape, tape.len(), tape.step_count);
-    }
+) -> Option<(FormulaTape, usize)> {
+    // for tape in record_breaking_tapes.iter() {
+    //     println!("{} {} {}", tape, tape.len(), tape.step_count);
+    // }
 
     if record_breaking_tapes.len() < 4 {
         return None;
@@ -315,13 +359,15 @@ fn guess_formula_tape_given_record_breaking_tapes(
             match record_breaking_tapes.binary_search_by_key(&step4, |tape| tape.step_count) {
                 Ok(tape4_index) => {
                     let tape4 = &record_breaking_tapes[tape4_index];
-                    if tape3.len() - tape4.len() != len_diff {
+                    if tape3.len() <= tape4.len() || tape3.len() - tape4.len() != len_diff {
                         continue;
                     }
 
                     match fit_formula_tape_from_triple(tape3.clone(), tape2.clone(), tape1.clone())
                     {
-                        Some(formula_tape) => return Some(formula_tape),
+                        Some(formula_tape) => {
+                            return Some((formula_tape, tape3.step_count as usize))
+                        }
                         None => continue,
                     }
                 }
@@ -334,44 +380,4 @@ fn guess_formula_tape_given_record_breaking_tapes(
     }
 
     None
-}
-
-pub fn guess_formula_tape(
-    machine_str: &str,
-    step_limit: usize,
-) -> Result<Option<FormulaTape>, TMError> {
-    let mut tape = Tape::new_initial(machine_str);
-
-    // Storing record breaking tapes per head
-    let mut record_breaking_tapes: HashMap<TapeHead, Vec<Tape>> = HashMap::new();
-
-    record_breaking_tapes.insert(tape.get_current_head()?, vec![tape.clone()]);
-
-    let mut max_tape_len = 0;
-
-    for _ in 0..step_limit {
-        tape.step()?;
-
-        if tape.get_current_read_pos()? == 0 || tape.get_current_read_pos()? == tape.len() - 1 {
-            max_tape_len = tape.len();
-            match record_breaking_tapes.get_mut(&tape.get_current_head()?) {
-                Some(tapes) => {
-                    tapes.push(tape.clone());
-                }
-                None => {
-                    record_breaking_tapes.insert(tape.get_current_head()?, vec![tape.clone()]);
-                }
-            }
-        }
-    }
-
-    for (head, tapes) in record_breaking_tapes.iter() {
-        //println!("HEAD {}", head);
-        if let Some(formula_tape) = guess_formula_tape_given_record_breaking_tapes(tapes) {
-            return Ok(Some(formula_tape));
-        }
-        //println!();
-    }
-
-    Ok(None)
 }
