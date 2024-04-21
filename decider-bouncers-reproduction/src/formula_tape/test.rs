@@ -122,3 +122,48 @@ fn decider_bouncer_83_795_500() {
     assert_eq!(cert.num_steps_until_formula_tape, 99);
     assert_eq!(cert.num_macro_steps_until_special_case, 37);
 }
+
+#[test]
+fn decider_bouncer_87_860_001() {
+    // This bouncer was the only machine that mei's implem decided within 10k that cosmo's didnt
+    use super::bouncers_decider::bouncers_decider;
+    let machine_str = "1RB1LE_1LC---_1LD0LC_0RA0RE_1RD0LB";
+    let cert = bouncers_decider(machine_str, 10000, 10000, 10)
+        .unwrap()
+        .unwrap();
+
+    println!("Formula tape: {}", cert.formula_tape);
+
+    assert_eq!(cert.num_steps_until_formula_tape, 222);
+    assert_eq!(cert.num_macro_steps_until_special_case, 74);
+}
+
+#[test]
+fn decider_bouncer_347_505() {
+    // This bouncer was the only machine that mei's implem decided within 10k that cosmo's didnt
+    use super::bouncers_decider::bouncers_decider;
+    let machine_str = "1RB---_0RC1RD_0LD1RC_1LE0RA_1RA0LE";
+    let cert = bouncers_decider(machine_str, 250000, 50000, 25)
+        .unwrap()
+        .unwrap();
+
+    println!("Formula tape: {}", cert.formula_tape);
+
+    assert_eq!(cert.num_steps_until_formula_tape, 124541);
+    assert_eq!(cert.num_macro_steps_until_special_case, 41628);
+}
+
+#[test]
+fn decider_bouncer_9_756_305() {
+    // This bouncer was the only machine that mei's implem decided within 250k that cosmo didnt with 250k steps, 50k macro steps and 100 formula tapes tested per head
+
+    use super::bouncers_decider::bouncers_decider;
+    let machine_str = "1RB1RD_1RC0LC_0LD0RB_0RE1LC_1RA---";
+    let cert = bouncers_decider(machine_str, 250000, 50000, 114)
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(cert.formula_tape.to_string(), "0∞0111010101(01)C>0∞");
+    assert_eq!(cert.num_steps_until_formula_tape, 206);
+    assert_eq!(cert.num_macro_steps_until_special_case, 45);
+}

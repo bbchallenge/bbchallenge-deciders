@@ -39,15 +39,16 @@ fn main() -> io::Result<()> {
         .map(|machine_std_format| {
             (
                 machine_std_format.clone(),
-                bouncers_decider(machine_std_format, 10000, 1000, 10),
+                bouncers_decider(machine_std_format, 250000, 50000, 114),
             )
         })
         .collect();
 
     let mut nb_solved = 0;
     for (machine, res) in results.iter_mut() {
-        if res.is_err() {
-            println!("Not solved:\n{}", machine);
+        if let Ok(Some(_)) = res {
+            println!("{}", machine);
+            nb_solved += 1;
         }
 
         let res = match res {
@@ -69,10 +70,6 @@ fn main() -> io::Result<()> {
                 }
             },
         };
-
-        if let Some(cert) = res {
-            nb_solved += 1;
-        }
     }
 
     println!("{}", nb_solved);

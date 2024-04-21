@@ -2,6 +2,7 @@ use super::*;
 use crate::directional_tm::*;
 use itertools::Itertools;
 
+use core::num;
 use std::collections::HashMap;
 
 // pub fn bouncers_decider(
@@ -87,7 +88,8 @@ pub fn bouncers_decider(
     for head in record_breaking_tapes.keys().sorted() {
         let tapes = record_breaking_tapes.get(head).unwrap();
         //println!("HEAD {}", head);
-        let res = solve_bouncer_given_record_breaking_tapes(tapes, macro_step_limit);
+        let res =
+            solve_bouncer_given_record_breaking_tapes(tapes, macro_step_limit, formula_tape_limit);
         if res.is_some() {
             return Ok(res);
         }
@@ -102,6 +104,7 @@ use std::collections::HashSet;
 pub fn solve_bouncer_given_record_breaking_tapes(
     record_breaking_tapes: &Vec<Tape>,
     macro_steps_limit: usize,
+    formula_tape_limit: usize,
 ) -> Option<BouncerCertificate> {
     // for tape in record_breaking_tapes.iter() {
     //     println!("{} {} {}", tape, tape.len(), tape.step_count);
@@ -112,8 +115,7 @@ pub fn solve_bouncer_given_record_breaking_tapes(
         return None;
     }
 
-    let mut tested_tape_length: HashSet<usize> = HashSet::new();
-
+    let mut num_formula_tested = 0;
     for (i, tape1) in record_breaking_tapes.iter().enumerate() {
         for (i, tape2) in record_breaking_tapes.iter().skip(i + 1).enumerate() {
             let len_diff = tape2.len() - tape1.len();
@@ -179,13 +181,22 @@ pub fn solve_bouncer_given_record_breaking_tapes(
                                 //println!("Already tested formula tape");
                                 continue;
                             }
-                            //("Testing formula tape {}", formula_tape);
+
+                            if num_formula_tested >= formula_tape_limit {
+                                return None;
+                            }
+
+                            //println!("Testing formula tape {}", formula_tape);
                             tested_formula_tapes.insert(formula_tape.clone());
                             let decider_res = formula_tape
                                 .prove_non_halt(macro_steps_limit, tape3.step_count as usize);
-                            if decider_res.is_ok() {
+
+                            num_formula_tested += 1;
+
+                            if let Ok(Some(_)) = decider_res {
                                 return decider_res.unwrap();
                             }
+                            //println!("Continue search");
                         }
                         None => continue,
                     }
