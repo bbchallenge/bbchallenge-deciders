@@ -1,6 +1,12 @@
 use super::*;
 
-use std::{collections::HashSet, vec};
+use std::{
+    collections::{HashMap, HashSet},
+    vec,
+};
+
+use ndarray::{Array, IntoDimension, NdIndex};
+use std::cell::Cell;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum FormulaTapeAtoms {
@@ -132,132 +138,151 @@ fn remove_head_and_infinite_0(tape: Tape) -> Vec<u8> {
         .collect::<Vec<u8>>();
 }
 
-use memo::Memo;
-use std::num::NonZeroU32;
-
-pub fn fit_formula_tape_from_triple(tape0: Tape, tape1: Tape, tape2: Tape) -> Option<FormulaTape> {
+pub fn fit_formula_tape_from_triple_second_implem(
+    tape0: Tape,
+    tape1: Tape,
+    tape2: Tape,
+) -> Option<FormulaTape> {
     let machine_str = tape0.machine_transition.machine_std_format.clone();
     let head = tape0.get_current_head().unwrap();
     let tape0 = remove_head_and_infinite_0(tape0);
     let tape1 = remove_head_and_infinite_0(tape1);
     let tape2 = remove_head_and_infinite_0(tape2);
 
-    //println!("Testing triplet");
-    //println!("{} {} {}", v2s(&tape0), v2s(&tape1), v2s(&tape2));
-
-    // Using implem from https://github.com/meithecatte/busycoq/blob/master/beaver/src/decider/bouncers.rs#L574
-    #[derive(Clone, Copy)]
-    struct DPResult(NonZeroU32);
-
-    enum Step {
+    #[derive(Debug, Clone, Eq, PartialEq, Hash, Copy)]
+    enum DPStep {
         Sym,
         Repeat(usize),
         End,
+        Fail,
     }
 
-    impl DPResult {
-        const NO_SOLUTION: u32 = u32::MAX;
-        const SYMBOL: u32 = u32::MAX - 1;
-        const END: u32 = u32::MAX - 2;
-        const MAX_REPEATER: u32 = u32::MAX - 3;
-
-        fn ok(self) -> bool {
-            self.0.get() != Self::NO_SOLUTION
-        }
-
-        fn fail() -> Self {
-            DPResult(NonZeroU32::new(Self::NO_SOLUTION).unwrap())
-        }
-
-        fn symbol() -> Self {
-            DPResult(NonZeroU32::new(Self::SYMBOL).unwrap())
-        }
-
-        fn repeater(k: usize) -> Self {
-            let k: u32 = k.try_into().unwrap();
-            if k > Self::MAX_REPEATER {
-                panic!("Repeater too large");
-            }
-
-            DPResult(NonZeroU32::new(k).unwrap())
-        }
-
-        fn end() -> Self {
-            DPResult(NonZeroU32::new(Self::END).unwrap())
-        }
-
-        fn decode(self) -> Option<Step> {
-            match self.0.get() {
-                Self::NO_SOLUTION => None,
-                Self::SYMBOL => Some(Step::Sym),
-                Self::END => Some(Step::End),
-                k => Some(Step::Repeat(k as usize)),
-            }
-        }
+    struct DPEnv {
+        tape0: Vec<u8>,
+        tape1: Vec<u8>,
+        tape2: Vec<u8>,
+        memo: HashMap<usize, HashMap<usize, DPStep>>,
     }
 
-    let f = |(i0, d), memo: &Memo<DPResult, _, _>| -> DPResult {
-        let i1 = i0 + d;
-        let i2 = i0 + 2 * d;
+    let mut env = DPEnv {
+        tape0,
+        tape1,
+        tape2,
+        memo: HashMap::new(),
+    };
 
-        // If i0 and i1 point to the end, then i2 also does
-        if i0 == tape0.len() && i1 == tape1.len() {
-            return DPResult::end();
+    fn rec_DP_algo(pos_tape_0: usize, total_repeater_size: usize, env: &mut DPEnv) -> DPStep {
+        //println!("ENTER {} {}", pos_tape_0, total_repeater_size);
+        if env.memo.get(&pos_tape_0).is_none() {
+            env.memo.insert(pos_tape_0, HashMap::new());
         }
 
-        if i0 < tape0.len()
-            && i1 < tape1.len()
-            && i2 < tape2.len()
-            && tape0[i0] == tape1[i1]
-            && tape1[i1] == tape2[i2]
-            && memo.get((i0 + 1, d)).ok()
+        if env
+            .memo
+            .get(&pos_tape_0)
+            .unwrap()
+            .get(&total_repeater_size)
+            .is_some()
         {
-            return DPResult::symbol();
+            return env.memo[&pos_tape_0][&total_repeater_size];
         }
 
-        let remaining_s0: usize = tape0.len() - i0;
-        let remaining_s1 = tape1.len() - i1;
-        let longest_match = tape1
+        let i1 = pos_tape_0 + total_repeater_size;
+        let i2 = pos_tape_0 + 2 * total_repeater_size;
+
+        if pos_tape_0 == env.tape0.len() && i1 == env.tape1.len() {
+            //println!("END {} {}", pos_tape_0, total_repeater_size);
+            return DPStep::End;
+        }
+
+        if pos_tape_0 < env.tape0.len()
+            && i1 < env.tape1.len()
+            && i2 < env.tape2.len()
+            && env.tape0[pos_tape_0] == env.tape1[i1]
+            && env.tape1[i1] == env.tape2[i2]
+        {
+            //println!("TEST SYM {} {}", pos_tape_0, total_repeater_size);
+            let res = rec_DP_algo(pos_tape_0 + 1, total_repeater_size, env);
+            //println!("TEST SYM RESULT {:?}", res);
+            if res == DPStep::Fail {
+                env.memo
+                    .get_mut(&pos_tape_0)
+                    .unwrap()
+                    .insert(total_repeater_size, DPStep::Fail);
+
+                //println!("FAIL1 {} {}", pos_tape_0, total_repeater_size);
+                return DPStep::Fail;
+            }
+            env.memo
+                .get_mut(&pos_tape_0)
+                .unwrap()
+                .insert(total_repeater_size, DPStep::Sym);
+            //println!("SYM {} {}", pos_tape_0, total_repeater_size);
+            return DPStep::Sym;
+        }
+
+        let remaining_s0: usize = env.tape0.len() - pos_tape_0;
+        let remaining_s1 = env.tape1.len() - i1;
+        let longest_match = env
+            .tape1
             .iter()
             .skip(i1)
-            .zip(tape2.iter().skip(i2))
+            .zip(env.tape2.iter().skip(i2))
             .take(remaining_s1 - remaining_s0)
             .take_while(|&(a, b)| a == b)
             .count();
         for k in (1..=longest_match).rev() {
-            if tape2[i2..i2 + k] == tape2[i2 + k..i2 + 2 * k] && memo.get((i0, d + k)).ok() {
-                return DPResult::repeater(k);
+            if env.tape2[i2..i2 + k] == env.tape2[i2 + k..i2 + 2 * k] {
+                let res = rec_DP_algo(pos_tape_0, total_repeater_size + k, env);
+                if res == DPStep::Fail {
+                    env.memo
+                        .get_mut(&pos_tape_0)
+                        .unwrap()
+                        .insert(total_repeater_size, DPStep::Fail);
+                    //println!("FAIL2 {} {}", pos_tape_0, total_repeater_size);
+                    return DPStep::Fail;
+                }
+                env.memo
+                    .get_mut(&pos_tape_0)
+                    .unwrap()
+                    .insert(total_repeater_size, DPStep::Repeat(k));
+                //println!("REPEAT {} {}", pos_tape_0, total_repeater_size);
+                return DPStep::Repeat(k);
             }
         }
 
-        DPResult::fail()
-    };
+        //println!("FAIL3 {} {}", pos_tape_0, total_repeater_size);
+        DPStep::Fail
+    }
 
     let mut proto_formula_tape: Vec<FormulaTapeAtoms> = vec![];
-
-    let memo = Memo::new((tape0.len() + 1, tape1.len() - tape0.len() + 1), &f);
-    let mut i0 = 0;
-    let mut d = 0;
+    let mut pos_tape_0 = 0;
+    let mut total_repeater_size = 0;
 
     loop {
-        match memo.get((i0, d)).decode()? {
-            Step::Sym => {
-                proto_formula_tape.push(FormulaTapeAtoms::Symbol(tape0[i0]));
-                i0 += 1;
+        match rec_DP_algo(pos_tape_0, total_repeater_size, &mut env) {
+            DPStep::Sym => {
+                proto_formula_tape.push(FormulaTapeAtoms::Symbol(env.tape0[pos_tape_0]));
+                pos_tape_0 += 1;
             }
-            Step::Repeat(k) => {
+            DPStep::Repeat(k) => {
                 proto_formula_tape.push(FormulaTapeAtoms::Repeater(
-                    tape1[i0 + d..i0 + d + k].to_vec(),
+                    env.tape1
+                        [pos_tape_0 + total_repeater_size..pos_tape_0 + total_repeater_size + k]
+                        .to_vec(),
                 ));
 
-                d += k;
+                total_repeater_size += k;
             }
-            Step::End => {
+            DPStep::End => {
                 return Some(proto_formula_tape_to_formula_tape(
                     &machine_str,
                     head,
                     proto_formula_tape,
                 ))
+            }
+            DPStep::Fail => {
+                return None;
             }
         }
     }
