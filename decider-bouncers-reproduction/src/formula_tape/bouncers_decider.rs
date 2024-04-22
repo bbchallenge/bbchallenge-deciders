@@ -50,7 +50,7 @@ pub fn bouncers_decider(
 }
 
 use super::formula_tape_guessing::{
-    fit_formula_tape_from_triple_mei, fit_formula_tape_from_triple_second_implem,
+    fit_formula_tape_from_triple_mei, fit_formula_tape_from_triple_recursive_implem,
 };
 use std::collections::HashSet;
 
@@ -94,7 +94,7 @@ pub fn solve_bouncer_given_record_breaking_tapes(
                         continue;
                     }
 
-                    match fit_formula_tape_from_triple_mei(
+                    match fit_formula_tape_from_triple_recursive_implem(
                         tape1.clone(),
                         tape2.clone(),
                         tape3.clone(),

@@ -273,7 +273,7 @@ pub fn fit_formula_tape_from_triple_mei(
     }
 }
 
-pub fn fit_formula_tape_from_triple_second_implem(
+pub fn fit_formula_tape_from_triple_recursive_implem(
     tape0: Tape,
     tape1: Tape,
     tape2: Tape,
@@ -296,7 +296,7 @@ pub fn fit_formula_tape_from_triple_second_implem(
         tape0: Vec<u8>,
         tape1: Vec<u8>,
         tape2: Vec<u8>,
-        memo: HashMap<usize, HashMap<usize, DPStep>>,
+        memo: HashMap<(usize, usize), DPStep>,
     }
 
     let mut env = DPEnv {
@@ -311,18 +311,9 @@ pub fn fit_formula_tape_from_triple_second_implem(
     // And: https://discord.com/channels/960643023006490684/1028745661459472484/1167757825875914782
     fn rec_DP_algo(pos_tape_0: usize, total_repeater_size: usize, env: &mut DPEnv) -> DPStep {
         //println!("ENTER {} {}", pos_tape_0, total_repeater_size);
-        if env.memo.get(&pos_tape_0).is_none() {
-            env.memo.insert(pos_tape_0, HashMap::new());
-        }
 
-        if env
-            .memo
-            .get(&pos_tape_0)
-            .unwrap()
-            .get(&total_repeater_size)
-            .is_some()
-        {
-            return env.memo[&pos_tape_0][&total_repeater_size];
+        if env.memo.get(&(pos_tape_0, total_repeater_size)).is_some() {
+            return env.memo[&(pos_tape_0, total_repeater_size)];
         }
 
         let i1 = pos_tape_0 + total_repeater_size;
@@ -344,17 +335,13 @@ pub fn fit_formula_tape_from_triple_second_implem(
             //println!("TEST SYM RESULT {:?}", res);
             if res == DPStep::Fail {
                 env.memo
-                    .get_mut(&pos_tape_0)
-                    .unwrap()
-                    .insert(total_repeater_size, DPStep::Fail);
+                    .insert((pos_tape_0, total_repeater_size), DPStep::Fail);
 
                 //println!("FAIL1 {} {}", pos_tape_0, total_repeater_size);
                 return DPStep::Fail;
             }
             env.memo
-                .get_mut(&pos_tape_0)
-                .unwrap()
-                .insert(total_repeater_size, DPStep::Sym);
+                .insert((pos_tape_0, total_repeater_size), DPStep::Sym);
             //println!("SYM {} {}", pos_tape_0, total_repeater_size);
             return DPStep::Sym;
         }
@@ -374,16 +361,12 @@ pub fn fit_formula_tape_from_triple_second_implem(
                 let res = rec_DP_algo(pos_tape_0, total_repeater_size + k, env);
                 if res == DPStep::Fail {
                     env.memo
-                        .get_mut(&pos_tape_0)
-                        .unwrap()
-                        .insert(total_repeater_size, DPStep::Fail);
+                        .insert((pos_tape_0, total_repeater_size), DPStep::Fail);
                     //println!("FAIL2 {} {}", pos_tape_0, total_repeater_size);
                     return DPStep::Fail;
                 }
                 env.memo
-                    .get_mut(&pos_tape_0)
-                    .unwrap()
-                    .insert(total_repeater_size, DPStep::Repeat(k));
+                    .insert((pos_tape_0, total_repeater_size), DPStep::Repeat(k));
                 //println!("REPEAT {} {}", pos_tape_0, total_repeater_size);
                 return DPStep::Repeat(k);
             }
