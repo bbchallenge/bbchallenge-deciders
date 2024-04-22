@@ -8,6 +8,7 @@ pub mod bouncer_certificate;
 
 pub mod bouncers_decider;
 mod formula_tape_guessing;
+mod memo;
 mod parsing;
 mod shift_rule_detection;
 mod special_case;
