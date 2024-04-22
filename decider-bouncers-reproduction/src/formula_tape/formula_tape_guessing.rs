@@ -333,17 +333,12 @@ pub fn fit_formula_tape_from_triple_recursive_implem(
             //println!("TEST SYM {} {}", pos_tape_0, total_repeater_size);
             let res = rec_DP_algo(pos_tape_0 + 1, total_repeater_size, env);
             //println!("TEST SYM RESULT {:?}", res);
-            if res == DPStep::Fail {
+            if res != DPStep::Fail {
                 env.memo
-                    .insert((pos_tape_0, total_repeater_size), DPStep::Fail);
-
-                //println!("FAIL1 {} {}", pos_tape_0, total_repeater_size);
-                return DPStep::Fail;
+                    .insert((pos_tape_0, total_repeater_size), DPStep::Sym);
+                //println!("SYM {} {}", pos_tape_0, total_repeater_size);
+                return DPStep::Sym;
             }
-            env.memo
-                .insert((pos_tape_0, total_repeater_size), DPStep::Sym);
-            //println!("SYM {} {}", pos_tape_0, total_repeater_size);
-            return DPStep::Sym;
         }
 
         let remaining_s0: usize = env.tape0.len() - pos_tape_0;
@@ -359,20 +354,18 @@ pub fn fit_formula_tape_from_triple_recursive_implem(
         for k in (1..=longest_match).rev() {
             if env.tape2[i2..i2 + k] == env.tape2[i2 + k..i2 + 2 * k] {
                 let res = rec_DP_algo(pos_tape_0, total_repeater_size + k, env);
-                if res == DPStep::Fail {
+                if res != DPStep::Fail {
                     env.memo
-                        .insert((pos_tape_0, total_repeater_size), DPStep::Fail);
-                    //println!("FAIL2 {} {}", pos_tape_0, total_repeater_size);
-                    return DPStep::Fail;
+                        .insert((pos_tape_0, total_repeater_size), DPStep::Repeat(k));
+
+                    return DPStep::Repeat(k);
                 }
-                env.memo
-                    .insert((pos_tape_0, total_repeater_size), DPStep::Repeat(k));
-                //println!("REPEAT {} {}", pos_tape_0, total_repeater_size);
-                return DPStep::Repeat(k);
             }
         }
 
         //println!("FAIL3 {} {}", pos_tape_0, total_repeater_size);
+        env.memo
+            .insert((pos_tape_0, total_repeater_size), DPStep::Fail);
         DPStep::Fail
     }
 

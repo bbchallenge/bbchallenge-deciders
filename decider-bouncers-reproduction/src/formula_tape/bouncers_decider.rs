@@ -94,11 +94,19 @@ pub fn solve_bouncer_given_record_breaking_tapes(
                         continue;
                     }
 
-                    match fit_formula_tape_from_triple_recursive_implem(
+                    let res_recursive = fit_formula_tape_from_triple_recursive_implem(
                         tape1.clone(),
                         tape2.clone(),
                         tape3.clone(),
-                    ) {
+                    );
+                    let res_mei = fit_formula_tape_from_triple_mei(
+                        tape1.clone(),
+                        tape2.clone(),
+                        tape3.clone(),
+                    );
+                    assert_eq!(res_recursive, res_mei);
+
+                    match res_recursive {
                         Some(mut formula_tape) => {
                             if num_formula_tested >= formula_tape_limit {
                                 return None;
