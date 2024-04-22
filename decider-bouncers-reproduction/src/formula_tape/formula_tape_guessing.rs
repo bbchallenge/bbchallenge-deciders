@@ -171,6 +171,9 @@ pub fn fit_formula_tape_from_triple_second_implem(
         memo: HashMap::new(),
     };
 
+    // Implements savask's Dynamic Programming algorithm to guess the formula tape from 3 tapes.
+    // See: https://gist.github.com/savask/888aa5e058559c972413790c29d7ad72
+    // And: https://discord.com/channels/960643023006490684/1028745661459472484/1167757825875914782
     fn rec_DP_algo(pos_tape_0: usize, total_repeater_size: usize, env: &mut DPEnv) -> DPStep {
         //println!("ENTER {} {}", pos_tape_0, total_repeater_size);
         if env.memo.get(&pos_tape_0).is_none() {
