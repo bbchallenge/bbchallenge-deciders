@@ -46,8 +46,8 @@ fn main() -> io::Result<()> {
 
     let mut nb_solved = 0;
     for (machine, res) in results.iter_mut() {
-        if let Ok(Some(_)) = res {
-            println!("{}", machine);
+        if let Ok(Some(cert)) = res {
+            println!("{}", cert.formula_tape);
             nb_solved += 1;
         }
 
@@ -72,7 +72,7 @@ fn main() -> io::Result<()> {
         };
     }
 
-    println!("{}", nb_solved);
+    //println!("{}", nb_solved);
 
     Ok(())
 }

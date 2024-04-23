@@ -2,7 +2,7 @@ use super::*;
 use crate::directional_tm::*;
 use itertools::Itertools;
 
-use std::cell::Cell;
+use std::{cell::Cell, process::exit};
 
 use core::num;
 use std::collections::HashMap;
@@ -50,7 +50,9 @@ pub fn bouncers_decider(
 }
 
 use super::formula_tape_guessing::{
-    fit_formula_tape_from_triple_mei, fit_formula_tape_from_triple_recursive_implem,
+    fit_formula_tape_from_triple_greedy_iterative_implem,
+    fit_formula_tape_from_triple_greedy_recursive_implem, fit_formula_tape_from_triple_mei,
+    fit_formula_tape_from_triple_recursive_implem,
 };
 use std::collections::HashSet;
 
@@ -68,6 +70,7 @@ pub fn solve_bouncer_given_record_breaking_tapes(
     }
 
     let mut num_formula_tested = 0;
+    let mut flag = false;
     for (i, tape1) in record_breaking_tapes.iter().enumerate() {
         for tape2 in record_breaking_tapes.iter().skip(i + 1) {
             let len_diff = tape2.len() - tape1.len();
@@ -94,25 +97,26 @@ pub fn solve_bouncer_given_record_breaking_tapes(
                         continue;
                     }
 
-                    let res_recursive = fit_formula_tape_from_triple_recursive_implem(
+                    let res_greedy_iterative = fit_formula_tape_from_triple_recursive_implem(
                         tape1.clone(),
                         tape2.clone(),
                         tape3.clone(),
                     );
-                    let res_mei = fit_formula_tape_from_triple_mei(
-                        tape1.clone(),
-                        tape2.clone(),
-                        tape3.clone(),
-                    );
-                    assert_eq!(res_recursive, res_mei);
 
-                    match res_recursive {
+                    // let res_mei = fit_formula_tape_from_triple_mei(
+                    //     tape1.clone(),
+                    //     tape2.clone(),
+                    //     tape3.clone(),
+                    // );
+
+                    match res_greedy_iterative {
                         Some(mut formula_tape) => {
                             if num_formula_tested >= formula_tape_limit {
                                 return None;
                             }
 
-                            //println!("Testing formula tape {}", formula_tape);
+                            //println!("{}\n{}\n{}\n{}\n", tape1, tape2, tape3, formula_tape);
+
                             let decider_res = formula_tape
                                 .prove_non_halt(macro_steps_limit, tape3.step_count as usize);
 

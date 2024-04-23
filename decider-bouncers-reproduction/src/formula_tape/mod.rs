@@ -7,7 +7,7 @@ mod alignment;
 pub mod bouncer_certificate;
 
 pub mod bouncers_decider;
-mod formula_tape_guessing;
+pub mod formula_tape_guessing;
 mod memo;
 mod parsing;
 mod shift_rule_detection;
