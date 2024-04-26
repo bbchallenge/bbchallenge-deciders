@@ -6,13 +6,13 @@ use super::*;
 fn no_guessing_prove_bouncer_43_477_769() {
     let machine_str = "1RB0RD_1LC1LE_1RA1LB_---0RC_1LB0LE";
     let formula_tape_str =
-        "0∞<E000011110(11110111101111011110)000(1111011110)000(11110)000(11110)011111110∞";
+        "0∞<B100001111011110111101111011110(11110111101111011110)0001111011110(1111011110)00011110(11110)00011110(11110)011111110∞";
     let mut formula_tape = FormulaTape::from_str(formula_tape_str).unwrap();
     formula_tape.set_machine_str(machine_str);
     assert_eq!(format!("{formula_tape}"), formula_tape_str);
 
     let cert = formula_tape.prove_non_halt(200_000, 0).unwrap().unwrap();
-    assert_eq!(cert.num_macro_steps_until_special_case, 1118);
+    assert_eq!(cert.num_macro_steps_until_special_case, 1892);
 }
 
 #[test]
@@ -45,7 +45,7 @@ fn no_guessing_prove_bouncer_6_416_853() {
 fn decide_bouncer_43_477_769() {
     use super::bouncers_decider::bouncers_decider;
     let machine_str = "1RB0RD_1LC1LE_1RA1LB_---0RC_1LB0LE";
-    let cert: BouncerCertificate = bouncers_decider(machine_str, 6000, 2000, 10)
+    let cert: BouncerCertificate = bouncers_decider(machine_str, 6000, 2000, 10, false)
         .unwrap()
         .unwrap();
     assert_eq!(
@@ -60,7 +60,7 @@ fn decide_bouncer_43_477_769() {
 fn decide_bouncer_88_427_177() {
     use super::bouncers_decider::bouncers_decider;
     let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
-    let cert: BouncerCertificate = bouncers_decider(machine_str, 200, 2000, 10)
+    let cert: BouncerCertificate = bouncers_decider(machine_str, 200, 2000, 10, false)
         .unwrap()
         .unwrap();
     assert_eq!(
@@ -75,7 +75,7 @@ fn decide_bouncer_88_427_177() {
 fn decide_bouncer_6_416_853() {
     use super::bouncers_decider::bouncers_decider;
     let machine_str = "1RB0LC_0LA1RC_0LD0LE_1LA1RA_---1LC";
-    let cert = bouncers_decider(machine_str, 1000, 2000, 10)
+    let cert = bouncers_decider(machine_str, 1000, 2000, 10, false)
         .unwrap()
         .unwrap();
 
@@ -88,7 +88,7 @@ fn decide_bouncer_6_416_853() {
 fn decider_bouncer_892_918() {
     use super::bouncers_decider::bouncers_decider;
     let machine_str = "1RB---_0LC0RB_1RA1LD_1LE1LD_1LB1LC";
-    let cert = bouncers_decider(machine_str, 10000, 10000, 10)
+    let cert = bouncers_decider(machine_str, 10000, 10000, 10, false)
         .unwrap()
         .unwrap();
 
@@ -104,7 +104,7 @@ fn decider_bouncer_892_918() {
 fn decider_bouncer_13_138_739() {
     use super::bouncers_decider::bouncers_decider;
     let machine_str = "1RB1LD_1RC0RC_1RD1RA_1LE1LA_---0LA";
-    let cert = bouncers_decider(machine_str, 10000, 10000, 10)
+    let cert = bouncers_decider(machine_str, 10000, 10000, 10, false)
         .unwrap()
         .unwrap();
 
@@ -122,7 +122,7 @@ fn decider_bouncer_83_795_500() {
     // 0∞110011001100A>(11000100)01000100010∞
     use super::bouncers_decider::bouncers_decider;
     let machine_str = "1RB1LD_1RC1RE_1LA0LC_0RA0LA_0RD---";
-    let cert = bouncers_decider(machine_str, 200, 50000, 10)
+    let cert = bouncers_decider(machine_str, 200, 50000, 10, false)
         .unwrap()
         .unwrap();
 
@@ -136,7 +136,7 @@ fn decider_bouncer_87_860_001() {
     // This bouncer was the only machine that mei's implem decided within 10k that cosmo's didnt
     use super::bouncers_decider::bouncers_decider;
     let machine_str = "1RB1LE_1LC---_1LD0LC_0RA0RE_1RD0LB";
-    let cert = bouncers_decider(machine_str, 10000, 10000, 10)
+    let cert = bouncers_decider(machine_str, 10000, 10000, 10, false)
         .unwrap()
         .unwrap();
 
@@ -153,7 +153,7 @@ fn decider_bouncer_347_505() {
     // This bouncer was the only machine that mei's implem decided within 10k that cosmo's didnt
     use super::bouncers_decider::bouncers_decider;
     let machine_str = "1RB---_0RC1RD_0LD1RC_1LE0RA_1RA0LE";
-    let cert = bouncers_decider(machine_str, 250000, 50000, 25)
+    let cert = bouncers_decider(machine_str, 250000, 50000, 25, false)
         .unwrap()
         .unwrap();
 
@@ -172,7 +172,7 @@ fn decider_bouncer_9_756_305() {
 
     use super::bouncers_decider::bouncers_decider;
     let machine_str = "1RB1RD_1RC0LC_0LD0RB_0RE1LC_1RA---";
-    let cert = bouncers_decider(machine_str, 250000, 50000, 114)
+    let cert = bouncers_decider(machine_str, 250000, 50000, 114, false)
         .unwrap()
         .unwrap();
 

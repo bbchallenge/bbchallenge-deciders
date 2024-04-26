@@ -12,6 +12,7 @@ pub fn bouncers_decider(
     step_limit: usize,
     macro_step_limit: usize,
     formula_tape_limit: usize,
+    smaller_certs: bool,
 ) -> Result<Option<BouncerCertificate>, FormulaTapeError> {
     let mut tape = Tape::new_initial(machine_str);
 
@@ -39,8 +40,12 @@ pub fn bouncers_decider(
     for head in record_breaking_tapes.keys().sorted() {
         let tapes = record_breaking_tapes.get(head).unwrap();
         //println!("HEAD {}", head);
-        let res =
-            solve_bouncer_given_record_breaking_tapes(tapes, macro_step_limit, formula_tape_limit);
+        let res = solve_bouncer_given_record_breaking_tapes(
+            tapes,
+            macro_step_limit,
+            formula_tape_limit,
+            smaller_certs,
+        );
         if res.is_some() {
             return Ok(res);
         }
@@ -51,10 +56,8 @@ pub fn bouncers_decider(
 
 use super::formula_tape_guessing::{
     fit_formula_tape_from_triple_greedy_iterative_implem,
-    fit_formula_tape_from_triple_greedy_recursive_implem, fit_formula_tape_from_triple_mei,
     fit_formula_tape_from_triple_recursive_implem,
 };
-use std::collections::HashSet;
 
 fn is_quadratic(a: i32, b: i32, c: i32, d: i32) -> bool {
     let diff_ba = b - a;
@@ -68,6 +71,7 @@ pub fn solve_bouncer_given_record_breaking_tapes(
     record_breaking_tapes: &Vec<Tape>,
     macro_steps_limit: usize,
     formula_tape_limit: usize,
+    smaller_certs: bool,
 ) -> Option<BouncerCertificate> {
     // for tape in record_breaking_tapes.iter() {
     //     println!("{} {} {}", tape, tape.len(), tape.step_count);
@@ -125,13 +129,21 @@ pub fn solve_bouncer_given_record_breaking_tapes(
                 continue;
             }
 
-            let res_greedy_iterative = fit_formula_tape_from_triple_greedy_iterative_implem(
-                tape2.clone(),
-                tape3.clone(),
-                tape4.clone(),
-            );
+            let res = if smaller_certs {
+                fit_formula_tape_from_triple_recursive_implem(
+                    tape2.clone(),
+                    tape3.clone(),
+                    tape4.clone(),
+                )
+            } else {
+                fit_formula_tape_from_triple_greedy_iterative_implem(
+                    tape2.clone(),
+                    tape3.clone(),
+                    tape4.clone(),
+                )
+            };
 
-            match res_greedy_iterative {
+            match res {
                 Some(mut formula_tape) => {
                     //println!("{}\n{}\n{}\n{}\n", tape1, tape2, tape3, formula_tape);
 
