@@ -44,13 +44,17 @@ fn main() -> io::Result<()> {
         })
         .collect();
 
-    let mut nb_solved = 0;
+    println!(
+        "machine; formula tape; number steps before formula tape; number macro steps before special case");
     for (machine, res) in results.iter_mut() {
         if let Ok(Some(cert)) = res {
-            //println!("{}", cert.formula_tape);
-            nb_solved += 1;
-        } else {
-            println!("{}", machine);
+            println!(
+                "{}; {}; {}; {}",
+                machine,
+                cert.formula_tape,
+                cert.num_steps_until_formula_tape,
+                cert.num_macro_steps_until_special_case
+            );
         }
 
         let res = match res {
@@ -73,8 +77,6 @@ fn main() -> io::Result<()> {
             },
         };
     }
-
-    println!("{}", nb_solved);
 
     Ok(())
 }
