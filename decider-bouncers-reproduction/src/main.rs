@@ -39,7 +39,7 @@ fn main() -> io::Result<()> {
         .map(|machine_std_format| {
             (
                 machine_std_format.clone(),
-                bouncers_decider(machine_std_format, 250000, 50000, 114, false),
+                bouncers_decider(machine_std_format, 250000, 50000, 10),
             )
         })
         .collect();
