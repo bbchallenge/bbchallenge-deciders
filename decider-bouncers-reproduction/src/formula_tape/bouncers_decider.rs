@@ -56,6 +56,14 @@ use super::formula_tape_guessing::{
 };
 use std::collections::HashSet;
 
+fn is_quadratic(a: i32, b: i32, c: i32, d: i32) -> bool {
+    let diff_ba = b - a;
+    let diff_cb = c - b;
+    let diff_dc = d - c;
+    let diff2 = diff_cb - diff_ba;
+    diff2 == (diff_dc - diff_cb)
+}
+
 pub fn solve_bouncer_given_record_breaking_tapes(
     record_breaking_tapes: &Vec<Tape>,
     macro_steps_limit: usize,
@@ -70,69 +78,79 @@ pub fn solve_bouncer_given_record_breaking_tapes(
     }
 
     let mut num_formula_tested = 0;
-    let mut flag = false;
-    for (i, tape1) in record_breaking_tapes.iter().enumerate() {
-        for tape2 in record_breaking_tapes.iter().skip(i + 1) {
-            let len_diff = tape2.len() - tape1.len();
 
-            let len3 = tape2.len() + len_diff;
+    for (i, tape4) in record_breaking_tapes.iter().enumerate() {
+        if i < 3 {
+            continue;
+        }
+        for (j, tape3) in record_breaking_tapes.iter().take(i).enumerate() {
+            if j < 2 {
+                continue;
+            }
+            let len_diff = tape4.len() - tape3.len();
 
-            let tape3: &Tape =
-                match record_breaking_tapes.binary_search_by_key(&len3, |tape| tape.len()) {
+            let tape2_len = tape3.len().checked_sub(len_diff);
+
+            if tape2_len.is_none() {
+                continue;
+            }
+            let tape2_len = tape2_len.unwrap();
+
+            let tape2: &Tape =
+                match record_breaking_tapes.binary_search_by_key(&tape2_len, |tape| tape.len()) {
+                    Ok(index) => &record_breaking_tapes[index],
+                    Err(_) => continue,
+                };
+
+            let tape1_len = tape2.len().checked_sub(len_diff);
+
+            if tape1_len.is_none() {
+                continue;
+            }
+            let tape1_len = tape1_len.unwrap();
+
+            let tape1: &Tape =
+                match record_breaking_tapes.binary_search_by_key(&tape1_len, |tape| tape.len()) {
                     Ok(index) => &record_breaking_tapes[index],
                     Err(_) => continue,
                 };
 
             // Testing quadratic sequence
-            let diff_s2_s1 = tape2.step_count - tape1.step_count;
-            let diff_s3_s2 = tape3.step_count - tape2.step_count;
-            let step_diff2 = diff_s3_s2 - diff_s2_s1;
+            if (!is_quadratic(
+                tape1.step_count,
+                tape2.step_count,
+                tape3.step_count,
+                tape4.step_count,
+            )) {
+                continue;
+            }
 
-            let step4 = tape3.step_count + (diff_s3_s2 + step_diff2);
+            let res_greedy_iterative = fit_formula_tape_from_triple_greedy_iterative_implem(
+                tape2.clone(),
+                tape3.clone(),
+                tape4.clone(),
+            );
 
-            match record_breaking_tapes.binary_search_by_key(&step4, |tape| tape.step_count) {
-                Ok(tape4_index) => {
-                    let tape4 = &record_breaking_tapes[tape4_index];
-                    if tape3.len() > tape4.len() || tape4.len() - tape3.len() != len_diff {
-                        continue;
+            match res_greedy_iterative {
+                Some(mut formula_tape) => {
+                    //println!("{}\n{}\n{}\n{}\n", tape1, tape2, tape3, formula_tape);
+
+                    let decider_res =
+                        formula_tape.prove_non_halt(macro_steps_limit, tape3.step_count as usize);
+
+                    if let Ok(Some(_)) = decider_res {
+                        return decider_res.unwrap();
                     }
 
-                    let res_greedy_iterative = fit_formula_tape_from_triple_recursive_implem(
-                        tape1.clone(),
-                        tape2.clone(),
-                        tape3.clone(),
-                    );
+                    num_formula_tested += 1;
 
-                    // let res_mei = fit_formula_tape_from_triple_mei(
-                    //     tape1.clone(),
-                    //     tape2.clone(),
-                    //     tape3.clone(),
-                    // );
-
-                    match res_greedy_iterative {
-                        Some(mut formula_tape) => {
-                            if num_formula_tested >= formula_tape_limit {
-                                return None;
-                            }
-
-                            //println!("{}\n{}\n{}\n{}\n", tape1, tape2, tape3, formula_tape);
-
-                            let decider_res = formula_tape
-                                .prove_non_halt(macro_steps_limit, tape3.step_count as usize);
-
-                            num_formula_tested += 1;
-
-                            if let Ok(Some(_)) = decider_res {
-                                return decider_res.unwrap();
-                            }
-                            //println!("Continue search");
-                        }
-                        None => continue,
+                    if num_formula_tested == formula_tape_limit {
+                        return None;
                     }
+
+                    //println!("Continue search");
                 }
-                Err(_) => {
-                    continue;
-                }
+                None => continue,
             }
         }
         //tested_tape_length.insert(len1);

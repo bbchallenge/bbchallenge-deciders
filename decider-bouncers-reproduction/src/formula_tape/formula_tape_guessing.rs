@@ -406,10 +406,11 @@ pub fn fit_formula_tape_from_triple_recursive_implem(
 /// ```
 /// use decider_bouncers_reproduction::formula_tape::formula_tape_guessing::fit_formula_tape_from_triple_greedy_iterative_implem;
 /// use decider_bouncers_reproduction::directional_tm::Tape;
-/// let tape0:Tape = "0∞A>0∞".parse().unwrap();
-/// let tape1:Tape = "0∞1010A>0∞".parse().unwrap();
-/// let tape2:Tape = "0∞10101010A>0∞".parse().unwrap();
+/// let tape0:Tape = "0∞10110A>0∞".parse().unwrap();
+/// let tape1:Tape = "0∞10110101110A>0∞".parse().unwrap();
+/// let tape2:Tape = "0∞10110101101011110A>0∞".parse().unwrap();
 /// let res = fit_formula_tape_from_triple_greedy_iterative_implem(tape0, tape1, tape2);
+/// println!("{:?}", res);
 /// assert!(res.is_none());
 /// ```
 pub fn fit_formula_tape_from_triple_greedy_iterative_implem(
