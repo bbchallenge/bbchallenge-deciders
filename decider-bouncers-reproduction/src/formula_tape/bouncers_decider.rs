@@ -124,9 +124,9 @@ pub fn solve_bouncer_given_record_breaking_tapes(
             }
 
             let res = fit_formula_tape_from_triple_greedy_iterative_implem(
+                tape1.clone(),
                 tape2.clone(),
                 tape3.clone(),
-                tape4.clone(),
             );
 
             match res {
