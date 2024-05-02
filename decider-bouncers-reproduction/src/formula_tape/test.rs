@@ -177,3 +177,42 @@ fn decider_bouncer_9_756_305() {
     assert_eq!(cert.num_steps_until_formula_tape, 206);
     assert_eq!(cert.num_macro_steps_until_special_case, 45);
 }
+
+#[test]
+fn bouncer_88_427_177_trace_for_example() {
+    // This bouncer was the only machine that mei's implem decided within 250k that cosmo didnt with 250k steps, 50k macro steps and 100 formula tapes tested per head
+
+    use super::bouncers_decider::bouncers_decider;
+    use super::directional_tm::Tape;
+    let machine_str = "1RB1LE_1LC1RD_1LB1RC_1LA0RD_---0LA";
+    let mut tape = Tape::new_initial(&machine_str);
+
+    let mut formula_tape: FormulaTape = "0∞(111)1111110(11)1100D>0∞".parse().unwrap();
+    formula_tape.set_machine_str(&machine_str);
+    let mut Ms = 0;
+    for i in 1..=47 {
+        formula_tape.align();
+        let res = formula_tape.step();
+        if res.unwrap().is_some() {
+            Ms += 1;
+        }
+    }
+    println!("{}", Ms);
+    println!("{}", formula_tape);
+
+    fn g(i: i32) -> i32 {
+        return 3 * i * i + 42 * i + 64;
+    }
+
+    let mut k = 0;
+    for i in (0..500) {
+        let c = if i == g(k) { "*" } else { "" };
+        if i == g(k) {
+            k += 1;
+        }
+        println!("{c} {i} {tape}");
+        tape.step();
+    }
+
+    assert!(true);
+}

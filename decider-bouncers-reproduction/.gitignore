@@ -12,3 +12,5 @@ Cargo.lock
 
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
+add_machine_IDs.py
+bouncers-run-225d25f379a-steps-250000-macro-steps-50000-formula-limit-20

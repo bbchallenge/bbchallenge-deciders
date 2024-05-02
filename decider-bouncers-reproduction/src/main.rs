@@ -45,7 +45,8 @@ fn main() -> io::Result<()> {
         .collect();
 
     println!(
-        "machine; formula tape; number steps before formula tape; number macro steps before special case");
+        "machine; formula_tape; num_steps_until_formula_tape; num_macro_steps_until_special_case"
+    );
     for (machine, res) in results.iter_mut() {
         if let Ok(Some(cert)) = res {
             println!(
