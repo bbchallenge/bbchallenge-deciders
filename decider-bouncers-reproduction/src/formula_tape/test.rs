@@ -179,6 +179,21 @@ fn decider_bouncer_9_756_305() {
 }
 
 #[test]
+fn decider_bouncer_bb6() {
+    // This bouncer was the only machine that mei's implem decided within 250k that cosmo didnt with 250k steps, 50k macro steps and 100 formula tapes tested per head
+
+    use super::bouncers_decider::bouncers_decider;
+    let machine_str = "1RB0LB_0LC0RE_1LA1LD_0LB1LD_1RA0RF_1LE---";
+    let cert = bouncers_decider(machine_str, 25000000, 5000000, 50)
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(cert.formula_tape.to_string(), "0∞0111010101(01)C>0∞");
+    assert_eq!(cert.num_steps_until_formula_tape, 206);
+    assert_eq!(cert.num_macro_steps_until_special_case, 45);
+}
+
+#[test]
 fn bouncer_88_427_177_trace_for_example() {
     // This bouncer was the only machine that mei's implem decided within 250k that cosmo didnt with 250k steps, 50k macro steps and 100 formula tapes tested per head
 
