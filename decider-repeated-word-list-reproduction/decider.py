@@ -128,6 +128,13 @@ if __name__ == "__main__":
         help="Prints the RepWL non-halt certificate(s)",
     )
 
+    argparser.add_argument(
+        "--print-params-stats",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="In case of a file with Turing machines and parameters, print statistics about the parameters (min, max, avg)",
+    )
+
     args = argparser.parse_args()
 
     FILE_MACHINES_LIST = None
@@ -188,11 +195,17 @@ if __name__ == "__main__":
 
         at_least_one_failure = False
 
+        params_stats_B = []
+        params_stats_R = []
+
         num_TMs = 0
         for line in tqdm.tqdm(file_content.split("\n")):
             if line.strip() == "":
                 continue
             TM, BLOCK_SIZE, PLUS_THRESHOLD = line.split(" ")
+
+            params_stats_B.append(int(BLOCK_SIZE))
+            params_stats_R.append(int(PLUS_THRESHOLD))
 
             success, reason_failure = deciderRep_WL(
                 TM,
@@ -211,6 +224,14 @@ if __name__ == "__main__":
                 print(
                     f"Failed to decide `{TM}` with parameters `block_size={BLOCK_SIZE}` and `plus_repeat_threshold={PLUS_THRESHOLD}`. Reason: {failure_reason_str(reason_failure, BLOCK_SIMULATION_TIMEOUT, MAX_VISITED_REGEX)}."
                 )
+
+        if args.print_params_stats:
+            print(
+                f"Statistics:\n\t-block_size: min={min(params_stats_B)}, max={max(params_stats_B)}, avg={round(sum(params_stats_B)/len(params_stats_B),1)}"
+            )
+            print(
+                f"\t-plus_repeat_threshold: min={min(params_stats_R)}, max={max(params_stats_R)}, avg={round(sum(params_stats_R)/len(params_stats_R),1)}"
+            )
 
         if at_least_one_failure:
             exit(-1)
