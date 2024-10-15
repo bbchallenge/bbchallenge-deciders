@@ -58,5 +58,5 @@ options:
 
 ## Statistics about Coq-BB5 RepWL Parameters
 
-    -block_size: min=1, max=57, avg=4.1
-    -plus_repeat_threshold: min=2, max=4, avg=2.4
+    - block_size: min=1, max=57, avg=4.1
+    - plus_repeat_threshold: min=2, max=4, avg=2.4
