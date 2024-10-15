@@ -58,5 +58,7 @@ options:
 
 ## Statistics about Coq-BB5 RepWL Parameters
 
+Stats about the parameters given in `Coq-BB5_RWL_parameters_bbchallenge_format.txt`:
+
     - block_size: min=1, max=57, avg=4.1
     - plus_repeat_threshold: min=2, max=4, avg=2.4
