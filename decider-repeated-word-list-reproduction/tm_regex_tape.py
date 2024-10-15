@@ -269,14 +269,14 @@ class TMRegexTape(object):
         )
 
         if verbose:
-            print("A", block_tm)
+            print("\t", block_tm)
 
         step = 0
         while step < block_simulation_timeout:
             try:
                 block_tm.step(raise_if_at_extremity=True)
                 if verbose:
-                    print("B", block_tm)
+                    print("\t", block_tm)
                 step += 1
             except TMHasHalted:
                 raise TMHasHalted()
@@ -287,7 +287,7 @@ class TMRegexTape(object):
             raise BlockSimulationTimeout()
 
         if verbose:
-            print("B", block_tm)
+            print("\t", block_tm)
 
         regex_tape = TMRegexTape.from_tm_tape(
             block_tm, self.block_size, self.plus_threshold
@@ -325,7 +325,7 @@ class TMRegexTape(object):
                 self.TM_bbchallenge_format,
                 new_before_head_1,
                 self.state,
-                self.after_head[:],
+                self.after_head[::-1],
                 self.head_looking_after,
                 self.block_size,
                 self.plus_threshold,
@@ -335,33 +335,34 @@ class TMRegexTape(object):
             to_return.append(copy.deepcopy(new_regex_tm_1))
 
             if verbose:
-                print("< Branch 1", new_regex_tm_1)
+                print("\t< Branch 1", new_regex_tm_1)
 
             # a^2 a <S
-            if len(block.B) > 1:
-                new_before_head_2 = self.before_head[:]
+            new_before_head_2 = self.before_head[:]
+            new_before_head_2[-1].plus = False
+
+            if new_before_head_2[-1].repeat > 1:
                 new_before_head_2[-1].repeat -= 1
-                new_before_head_2[-1].plus = False
                 new_before_head_2.append(RegexBlock(block.B, 1, False))
 
-                new_regex_tm_2 = TMRegexTape(
-                    self.TM_bbchallenge_format,
-                    new_before_head_2,
-                    self.state,
-                    self.after_head[:],
-                    self.head_looking_after,
-                    self.block_size,
-                    self.plus_threshold,
-                )
+            new_regex_tm_2 = TMRegexTape(
+                self.TM_bbchallenge_format,
+                new_before_head_2,
+                self.state,
+                self.after_head[::-1],
+                self.head_looking_after,
+                self.block_size,
+                self.plus_threshold,
+            )
 
-                # copy is needed here for some Python weirdness, otherwise we end up with 2 copies
-                # of new_regex_tm_2 in to_return
-                to_return.append(copy.deepcopy(new_regex_tm_2))
-                if verbose:
-                    print(
-                        "< Branch 2",
-                        new_regex_tm_2,
-                    )
+            # copy is needed here for some Python weirdness, otherwise we end up with 2 copies
+            # of new_regex_tm_2 in to_return
+            to_return.append(copy.deepcopy(new_regex_tm_2))
+            if verbose:
+                print(
+                    "\t< Branch 2",
+                    new_regex_tm_2,
+                )
         else:
             # S> a a^3+
             new_after_head_1 = self.after_head[:]
@@ -371,7 +372,7 @@ class TMRegexTape(object):
                 self.TM_bbchallenge_format,
                 self.before_head[:],
                 self.state,
-                new_after_head_1,
+                new_after_head_1[::-1],
                 self.head_looking_after,
                 self.block_size,
                 self.plus_threshold,
@@ -381,29 +382,30 @@ class TMRegexTape(object):
             # of new_regex_tm_2 in to_return
             to_return.append(copy.deepcopy(new_regex_tm_1))
             if verbose:
-                print("> Branch 1", new_regex_tm_1)
+                print("\t> Branch 1", new_regex_tm_1)
 
             # S> a a^2
-            if len(block.B) > 1:
-                new_after_head_2 = self.after_head[:]
+            new_after_head_2 = self.after_head[:]
+
+            new_after_head_2[-1].plus = False
+            if new_after_head_2[-1].repeat > 1:
                 new_after_head_2[-1].repeat -= 1
-                new_after_head_2[-1].plus = False
                 new_after_head_2.append(RegexBlock(block.B, 1, False))
 
-                new_regex_tm_2 = TMRegexTape(
-                    self.TM_bbchallenge_format,
-                    self.before_head[:],
-                    self.state,
-                    new_after_head_2,
-                    self.head_looking_after,
-                    self.block_size,
-                    self.plus_threshold,
-                )
+            new_regex_tm_2 = TMRegexTape(
+                self.TM_bbchallenge_format,
+                self.before_head[:],
+                self.state,
+                new_after_head_2[::-1],
+                self.head_looking_after,
+                self.block_size,
+                self.plus_threshold,
+            )
 
-                # copy is needed here for some Python weirdness, otherwise we end up with 2 copies
-                # of new_regex_tm_2 in to_return
-                to_return.append(copy.deepcopy(new_regex_tm_2))
-                if verbose:
-                    print("> Branch 1", new_regex_tm_2)
+            # copy is needed here for some Python weirdness, otherwise we end up with 2 copies
+            # of new_regex_tm_2 in to_return
+            to_return.append(copy.deepcopy(new_regex_tm_2))
+            if verbose:
+                print("\t> Branch 1", new_regex_tm_2)
 
         return to_return
