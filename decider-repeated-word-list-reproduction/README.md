@@ -55,3 +55,8 @@ options:
                         In case of a file with Turing machines and parameters, print statistics
                         about the parameters (min, max, avg)
 ```
+
+## Statistics about Coq-BB5 RepWL Parameters
+
+    -block_size: min=1, max=57, avg=4.1
+    -plus_repeat_threshold: min=2, max=4, avg=2.4
