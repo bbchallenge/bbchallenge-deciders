@@ -6576,3 +6576,6 @@ Definition tm_RWL:list ((TM Σ)*(DeciderType)) :=
 (makeTM BR1 ER1 CR1 EL0 DL1 AL0 HR1 BL0 AR1 CL0,RWL 2 3)::
 (makeTM BR1 ER1 CR1 EL0 DL1 AR1 DR1 CL0 HR1 BR0,RWL 4 2)::
 nil.
+Definition tm_RWL' :=
+(makeTM BR1 HR1 CR0 DR1 DL0 CR1 EL1 AR0 AR1 EL0,RWL 20 2)::
+nil.
