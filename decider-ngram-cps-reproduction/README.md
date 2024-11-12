@@ -18,7 +18,7 @@ Approach 1 regains the power (set of machines decided) of approach 2 if you incr
 A test case is https://bbchallenge.org/1RB---_0RC0LB_1RD1RA_0LE0RD_1LB1LE, solved at n=4 in approach 2 and at n=5 in approach 1.
 ```
 
-This code implements `Approach 1` while Nathan Fenner's code implements `Approach 2` as confirmed by the following test cases:
+This code implements `Approach 1` while Nathan Fenner's code implements `Approach 2` as confirmed by the test suggested by Justin (failure at radius 4, success at radius 5):
 
 ```
 python decider.py -m 1RB---_0RC0LB_1RD1RA_0LE0RD_1LB1LE -r 4 --print-cert
