@@ -51,15 +51,15 @@ class TMCenteredTapeSegment(object):
     """
 
     def __init__(self, tm, radius):
-        self.tm = tm.split("_")
-        self.radius = radius
-        self.state = 0
+        self.tm: str = tm.split("_")  # e.g. "1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA"
+        self.radius: int = radius
+        self.state: int = 0
 
-        self.before_head = [ZERO] * radius
-        self.after_head = [ZERO] * radius
-        self.at_head = ZERO
+        self.before_head: list[str] = [ZERO] * radius
+        self.after_head: list[str] = [ZERO] * radius
+        self.at_head: str = ZERO
 
-    def ngrams(self, which=None):
+    def ngrams(self, which: str = None) -> str:
         if which == RIGHT:
             return "".join(self.after_head)
         if which == LEFT:
@@ -113,24 +113,41 @@ class TMCenteredTapeSegment(object):
         tm_one.after_head[-1] = ONE
         return tm_zero, tm_one
 
-    def __str__(self):
+    def __str__(self) -> str:
         lngram, rngram = self.ngrams()
         head_str = f"[{i2l(self.state)}{self.at_head}]"
         return f"{lngram} {head_str} {rngram}"
 
 
 def ngram_CPS_decider(
-    tm, radius, max_context_count=1_000_000, verbose=False, print_cert=False
+    tm: str,
+    radius: int,
+    max_context_count: int = 1_000_000,
+    verbose: bool = False,
+    print_cert: bool = False,
 ):
+    """Runs the ngram CPS decider.
+
+    Args:
+        tm (str): The transition function of the Turing machine in the bbchallenge format. e.g. "1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA"
+        radius (int): The size of the ngrams on both sides of the head.
+        max_context_count (int, optional): The maximum number of visited local contexts. Defaults to 1_000_000.
+        verbose (bool, optional): Prints debug information. Defaults to False.
+        print_cert (bool, optional): Prints the reached ngrams and local contexts. Defaults to False.
+
+    Raises:
+        ValueError: If the maximum number of visited local contexts is exceeded.
+        TMHasHalted: If the Turing machine halts in one local context.
+    """
     local_context = TMCenteredTapeSegment(tm, radius)
 
-    to_visit = [local_context]
+    to_visit: list["TMCenteredTapeSegment"] = [local_context]
 
-    to_potentially_visit_for_ngram = {LEFT: {}, RIGHT: {}}
+    to_potentially_visit_for_ngram: dict[str, dict[str, list]] = {LEFT: {}, RIGHT: {}}
 
-    reachable_local_contexts = set()
+    reachable_local_contexts: set[TMCenteredTapeSegment] = set()
 
-    reachable_ngrams = {}
+    reachable_ngrams: dict[str, set[str]] = {}
     reachable_ngrams[RIGHT] = set()
     reachable_ngrams[LEFT] = set()
 
