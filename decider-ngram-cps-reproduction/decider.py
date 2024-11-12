@@ -143,7 +143,10 @@ def ngram_CPS_decider(
 
     to_visit: list["TMCenteredTapeSegment"] = [local_context]
 
-    to_potentially_visit_for_ngram: dict[str, dict[str, list]] = {LEFT: {}, RIGHT: {}}
+    # LEFT/RIGHT -> ngram -> list[TMCenteredTapeSegment]
+    to_potentially_visit_for_ngram: dict[
+        str, dict[str, list[TMCenteredTapeSegment]]
+    ] = {LEFT: {}, RIGHT: {}}
 
     reachable_local_contexts: set[TMCenteredTapeSegment] = set()
 
