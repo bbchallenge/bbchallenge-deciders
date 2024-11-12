@@ -142,6 +142,11 @@ def ngram_CPS_decider(
 
         reachable_local_contexts.add(str(current_local_context))
 
+        if len(reachable_local_contexts) > max_context_count:
+            raise ValueError(
+                f"Exceeded maximum number of visited local contexts ({max_context_count}), please increase --max-context-count"
+            )
+
         left_ngram, right_ngram = current_local_context.ngrams()
         reachable_ngrams[LEFT].add(left_ngram)
         reachable_ngrams[RIGHT].add(right_ngram)
