@@ -2,6 +2,8 @@
 
 This method reproduces Nathan Fenner's [n-GRAM CPS](https://github.com/Nathan-Fenner/bb-simple-n-gram-cps).
 
+`NGramCPS` and extensions which are not yet present in this reproduction are extensively used in [Coq-BB5](https://github.com/ccz181078/Coq-BB5).
+
 ## Examples
 
 ```
