@@ -72,7 +72,7 @@ options:
   --verbose, --no-verbose
                         Prints debug information
   --print-cert, --no-print-cert
-                        Prints the RepWL non-halt certificate(s)
+                        Prints the reached ngrams and local contexts
   --print-final-result, --no-print-final-result
                         Prints whether the machine does not halt or may halt
 ```

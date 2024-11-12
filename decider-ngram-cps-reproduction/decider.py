@@ -250,7 +250,7 @@ if __name__ == "__main__":
         "--print-cert",
         action=argparse.BooleanOptionalAction,
         default=False,
-        help="Prints the RepWL non-halt certificate(s)",
+        help="Prints the reached ngrams and local contexts",
     )
 
     argparser.add_argument(
