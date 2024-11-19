@@ -432,6 +432,8 @@ def NGramCPS_decider_impl2_0(
     return NGramCPS_decider(len_l, len_r, m, tm_bbchallenge)
 
 
-res = NGramCPS_decider_impl2_0(3, 3, 100, "1RB0RB_1LC1LE_1RD0RA_---1RE_1LB1RC") < -True
+res = NGramCPS_decider_impl2_0(
+    3, 3, 100, "1RB0RB_1LC1LE_1RD0RA_---1RE_1LB1RC"
+)  # <- True
 
 print(res)
