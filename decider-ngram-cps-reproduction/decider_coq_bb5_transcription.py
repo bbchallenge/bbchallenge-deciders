@@ -253,6 +253,12 @@ class AES_impl(object):
         self.rset = rset
         self.mset = mset
 
+    def __str__(self) -> str:
+        return f"AES_impl({self.lset}, {self.rset}, {self.mset})"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
     @classmethod
     def init(cls, len_l: int, len_r: int) -> "AES_impl":
 
@@ -275,6 +281,11 @@ def check_InitES_InAES(len_l: int, len_r: int, S: AES_impl) -> bool:
         and xset_ins(ls, NGRAM([Σ0] * len_l))[1]
         and xset_ins(rs, NGRAM([Σ0] * len_r))[1]
     )
+
+
+def translate_state(s: str) -> St:
+    i = ord(s) - ord("A")
+    return f"St{i}"
 
 
 def get_transition_0(tm_bbchallenge: str, i: int, j: int) -> str:
@@ -322,6 +333,7 @@ def update_AES_MidWord(
     r1 = NGRAM(r0[1:])
 
     o, d, s1 = get_transition(tm_bbchallenge, s0, m0)
+    s1 = translate_state(s1)
 
     # Machine halts
     if s1 == "-":
@@ -336,7 +348,9 @@ def update_AES_MidWord(
             q,
             ms,
             True,
-            lambda x: MidWord(NGRAM([o] + l1.pop_back(hl).l), r1 + [x], hr, s1),
+            lambda x: MidWord(
+                NGRAM([o] + l1.pop_back(hl).l), NGRAM(r1.l + [x]), hr, s1
+            ),
             xset_as_list(rs, r1),
         )
 
@@ -344,11 +358,11 @@ def update_AES_MidWord(
 
     new_rs, flag_1 = xset_ins(rs, r0)
 
-    new_q, new_ms, flag_2 = mset_ins(
+    (new_q, new_ms), flag_2 = mset_ins(
         q,
         ms,
         True,
-        lambda x: MidWord(l1 + [x], NGRAM([o] + r1.pop_back(hr).l), hl, s1),
+        lambda x: MidWord(NGRAM(l1.l + [x]), NGRAM([o] + r1.pop_back(hr).l), hl, s1),
         xset_as_list(ls, l1),
     )
 
@@ -361,6 +375,8 @@ def update_AES(
     if n == 0:
         return SI, False, 0
 
+    print("Len ms: ", len(ms))
+
     if len(ms) == 0:
         return SI, flag, n
 
@@ -368,6 +384,11 @@ def update_AES(
     ms0 = ms[1:]
 
     new_S, new_flag = update_AES_MidWord(tm_bbchallenge, ms0, mw, SI)
+
+    print("intermediate new S: ", new_S)
+    print("flag: ", new_flag)
+    print("n: ", n)
+    print()
 
     new_q, new_SI = new_S
 
@@ -377,21 +398,40 @@ def update_AES(
 def NGramCPS_decider_0(
     len_l: int, len_r: int, m: int, n: int, tm_bbchallenge: str, S: AES_impl
 ) -> bool:
+
+    print("before:", S)
+    print()
+
     if m == 0:
         return False
 
     new_S, flag, n0 = update_AES(tm_bbchallenge, S.mset.fst, S, True, n)
+    print("after:", new_S)
+    print("flag:", flag)
+    print("n0:", n0)
+    print()
 
     if flag:
         return check_InitES_InAES(len_l, len_r, new_S)
 
-    return NGramCPS_decider_0(m - 1, n0, tm_bbchallenge, new_S)
+    return NGramCPS_decider_0(len_l, len_r, m - 1, n0, tm_bbchallenge, new_S)
 
 
 def NGramCPS_decider(len_l: int, len_r: int, m: int, tm_bbchallenge: str) -> bool:
-    if len(len_l) == 0 or len(len_r) == 0:
+    if len_l == 0 or len_r == 0:
         return False
 
     return NGramCPS_decider_0(
         len_l, len_r, m, m, tm_bbchallenge, AES_impl.init(len_l, len_r)
     )
+
+
+def NGramCPS_decider_impl2_0(
+    len_l: int, len_r: int, m: int, tm_bbchallenge: str
+) -> bool:
+    return NGramCPS_decider(len_l, len_r, m, tm_bbchallenge)
+
+
+res = NGramCPS_decider_impl2_0(3, 3, 100, "1RB0RB_1LC1LE_1RD0RA_---1RE_1LB1RC") < -True
+
+print(res)
