@@ -92,13 +92,13 @@ class SetOfEncoding(Generic[T]):
 
     >>> s = SetOfEncoding[MidWord]()
     >>> s.set_ins(MidWord(NGRAM([]), NGRAM([]), '0', 'St0'))
-    (([MidWord('', '', 0, St0)], {MidWord('', '', 0, St0)}), False)
+    ((['' [St0 0] '' ], {'' {St0 0} '' }), False)
     >>> s.set_ins(MidWord(NGRAM(["0","1"]), NGRAM(["1"]), '0', 'St1'))
-    (([MidWord('01', '1', 0, St1)], {MidWord('01', '1', 0, St1)}), False)
+    ((['01' [St1 0] '1' ], {'01' {St1 0} '1' }), False)
     >>> s.set_ins(MidWord(NGRAM(["0","1"]), NGRAM(["1"]), '0', 'St1'))[0].set_ins(MidWord(NGRAM(["0","1"]), NGRAM(["1"]), '0', 'St1'))
-    (([MidWord('01', '1', 0, St1)], {MidWord('01', '1', 0, St1)}), True)
+    ((['01' [St1 0] '1' ], {'01' {St1 0} '1' }), True)
     >>> s.set_ins(MidWord(NGRAM(["0","1"]), NGRAM(["1"]), '0', 'St1'))[0].set_ins(MidWord(NGRAM(["0","1"]), NGRAM(["11"]), '0', 'St2'))
-    (([MidWord('01', '11', 0, St2), MidWord('01', '1', 0, St1)], {MidWord('01', '1', 0, St1), MidWord('01', '11', 0, St2)}), False)
+    ((['01' [St2 0] '11' , '01' [St1 0] '1' ], {'01' {St1 0} '1' , '01' {St2 0} '11' }), False)
 
     """
 
@@ -130,7 +130,7 @@ class MidWord(object):
         self.s = s
 
     def __str__(self):
-        return f"MidWord({self.l}, {self.r}, {self.m}, {self.s})"
+        return f"{self.l} [{self.s} {self.m}] {self.r} "
 
     def __repr__(self):
         return self.__str__()
@@ -213,7 +213,7 @@ def mset_ins(
     ms: mset_impl,
     flag: bool,
     f: Callable[[Sigma], MidWord],
-    ls: NGRAM,
+    ls: list[Sigma],  # not an NGRAM but a list of symbols
 ) -> tuple[tuple[list[MidWord], mset_impl], bool]:
     """
 
@@ -222,7 +222,7 @@ def mset_ins(
     >>> mw2 = MidWord(NGRAM(["1"]), NGRAM(["1", "0"]), '1', 'St2')
     >>> ms: mset_impl = SetOfEncoding[MidWord]()
     >>> mset_ins([mw1,mw2], ms, False, lambda x: MidWord(x, NGRAM(["1"]), '0', 'St3'), NGRAM(['0','0','1']))
-    (([MidWord(1, '1', 0, St3), MidWord(0, '1', 0, St3), MidWord('00', '1', 0, St0), MidWord('1', '10', 1, St2)], ([MidWord(1, '1', 0, St3), MidWord(0, '1', 0, St3)], {MidWord(0, '1', 0, St3), MidWord(1, '1', 0, St3)})), False)
+    (([1 [St3 0] '1' , 0 [St3 0] '1' , '00' [St0 0] '1' , '1' [St2 1] '10' ], ([1 [St3 0] '1' , 0 [St3 0] '1' ], {0 {St3 0} '1' , 1 {St3 0} '1' })), False)
 
 
     """
@@ -230,7 +230,7 @@ def mset_ins(
         return (q, ms), flag
 
     h = ls[0]
-    t = NGRAM(ls[1:])
+    t = ls[1:]
 
     new_ms, new_flag = mset_ins0(ms, f(h))
     q_prime = None
@@ -314,6 +314,7 @@ def get_transition(tm_bbchallenge: str, s: St, m: Sigma) -> St:
 def update_AES_MidWord(
     tm_bbchallenge: str, q: list[MidWord], mw: MidWord, SI: AES_impl
 ) -> tuple[tuple[list[MidWord], AES_impl], bool]:
+    print("Update mw:", mw)
     l0 = mw.l
     r0 = mw.r
     m0 = mw.m
@@ -341,8 +342,9 @@ def update_AES_MidWord(
 
     if d == "R":
         # e.g. leftgram "000" gets inserted for the first time "00" -> {"0"}, False
-
+        print("\tDir R")
         new_ls, flag_1 = xset_ins(ls, l0)
+        print(f"\tFlag insert left ngram {l0}:", flag_1)
 
         (new_q, new_ms), flag_2 = mset_ins(
             q,
@@ -353,10 +355,15 @@ def update_AES_MidWord(
             ),
             xset_as_list(rs, r1),
         )
+        # print("\tq:", q, f"rs xset_as_list: {r1}", xset_as_list(rs, r1))
+        print("\tFlag insert midword:", flag_2)
+        print("\tnew_q - q:", set(new_q) - set(q))
 
         return ((new_q, AES_impl(new_ls, rs, new_ms)), flag_1 and flag_2)
 
+    print("\tDir R")
     new_rs, flag_1 = xset_ins(rs, r0)
+    print(f"\tFlag insert right ngram {r0}:", flag_1)
 
     (new_q, new_ms), flag_2 = mset_ins(
         q,
@@ -365,6 +372,9 @@ def update_AES_MidWord(
         lambda x: MidWord(NGRAM(l1.l + [x]), NGRAM([o] + r1.pop_back(hr).l), hl, s1),
         xset_as_list(ls, l1),
     )
+    # print("\tq:", q, f"ls xset_as_list: {l1}", xset_as_list(ls, l1))
+    print("\tFlag insert midword:", flag_2)
+    print("\tnew_q - q:", set(new_q) - set(q))
 
     return ((new_q, AES_impl(ls, new_rs, new_ms)), flag_1 and flag_2)
 
@@ -372,10 +382,11 @@ def update_AES_MidWord(
 def update_AES(
     tm_bbchallenge: str, ms: list[MidWord], SI: AES_impl, flag: bool, n: int
 ) -> tuple[AES_impl, bool, int]:
+
+    print("len(ms)", len(ms), "ms:", ms, "n:", n, "param flag:", flag)
+
     if n == 0:
         return SI, False, 0
-
-    print("Len ms: ", len(ms))
 
     if len(ms) == 0:
         return SI, flag, n
@@ -384,11 +395,7 @@ def update_AES(
     ms0 = ms[1:]
 
     new_S, new_flag = update_AES_MidWord(tm_bbchallenge, ms0, mw, SI)
-
-    print("intermediate new S: ", new_S)
-    print("flag: ", new_flag)
-    print("n: ", n)
-    print()
+    print("Inner Flag:", new_flag, "\n")
 
     new_q, new_SI = new_S
 
@@ -399,17 +406,14 @@ def NGramCPS_decider_0(
     len_l: int, len_r: int, m: int, n: int, tm_bbchallenge: str, S: AES_impl
 ) -> bool:
 
-    print("before:", S)
-    print()
-
+    print("S:", S, "\n")
     if m == 0:
         return False
 
     new_S, flag, n0 = update_AES(tm_bbchallenge, S.mset.fst, S, True, n)
-    print("after:", new_S)
-    print("flag:", flag)
-    print("n0:", n0)
-    print()
+
+    print("\nNew S:", new_S)
+    print("\nFlag:", flag, "n0:", n0, "\n")
 
     if flag:
         return check_InitES_InAES(len_l, len_r, new_S)
@@ -433,7 +437,7 @@ def NGramCPS_decider_impl2_0(
 
 
 res = NGramCPS_decider_impl2_0(
-    3, 3, 100, "1RB0RB_1LC1LE_1RD0RA_---1RE_1LB1RC"
+    2, 2, 53, "1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA"
 )  # <- True
 
 print(res)
