@@ -252,7 +252,7 @@ Definition TM_history_LRU(tm:TM Σ):TM Σ_history :=
 Σ_history0 = (Σ0, ())
 
 
-def TM_history(tm_bbchallenge: str, history_length: int) -> TM[Σ_binary]:
+def TM_history(tm_bbchallenge: str, history_length: int) -> TM[Σ_history]:
     def tm(state: St, symbol_history: Σ_history) -> Transition[Σ_history] | None:
         nonlocal tm_bbchallenge, history_length
         tm_bbchallenge = tm_bbchallenge.replace("_", "")
@@ -275,7 +275,7 @@ def TM_history(tm_bbchallenge: str, history_length: int) -> TM[Σ_binary]:
     return tm
 
 
-def TM_history_LRU(tm_bbchallenge: str) -> TM[Σ_binary]:
+def TM_history_LRU(tm_bbchallenge: str) -> TM[Σ_history]:
     """LRU stands for Least Recent Usage"""
 
     def tm(state: St, symbol_history: Σ_history) -> Transition[Σ_history] | None:
