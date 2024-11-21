@@ -355,13 +355,13 @@ def update_AES_MidWord(
             ),
             xset_as_list(rs, r1),
         )
-        # print("\tq:", q, f"rs xset_as_list: {r1}", xset_as_list(rs, r1))
+        print(f"\trs xset_as_list: {r1}", xset_as_list(rs, r1))
         print("\tFlag insert midword:", flag_2)
         print("\tnew_q - q:", set(new_q) - set(q))
 
         return ((new_q, AES_impl(new_ls, rs, new_ms)), flag_1 and flag_2)
 
-    print("\tDir R")
+    print("\tDir L")
     new_rs, flag_1 = xset_ins(rs, r0)
     print(f"\tFlag insert right ngram {r0}:", flag_1)
 
@@ -372,7 +372,7 @@ def update_AES_MidWord(
         lambda x: MidWord(NGRAM(l1.l + [x]), NGRAM([o] + r1.pop_back(hr).l), hl, s1),
         xset_as_list(ls, l1),
     )
-    # print("\tq:", q, f"ls xset_as_list: {l1}", xset_as_list(ls, l1))
+    print(f"\tls xset_as_list: {l1}", xset_as_list(ls, l1))
     print("\tFlag insert midword:", flag_2)
     print("\tnew_q - q:", set(new_q) - set(q))
 
