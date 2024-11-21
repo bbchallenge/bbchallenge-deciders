@@ -25,6 +25,9 @@ class Transition(Generic[Σ]):
     def __str__(self):
         return f"{self.write}{self.move}{i2l(self.new_state)}"
 
+    def __repr__(self):
+        return self.__str__()
+
 
 TM = Callable[[St, Σ], Transition | None]
 NGRAM = tuple[Σ]
@@ -187,11 +190,11 @@ def NGramCPS_decider(
 def TM_binary(tm_bbchallenge: str) -> TM[Σ_binary]:
     """
     Example:
-    >>> tm = tm_binary("1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA")
-    >>> str(tm(0, "0"))
-    '1RB'
-    >>> str(tm(0, "1"))
-    'None'
+    >>> tm = TM_binary("1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA")
+    >>> tm(0, "0")
+    1RB
+    >>> tm(0, "1") is None
+    True
     """
 
     def tm(state: St, symbol: Σ_binary) -> Transition[Σ_binary] | None:
@@ -253,6 +256,24 @@ Definition TM_history_LRU(tm:TM Σ):TM Σ_history :=
 
 
 def TM_history(tm_bbchallenge: str, history_length: int) -> TM[Σ_history]:
+    """
+    Using the alphabet `Σ_history`, the TM stores on each tape cell the last `history_length` state-symbol pairs seen at that cell.
+
+    Example:
+    >>> tm = TM_history("1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA", 2)
+    >>> tm(0, Σ_history0)
+    ('1', ((0, '0'),))RB
+    >>> tm(1, ('1', ((0, '0'),)))
+    ('0', ((1, '1'), (0, '0')))RB
+    >>> tm(1, ('0', ((1, '1'), (0, '0'))))
+    ('0', ((1, '0'), (1, '1')))LC
+    >>> tm(1, ('0', ((1, '0'), (1, '1'), (0, '0'))))
+    ('0', ((1, '0'), (1, '0')))LC
+
+    >>> tm(0, ('1', ((0, '0'),))) is None
+    True
+    """
+
     def tm(state: St, symbol_history: Σ_history) -> Transition[Σ_history] | None:
         nonlocal tm_bbchallenge, history_length
         tm_bbchallenge = tm_bbchallenge.replace("_", "")
@@ -276,7 +297,23 @@ def TM_history(tm_bbchallenge: str, history_length: int) -> TM[Σ_history]:
 
 
 def TM_history_LRU(tm_bbchallenge: str) -> TM[Σ_history]:
-    """LRU stands for Least Recent Usage"""
+    """LRU stands for Least Recent Usage.
+       Using the alphabet `Σ_history`, the TM stores on each tape cell
+       the set of state-symbol pairs seen at that cell,
+       in order of when it was seen last, the most recent first.
+
+    Example:
+    >>> tm = TM_history_LRU("1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA")
+    >>> tm(0, Σ_history0)
+    ('1', ((0, '0'),))RB
+    >>> tm(1, ('1', ((0, '0'),)))
+    ('0', ((1, '1'), (0, '0')))RB
+    >>> tm(1, ('0', ((2, '1'), (1, '0'))))
+    ('0', ((1, '0'), (2, '1')))LC
+
+    >>> tm(0, ('1', ((0, '0'),))) is None
+    True
+    """
 
     def tm(state: St, symbol_history: Σ_history) -> Transition[Σ_history] | None:
         nonlocal tm_bbchallenge
@@ -299,10 +336,10 @@ def TM_history_LRU(tm_bbchallenge: str) -> TM[Σ_history]:
 
         # (o0,((s,i0)::(filter (StΣ_neb (s,i0)) i1)))
         curr_history_LRU = symbol_history[1]
-        new_history = ((state, symbol_binary),) + curr_history_LRU
-        new_history = tuple(
+        new_history = ((state, symbol_binary),) + tuple(
             filter(lambda x: StΣ_neb((state, symbol_binary), x), curr_history_LRU)
         )
+
         write_history = (write_binary, new_history)
 
         return Transition(write_history, move, l2i(new_state))
@@ -315,7 +352,7 @@ if __name__ == "__main__":
     print(NGramCPS_decider(tm_binary, Σ0, 2, 2, 100))
 
     tm_history = TM_history("1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA", 4)
-    print(NGramCPS_decider(tm_history, Σ_history0, 2, 2, 200))
+    print(NGramCPS_decider(tm_history, Σ_history0, 2, 2, 100))
 
     tm_history_LRU = TM_history_LRU("1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA")
     print(NGramCPS_decider(tm_history_LRU, Σ_history0, 2, 2, 100))
