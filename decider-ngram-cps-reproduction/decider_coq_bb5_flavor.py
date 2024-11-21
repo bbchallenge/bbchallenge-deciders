@@ -248,7 +248,7 @@ Definition TM_history_LRU(tm:TM Σ):TM Σ_history :=
   end.
 """
 
-Σ_history = tuple[Σ_binary, tuple[tuple[St, Σ], ...]]
+Σ_history = tuple[Σ_binary, tuple[tuple[St, Σ_binary], ...]]
 Σ_history0 = (Σ0, ())
 
 
