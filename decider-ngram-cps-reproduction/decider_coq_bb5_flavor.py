@@ -143,7 +143,12 @@ def expand_local_context(
 
 
 def NGramCPS_decider(
-    tm: Callable[[Σ, St], Σ], Σ0: Σ, len_l: int, len_r: int, gas: int
+    tm: Callable[[Σ, St], Σ],
+    Σ0: Σ,
+    len_l: int,
+    len_r: int,
+    gas: int,
+    verbose: bool = False,
 ) -> bool:
     S: AbstractExecState[Σ] = AbstractExecState.initial(Σ0, len_l, len_r)
 
@@ -152,6 +157,10 @@ def NGramCPS_decider(
         any_updates = False
         while len(to_visit) > 0 and gas > 0:
             curr_local_context = to_visit[0]
+
+            if verbose:
+                print("Visiting", curr_local_context)
+
             to_visit = to_visit[1:]
             new_contexts_to_visit, halting_met = expand_local_context(
                 tm, curr_local_context, S
@@ -172,9 +181,10 @@ def NGramCPS_decider(
 
 
 Σ_binary = Literal["0", "1"]
+Σ0 = "0"
 
 
-def tm_binary(tm_bbchallenge: str) -> TM[Σ_binary]:
+def TM_binary(tm_bbchallenge: str) -> TM[Σ_binary]:
     """
     Example:
     >>> tm = tm_binary("1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA")
@@ -197,6 +207,115 @@ def tm_binary(tm_bbchallenge: str) -> TM[Σ_binary]:
     return tm
 
 
+""" Here are the Coq-BB5 definitions that we reproduce for `TM_history` and `TM_history_LRU`:
+
+Definition Σ_history:Set :=
+  Σ*(list (St*Σ)).
+
+Definition Σ_history_0:Σ_history := (Σ0,nil).
+
+Definition TM_history(n:nat)(tm:TM Σ):TM Σ_history :=
+  fun s i =>
+  let (i0,i1):=i in
+  match tm s i0 with
+  | Some tr =>
+    let (s',d,o0):=tr in
+    Some {|
+      nxt := s';
+      dir := d;
+      out := (o0,firstn n ((s,i0)::i1));
+    |}
+  | None => None
+  end.
+
+Definition StΣ_neb(x1 x2:St*Σ) :=
+    let (s1,i1):=x1 in
+    let (s2,i2):=x2 in
+    if St_eqb s1 s2 then negb (Σ_eqb i1 i2) else true.
+
+Definition TM_history_LRU(tm:TM Σ):TM Σ_history :=
+  fun s i =>
+  let (i0,i1):=i in
+  match tm s i0 with
+  | Some tr =>
+    let (s',d,o0):=tr in
+    Some {|
+      nxt := s';
+      dir := d;
+      out := (o0,((s,i0)::(filter (StΣ_neb (s,i0)) i1)));
+    |}
+  | None => None
+  end.
+"""
+
+Σ_history = tuple[Σ_binary, tuple[tuple[St, Σ], ...]]
+Σ_history0 = (Σ0, ())
+
+
+def TM_history(tm_bbchallenge: str, history_length: int) -> TM[Σ_binary]:
+    def tm(state: St, symbol_history: Σ_history) -> Transition[Σ_history] | None:
+        nonlocal tm_bbchallenge, history_length
+        tm_bbchallenge = tm_bbchallenge.replace("_", "")
+
+        symbol_binary: Σ_binary = symbol_history[0]
+
+        write_binary, move, new_state = tm_bbchallenge[
+            state * 6 + 3 * int(symbol_binary) : state * 6 + 3 * int(symbol_binary) + 3
+        ]
+        if new_state == "-":
+            return None
+
+        # (o0,firstn n ((s,i0)::i1))
+        curr_history = symbol_history[1]
+        new_history = ((state, symbol_binary),) + curr_history
+        write_history = (write_binary, new_history[:history_length])
+
+        return Transition(write_history, move, l2i(new_state))
+
+    return tm
+
+
+def TM_history_LRU(tm_bbchallenge: str) -> TM[Σ_binary]:
+    """LRU stands for Least Recent Usage"""
+
+    def tm(state: St, symbol_history: Σ_history) -> Transition[Σ_history] | None:
+        nonlocal tm_bbchallenge
+        tm_bbchallenge = tm_bbchallenge.replace("_", "")
+
+        symbol_binary: Σ_binary = symbol_history[0]
+
+        write_binary, move, new_state = tm_bbchallenge[
+            state * 6 + 3 * int(symbol_binary) : state * 6 + 3 * int(symbol_binary) + 3
+        ]
+        if new_state == "-":
+            return None
+
+        def StΣ_neb(x1: tuple[St, Σ_binary], x2: tuple[St, Σ_binary]) -> bool:
+            s1, i1 = x1
+            s2, i2 = x2
+            if s1 == s2:
+                return i1 != i2
+            return True
+
+        # (o0,((s,i0)::(filter (StΣ_neb (s,i0)) i1)))
+        curr_history_LRU = symbol_history[1]
+        new_history = ((state, symbol_binary),) + curr_history_LRU
+        new_history = tuple(
+            filter(lambda x: StΣ_neb((state, symbol_binary), x), curr_history_LRU)
+        )
+        write_history = (write_binary, new_history)
+
+        return Transition(write_history, move, l2i(new_state))
+
+    return tm
+
+
 if __name__ == "__main__":
-    tm = tm_binary("1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA")
-    print(NGramCPS_decider(tm, "0", 2, 2, 100))
+    tm_binary = TM_binary("1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA")
+    print(NGramCPS_decider(tm_binary, Σ0, 2, 2, 100))
+
+    tm_history = TM_history("1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA", 4)
+    print(NGramCPS_decider(tm_history, Σ_history0, 2, 2, 200))
+
+    tm_history_LRU = TM_history_LRU("1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA")
+    print(NGramCPS_decider(tm_history_LRU, Σ_history0, 2, 2, 100))
