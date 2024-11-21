@@ -41,7 +41,15 @@ class LocalContext(Generic[Σ]):
         return f"{self.left} [{i2l(self.state)} {self.center}] {self.right}"
 
     def __hash__(self) -> int:
-        return hash(str(self))
+        return hash((self.left, self.right, self.center, self.state))
+
+    def __eq__(self, other) -> int:
+        return (
+            self.left == other.left
+            and self.right == other.right
+            and self.center == other.center
+            and self.state == other.state
+        )
 
 
 # set of ngrams {'000','001'} is represented as
@@ -111,6 +119,7 @@ def expand_local_context(
                 lc.right[0],
                 new_state,
             )
+
             if new_lc not in S.local_contexts:
                 to_return.append(new_lc)
                 S.local_contexts.add(new_lc)
@@ -143,7 +152,6 @@ def NGramCPS_decider(
         any_updates = False
         while len(to_visit) > 0 and gas > 0:
             curr_local_context = to_visit[0]
-            print(curr_local_context)
             to_visit = to_visit[1:]
             new_contexts_to_visit, halting_met = expand_local_context(
                 tm, curr_local_context, S
@@ -191,4 +199,4 @@ def tm_binary(tm_bbchallenge: str) -> TM[Σ_binary]:
 
 if __name__ == "__main__":
     tm = tm_binary("1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA")
-    print(NGramCPS_decider(tm, "0", 2, 2, 10))
+    print(NGramCPS_decider(tm, "0", 2, 2, 100))

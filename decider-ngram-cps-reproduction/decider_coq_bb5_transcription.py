@@ -314,7 +314,7 @@ def get_transition(tm_bbchallenge: str, s: St, m: Sigma) -> St:
 def update_AES_MidWord(
     tm_bbchallenge: str, q: list[MidWord], mw: MidWord, SI: AES_impl
 ) -> tuple[tuple[list[MidWord], AES_impl], bool]:
-    print("Update mw:", mw)
+    # print("Update mw:", mw)
     l0 = mw.l
     r0 = mw.r
     m0 = mw.m
@@ -342,9 +342,9 @@ def update_AES_MidWord(
 
     if d == "R":
         # e.g. leftgram "000" gets inserted for the first time "00" -> {"0"}, False
-        print("\tDir R")
+        # print("\tDir R")
         new_ls, flag_1 = xset_ins(ls, l0)
-        print(f"\tFlag insert left ngram {l0}:", flag_1)
+        # print(f"\tFlag insert left ngram {l0}:", flag_1)
 
         (new_q, new_ms), flag_2 = mset_ins(
             q,
@@ -355,15 +355,15 @@ def update_AES_MidWord(
             ),
             xset_as_list(rs, r1),
         )
-        print(f"\trs xset_as_list: {r1}", xset_as_list(rs, r1))
-        print("\tFlag insert midword:", flag_2)
-        print("\tnew_q - q:", set(new_q) - set(q))
+        # print(f"\trs xset_as_list: {r1}", xset_as_list(rs, r1))
+        # print("\tFlag insert midword:", flag_2)
+        # print("\tnew_q - q:", set(new_q) - set(q))
 
         return ((new_q, AES_impl(new_ls, rs, new_ms)), flag_1 and flag_2)
 
-    print("\tDir L")
+    # print("\tDir L")
     new_rs, flag_1 = xset_ins(rs, r0)
-    print(f"\tFlag insert right ngram {r0}:", flag_1)
+    # print(f"\tFlag insert right ngram {r0}:", flag_1)
 
     (new_q, new_ms), flag_2 = mset_ins(
         q,
@@ -372,9 +372,9 @@ def update_AES_MidWord(
         lambda x: MidWord(NGRAM(l1.l + [x]), NGRAM([o] + r1.pop_back(hr).l), hl, s1),
         xset_as_list(ls, l1),
     )
-    print(f"\tls xset_as_list: {l1}", xset_as_list(ls, l1))
-    print("\tFlag insert midword:", flag_2)
-    print("\tnew_q - q:", set(new_q) - set(q))
+    # print(f"\tls xset_as_list: {l1}", xset_as_list(ls, l1))
+    # print("\tFlag insert midword:", flag_2)
+    # print("\tnew_q - q:", set(new_q) - set(q))
 
     return ((new_q, AES_impl(ls, new_rs, new_ms)), flag_1 and flag_2)
 
@@ -395,7 +395,7 @@ def update_AES(
     ms0 = ms[1:]
 
     new_S, new_flag = update_AES_MidWord(tm_bbchallenge, ms0, mw, SI)
-    print("Inner Flag:", new_flag, "\n")
+    # print("Inner Flag:", new_flag, "\n")
 
     new_q, new_SI = new_S
 
@@ -406,14 +406,14 @@ def NGramCPS_decider_0(
     len_l: int, len_r: int, m: int, n: int, tm_bbchallenge: str, S: AES_impl
 ) -> bool:
 
-    print("S:", S, "\n")
+    # print("S:", S, "\n")
     if m == 0:
         return False
 
     new_S, flag, n0 = update_AES(tm_bbchallenge, S.mset.fst, S, True, n)
 
-    print("\nNew S:", new_S)
-    print("\nFlag:", flag, "n0:", n0, "\n")
+    # print("\nNew S:", new_S)
+    # print("\nFlag:", flag, "n0:", n0, "\n")
 
     if flag:
         return check_InitES_InAES(len_l, len_r, new_S)
@@ -437,7 +437,7 @@ def NGramCPS_decider_impl2_0(
 
 
 res = NGramCPS_decider_impl2_0(
-    2, 2, 53, "1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA"
+    2, 2, 10, "1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA"
 )  # <- True
 
 print(res)
