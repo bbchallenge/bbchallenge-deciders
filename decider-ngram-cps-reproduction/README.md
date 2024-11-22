@@ -1,5 +1,74 @@
 # n-gram Closed Position Set (NGramCPS)
 
+## decider_coq_bb5.py: Coq-BB5's augmented NGramCPS
+
+Coq-BB5's NGramCPS reproduces Nathan Fenner's original NGramCPS (see next section) but crucially allows the user to run the algorithm with an augmented alphabet, in particular two augmented variants:
+
+- Length-n history: the machine symbol alphabet is augmented to represent the last n (state,symbol) pairs that have been seen on a cell (`Σ_history = tuple[Σ_binary, tuple[tuple[St, Σ_binary], ...]]`). See `TM_history` in `decider_coq_bb5.py`.
+
+- Least Recent Usage: the machine symbol alphabet is also augmented using `Σ_history` but this time, the set of seen (state,symbol) is stored in order of most recent usage comes first. See `TM_history_LRU` in `decider_coq_bb5.py`.
+
+Beauty is that the same `NGramCPS_decider` algorithm (see `NGramCPS_coq_bb5.py`) applies. This algorithm was first transcribed (in the non-augmented case only) from its coq implementation ([Decider_NGramCPS.v](https://github.com/ccz181078/Coq-BB5/CoqBB5/Deciders/Decider_NGramCPS.v)).
+
+### Examples:
+
+- Standard NGramCPS (using default gas of 100):
+```
+python decider_coq_bb5.py --tm 1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA -r 2 --print-cert
+Reachable left-ngrams: {00, 10}
+Reachable right-ngrams: {00}
+Reachable local contexts (5): [('0', '0') [E 0] ('0', '1'), ('0', '0') [D 0] ('1', '0'), ('0', '0') [C 1] ('0', '0'), ('0', '1') [B 0] ('0', '0'), ('0', '0') [A 0] ('0', '0')]
+Success: 1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA does not halt
+```
+
+- Length-4 history NGramCPS (using default gas of 100):
+```
+python decider_coq_bb5.py --tm 1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA -r 2 --history 4 --print-cert
+Reachable left-ngrams: {('0', ())('0', ()), ('0', ((1, '0'),))('0', ()), ('1', ((2, '1'), (0, '0')))('0', ((1, '0'),))}
+Reachable right-ngrams: {('0', ())('0', ())}
+Reachable local contexts (5): [(('0', ()), ('0', ())) [E ('0', ())] (('0', ((3, '0'),)), ('1', ((2, '1'), (0, '0')))), (('0', ()), ('0', ())) [D ('0', ())] (('1', ((2, '1'), (0, '0'))), ('0', ((1, '0'),))), (('0', ()), ('0', ())) [C ('1', ((0, '0'),))] (('0', ((1, '0'),)), ('0', ())), (('0', ()), ('1', ((0, '0'),))) [B ('0', ())] (('0', ()), ('0', ())), (('0', ()), ('0', ())) [A ('0', ())] (('0', ()), ('0', ()))]
+Success: 1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA does not halt
+```
+
+- LRU NGramCPS (using default gas of 100):
+```
+python decider_coq_bb5.py --tm 1RB---_0LC0RB_1RD1LD_0LE0RA_0RC0RA -r 2 --LRU --print-cert
+Reachable left-ngrams: {('0', ())('0', ()), ('0', ((1, '0'),))('0', ()), ('1', ((2, '1'), (0, '0')))('0', ((1, '0'),))}
+Reachable right-ngrams: {('0', ())('0', ())}
+Reachable local contexts (5): [(('0', ()), ('0', ())) [E ('0', ())] (('0', ((3, '0'),)), ('1', ((2, '1'), (0, '0')))), (('0', ()), ('0', ())) [D ('0', ())] (('1', ((2, '1'), (0, '0'))), ('0', ((1, '0'),))), (('0', ()), ('0', ())) [C ('1', ((0, '0'),))] (('0', ((1, '0'),)), ('0', ())), (('0', ()), ('1', ((0, '0'),))) [B ('0', ())] (('0', ()), ('0', ())), (('0', ()), ('0', ())) [A ('0', ())] (('0', ()), ('0', ()))]
+```
+
+### Usage
+
+```
+usage: decider_coq_bb5.py [-h] -m TM -r RADIUS [-g GAS] [--history HISTORY] [--LRU | --no-LRU]
+                          [--verbose | --no-verbose] [--print-cert | --no-print-cert]
+                          [--print-final-result | --no-print-final-result]
+
+n-gram Closed Position Set (NGramCPS) as implemented in Coq-BB5 with history and LRU augmentations
+
+options:
+  -h, --help            show this help message and exit
+  -m TM, --tm TM        The transition function of the Turing machine in the bbchallenge format, e.g. 1RB---
+                        _0LC0RB_1RD1LD_0LE0RA_0RC0RA
+  -r RADIUS, --radius RADIUS
+                        Size of the ngrams on both sides of the head, e.g. 2
+  -g GAS, --gas GAS     Gas parameter, higher gas better chances of success
+  --history HISTORY     Length-n (state,symbol) history NGramCPS augmentation, 0 (default) means no history
+                        is used and standard NGramCPS is ran
+  --LRU, --no-LRU       Least Recent Usage NGramCPS augmentation, if set, the LRU variant of NGramCPS is
+                        used (ignoring parameter --history which is used for length-n history variant)
+  --verbose, --no-verbose
+                        Prints debug information
+  --print-cert, --no-print-cert
+                        Prints the reached ngrams and local contexts
+  --print-final-result, --no-print-final-result
+                        Prints whether the machine does not halt or may halt
+```
+
+
+## decider.py: Nathan Fenner's original NGramCPS
+
 This method reproduces Nathan Fenner's [n-GRAM CPS](https://github.com/Nathan-Fenner/bb-simple-n-gram-cps). `NGramCPS` and extensions which are not yet present in this reproduction are extensively used in [Coq-BB5](https://github.com/ccz181078/Coq-BB5).
 
 Note that the reproduction is not 100% exact, one difference (probably the only one), was pointed out by Justin Blanchard on [bbchallenge's discord server](https://discord.com/channels/960643023006490684/1028747034066427904/1237879123498766528) ([server invite](https://discord.gg/3uqtPJA9Uv)):
