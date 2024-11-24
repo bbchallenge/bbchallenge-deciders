@@ -147,7 +147,7 @@ class AbstractExecState(Generic[Σ]):
 
 
 def expand_local_context(
-    tm: Callable[[Σ, St], Transition | None],
+    tm: TM,
     lc: LocalContext[Σ],
     S: AbstractExecState[Σ],
 ) -> tuple[list[LocalContext[Σ]], bool]:
@@ -202,7 +202,7 @@ def expand_local_context(
 
 
 def NGramCPS_decider(
-    tm: Callable[[Σ, St], Σ],
+    tm: TM,
     Σ0: Σ,
     len_l: int,
     len_r: int,
