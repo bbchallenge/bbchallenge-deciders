@@ -30,6 +30,10 @@ from typing import List, Tuple, Optional, Union, Callable
 Σ0: Σ = 0  # Example default value for Σ; update as needed
 St = int  # Example type for St; update as needed
 Dir = int  # Example type for Dir; represents head movement direction (-1, 0, 1, etc.)
+nat = int
+Z0 = 0
+St0 = 0
+Z = int
 
 
 @dataclass
@@ -95,7 +99,6 @@ def ListES_step_prime(tr: Trans, x: ListES) -> ListES:
             return ListES(l=[], r=[o] + r0, m=Σ0, s=s1)
 
     # Handle no movement case (optional, if Dpos/Dneg are exhaustive)
-    print("heyey")
     return ListES(l=l0, r=r0, m=o, s=s1)
 
 
@@ -108,26 +111,31 @@ def print_listES(x: ListES) -> str:
 
 
 # Enum-like class for HaltDecideResult
-class HaltDecideResult:
-    class Result_Halt:
-        def __init__(self, s: St, i: Σ):
-            self.s = s
-            self.i = i
-
-    class Result_NonHalt:
-        pass
-
-    class Result_Unknown:
-        pass
+from enum import Enum
 
 
+class HaltDecideResult(Enum):
+    Result_Halt = "Result_Halt"
+    Result_NonHalt = "Result_NonHalt"
+    Result_Unknown = "Result_Unknown"
+
+
+def Z_ltb(d1: int, d2: int) -> bool:
+    return d1 < d2
+
+
+def Z_eqb(d1: int, d2: int) -> bool:
+    return d1 == d2
+
+
+# Define verify_loop1
 def verify_loop1(
-    h0: Tuple[ListES, int],
-    h1: Tuple[ListES, int],
-    ls0: List[Tuple[ListES, int]],
-    ls1: List[Tuple[ListES, int]],
-    n: int,
-    dpos: int,
+    h0: Tuple[ListES, Z],
+    h1: Tuple[ListES, Z],
+    ls0: List[Tuple[ListES, Z]],
+    ls1: List[Tuple[ListES, Z]],
+    n: nat,
+    dpos: Z,
 ) -> bool:
     es0, d0 = h0
     es1, d1 = h1
@@ -135,38 +143,57 @@ def verify_loop1(
     if not (St_eqb(es0.s, es1.s) and Σ_eqb(es0.m, es1.m)):
         return False
 
-    val = False
-    if n == 0:
-        if dpos == 0:
-            val = d0 == d1
-        elif dpos > 0:
-            val = d1 < d0 if not es1.r else False
-        else:  # dpos < 0
-            val = d0 < d1 if not es1.l else False
+    print("Verify plausible Loop", n)
+    print(print_listES(es0), d0, dpos)
+    print(print_listES(es1), d1, dpos)
 
-    if val == True:
-        return val
+    val = False
+
+    if n == 0:
+        if dpos == Z0:
+            val = Z_eqb(d1, d0)
+        elif dpos > 0:
+            if not es1.r:
+                val = Z_ltb(d1, d0)
+            else:
+                val = False
+        elif dpos < 0:
+            if not es1.l:
+                val = Z_ltb(d0, d1)
+            else:
+                val = False
+
+    if val:
+        return True
 
     if ls0 and ls1:
         h0_prime, *ls0_prime = ls0
         h1_prime, *ls1_prime = ls1
-        return verify_loop1(h0_prime, h1_prime, ls0_prime, ls1_prime, n - 1, dpos)
+        return verify_loop1(
+            h0_prime, h1_prime, ls0_prime, ls1_prime, max(0, n - 1), dpos
+        )
     else:
         return False
 
 
+# Define find_loop1
 def find_loop1(
-    h0: Tuple[ListES, int],
-    h1: Tuple[ListES, int],
-    h2: Tuple[ListES, int],
-    ls0: List[Tuple[ListES, int]],
-    ls1: List[Tuple[ListES, int]],
-    ls2: List[Tuple[ListES, int]],
-    n: int,
+    h0: Tuple[ListES, Z],
+    h1: Tuple[ListES, Z],
+    h2: Tuple[ListES, Z],
+    ls0: List[Tuple[ListES, Z]],
+    ls1: List[Tuple[ListES, Z]],
+    ls2: List[Tuple[ListES, Z]],
+    n: nat,
 ) -> bool:
     es0, d0 = h0
     es1, d1 = h1
     es2, d2 = h2
+
+    print("Find Loop")
+    for hhh in [h0, h1, h2]:
+        print(print_listES(hhh[0]), hhh[1], n)
+    print()
 
     if (
         St_eqb(es0.s, es1.s)
@@ -177,7 +204,7 @@ def find_loop1(
     ):
         return True
 
-    if len(ls2) >= 2 and len(ls1) >= 1:
+    if ls2 and ls1:
         h3, h2_prime, *ls2_prime = ls2
         h1_prime, *ls1_prime = ls1
         return find_loop1(h0, h1_prime, h2_prime, ls0, ls1_prime, ls2_prime, n + 1)
@@ -185,55 +212,46 @@ def find_loop1(
         return False
 
 
+# Define find_loop1_0
 def find_loop1_0(
-    h0: Tuple[ListES, int], h1: Tuple[ListES, int], ls: List[Tuple[ListES, int]]
+    h0: Tuple[ListES, Z], h1: Tuple[ListES, Z], ls: List[Tuple[ListES, Z]]
 ) -> bool:
+    print("Find Loop1 0")
     if ls:
         h2, *ls_prime = ls
         return find_loop1(h0, h1, h2, [h1] + ls, ls, ls_prime, 0)
-    return False
-
-
-def loop1_decider0(
-    tm: TM,
-    n: int,
-    es: ListES,
-    d: int,
-    ls: List[Tuple[ListES, int]],
-) -> Union[
-    HaltDecideResult.Result_Halt,
-    HaltDecideResult.Result_NonHalt,
-    HaltDecideResult.Result_Unknown,
-]:
-    # print(print_listES(es))
-    if n == 0:
-        return HaltDecideResult.Result_Unknown()
-
-    n0 = n - 1
-
-    aux = tm(es.s, es.m)
-    if aux is None:
-        return HaltDecideResult.Result_Halt(es.s, es.m)
-
-    es_prime = ListES_step_prime(aux, es)
-    d_prime = d + aux.dir  # Simulating Dir_to_Z
-    ls_prime = [(es, d)] + ls
-
-    if n0 > 0:
-        return loop1_decider0(tm, n0, es_prime, d_prime, ls_prime)
-    elif find_loop1_0((es_prime, d_prime), (es, d), ls):
-        return HaltDecideResult.Result_NonHalt()
     else:
-        return loop1_decider0(tm, n0, es_prime, d_prime, ls_prime)
+        return False
 
 
-def loop1_decider(n: int, tm: TM) -> Union[
-    HaltDecideResult.Result_Halt,
-    HaltDecideResult.Result_NonHalt,
-    HaltDecideResult.Result_Unknown,
-]:
-    initial_state = ListES([], [], 0, 0)  # Adjust based on default ListES
-    return loop1_decider0(tm, n, initial_state, 0, [])
+# Define loop1_decider0
+def loop1_decider0(
+    tm: TM, n: nat, es: ListES, d: Z, ls: List[Tuple[ListES, Z]]
+) -> HaltDecideResult:
+    if n == 0:
+        return HaltDecideResult.Result_Unknown
+    else:
+        tr = tm(es.s, es.m)
+        if tr is None:
+            return HaltDecideResult.Result_Halt
+        else:
+            es_prime = ListES_step_prime(tr, es)
+            d_prime = d + tr.dir
+            print(print_listES(es_prime), d_prime)
+            ls_prime = [(es, d)] + ls
+            if n > 1:
+                return loop1_decider0(tm, n - 1, es_prime, d_prime, ls_prime)
+            else:
+                if find_loop1_0((es_prime, d_prime), (es, d), ls):
+                    return HaltDecideResult.Result_NonHalt
+                else:
+                    return loop1_decider0(tm, n - 1, es_prime, d_prime, ls_prime)
+
+
+# Define loop1_decider
+def loop1_decider(n: nat, tm: TM) -> HaltDecideResult:
+    initial_es = ListES(l=[], r=[], m=Σ0, s=St0)
+    return loop1_decider0(tm, n, initial_es, Z0, [])
 
 
 if __name__ == "__main__":
@@ -254,14 +272,30 @@ if __name__ == "__main__":
         return TM
 
     loops_130_512_halt = [
-        "0RB0LC_1LA1RB_1LB0LD_0RA1RE_0LE---",
-        "0RB0LC_1LA1RB_1LB0LD_0RA1RE_1LE---",
+        # "0RB0LC_1LA1RB_1LB0LD_0RA1RE_0LE---",
+        # "0RB0LC_1LA1RB_1LB0LD_0RA1RE_1LE---",
     ]
     loops_130_512_nonhalt = [
-        "1RB---_1RC---_1RD0RC_1RE1LC_1LE1RD",
-        "1RB---_1RC---_1RD0LE_1RE1LC_1LE1RD",
+        # "1RB---_1RC---_1RD0RC_1RE1LC_1LE1RD",
+        # "1RB---_1RC---_1RD0LE_1RE1LC_1LE1RD",
         "0RB0LC_1LA1RB_1LB1RB_------_------",
     ]
+
+    # BB5_CHAMPION = "1RB1LC_1RC1RB_1RD0LE_1LA1LD_---0LA"
+    # tm = TM_from_bbchallenge(BB5_CHAMPION)
+    # es = ListES([], [], 0, 0)
+    # k = 0
+    # while True:
+    #     aux = tm(es.s, es.m)
+    #     if aux is None:
+    #         break
+
+    #     es = ListES_step_prime(aux, es)
+    #     # print(print_listES(es))
+    #     if k % 1_000_000 == 0:
+    #         print(k)
+    #     k += 1
+    # print("Halt", k)
 
     for machine in loops_130_512_halt:
         print(machine)
@@ -269,7 +303,7 @@ if __name__ == "__main__":
             130,
             TM_from_bbchallenge(machine),
         )
-        assert isinstance(res, HaltDecideResult.Result_Halt)
+        assert res == HaltDecideResult.Result_Halt
 
     for machine in loops_130_512_nonhalt:
         print(machine)
@@ -277,4 +311,4 @@ if __name__ == "__main__":
             130,
             TM_from_bbchallenge(machine),
         )
-        assert isinstance(res, HaltDecideResult.Result_NonHalt)
+        assert res == HaltDecideResult.Result_NonHalt
