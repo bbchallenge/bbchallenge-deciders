@@ -22,6 +22,10 @@ https://github.com/tcosmo/Coq-BB5/commit/866a9b228c92670d517d94106c84ab95265826e
 
 """
 
+import sys
+
+sys.setrecursionlimit(10000)
+
 from dataclasses import dataclass
 from typing import List, Tuple, Optional, Union, Callable
 
@@ -143,9 +147,9 @@ def verify_loop1(
     if not (St_eqb(es0.s, es1.s) and Σ_eqb(es0.m, es1.m)):
         return False
 
-    print("Verify plausible Loop", n)
-    print(print_listES(es0), d0, dpos)
-    print(print_listES(es1), d1, dpos)
+    # print("Verify plausible Loop", n)
+    # print(print_listES(es0), d0, dpos)
+    # print(print_listES(es1), d1, dpos)
 
     val = False
 
@@ -190,10 +194,10 @@ def find_loop1(
     es1, d1 = h1
     es2, d2 = h2
 
-    print("Find Loop")
-    for hhh in [h0, h1, h2]:
-        print(print_listES(hhh[0]), hhh[1], n)
-    print()
+    # print("Find Loop")
+    # for hhh in [h0, h1, h2]:
+    #     print(print_listES(hhh[0]), hhh[1], n)
+    # print()
 
     if (
         St_eqb(es0.s, es1.s)
@@ -216,7 +220,7 @@ def find_loop1(
 def find_loop1_0(
     h0: Tuple[ListES, Z], h1: Tuple[ListES, Z], ls: List[Tuple[ListES, Z]]
 ) -> bool:
-    print("Find Loop1 0")
+    # print("Find Loop1 0")
     if ls:
         h2, *ls_prime = ls
         return find_loop1(h0, h1, h2, [h1] + ls, ls, ls_prime, 0)
@@ -237,7 +241,7 @@ def loop1_decider0(
         else:
             es_prime = ListES_step_prime(tr, es)
             d_prime = d + tr.dir
-            print(print_listES(es_prime), d_prime)
+            # print(print_listES(es_prime), d_prime)
             ls_prime = [(es, d)] + ls
             if n > 1:
                 return loop1_decider0(tm, n - 1, es_prime, d_prime, ls_prime)
@@ -271,44 +275,67 @@ if __name__ == "__main__":
 
         return TM
 
-    loops_130_512_halt = [
-        # "0RB0LC_1LA1RB_1LB0LD_0RA1RE_0LE---",
-        # "0RB0LC_1LA1RB_1LB0LD_0RA1RE_1LE---",
-    ]
-    loops_130_512_nonhalt = [
-        # "1RB---_1RC---_1RD0RC_1RE1LC_1LE1RD",
-        # "1RB---_1RC---_1RD0LE_1RE1LC_1LE1RD",
-        "0RB0LC_1LA1RB_1LB1RB_------_------",
-    ]
+    k = 0
+    with open("bb5_verified_enumeration.csv") as infile:
+        for line in infile:
+            machine, status, decider = line.split(",")
+            if not "LOOP1" in decider:
+                continue
+            gas_param = int(decider.split("_")[-2])
+            res = loop1_decider(
+                gas_param,
+                TM_from_bbchallenge(machine),
+            )
 
-    # BB5_CHAMPION = "1RB1LC_1RC1RB_1RD0LE_1LA1LD_---0LA"
-    # tm = TM_from_bbchallenge(BB5_CHAMPION)
-    # es = ListES([], [], 0, 0)
-    # k = 0
-    # while True:
-    #     aux = tm(es.s, es.m)
-    #     if aux is None:
-    #         break
+            if (res == HaltDecideResult.Result_NonHalt and status != "nonhalt") or (
+                res == HaltDecideResult.Result_Halt and status != "halt"
+            ):
+                print("error")
+                print(machine, status, decider)
+                print(res)
 
-    #     es = ListES_step_prime(aux, es)
-    #     # print(print_listES(es))
-    #     if k % 1_000_000 == 0:
-    #         print(k)
-    #     k += 1
-    # print("Halt", k)
+            if k % 1_000_000 == 0:
+                print(k)
+            k += 1
 
-    for machine in loops_130_512_halt:
-        print(machine)
-        res = loop1_decider(
-            130,
-            TM_from_bbchallenge(machine),
-        )
-        assert res == HaltDecideResult.Result_Halt
+    # loops_130_512_halt = [
+    #     # "0RB0LC_1LA1RB_1LB0LD_0RA1RE_0LE---",
+    #     # "0RB0LC_1LA1RB_1LB0LD_0RA1RE_1LE---",
+    # ]
+    # loops_130_512_nonhalt = [
+    #     # "1RB---_1RC---_1RD0RC_1RE1LC_1LE1RD",
+    #     # "1RB---_1RC---_1RD0LE_1RE1LC_1LE1RD",
+    #     "0RB0LC_1LA1RB_1LB1RB_------_------",
+    # ]
 
-    for machine in loops_130_512_nonhalt:
-        print(machine)
-        res = loop1_decider(
-            130,
-            TM_from_bbchallenge(machine),
-        )
-        assert res == HaltDecideResult.Result_NonHalt
+    # # BB5_CHAMPION = "1RB1LC_1RC1RB_1RD0LE_1LA1LD_---0LA"
+    # # tm = TM_from_bbchallenge(BB5_CHAMPION)
+    # # es = ListES([], [], 0, 0)
+    # # k = 0
+    # # while True:
+    # #     aux = tm(es.s, es.m)
+    # #     if aux is None:
+    # #         break
+
+    # #     es = ListES_step_prime(aux, es)
+    # #     # print(print_listES(es))
+    # #     if k % 1_000_000 == 0:
+    # #         print(k)
+    # #     k += 1
+    # # print("Halt", k)
+
+    # for machine in loops_130_512_halt:
+    #     print(machine)
+    #     res = loop1_decider(
+    #         130,
+    #         TM_from_bbchallenge(machine),
+    #     )
+    #     assert res == HaltDecideResult.Result_Halt
+
+    # for machine in loops_130_512_nonhalt:
+    #     print(machine)
+    #     res = loop1_decider(
+    #         130,
+    #         TM_from_bbchallenge(machine),
+    #     )
+    #     assert res == HaltDecideResult.Result_NonHalt
