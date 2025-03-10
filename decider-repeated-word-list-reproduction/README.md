@@ -30,13 +30,15 @@ python decider.py --help
 usage: decider.py [-h] [-m TM] [-b BLOCK_SIZE] [-r PLUS_REPEAT_THRESHOLD] [-f FILE_MACHINES_LIST]
                   [-t BLOCK_SIMULATION_TIMEOUT] [-M MAX_VISITED_REGEX] [--verbose | --no-verbose]
                   [--print-cert | --no-print-cert] [--print-params-stats | --no-print-params-stats]
+                  [--build-graph | --no-build-graph] [--graph-output GRAPH_OUTPUT]
+                  [--display-graph | --no-display-graph] [--save-graph | --no-save-graph]
 
 Repeated Word List decider (RepWL)
 
 options:
   -h, --help            show this help message and exit
-  -m TM, --tm TM        The transition function of the Turing machine in the bbchallenge format,
-                        e.g. 0RB---_1LC1RC_1LD0RA_1RE0LD_1RA1RE
+  -m TM, --tm TM        The transition function of the Turing machine in the bbchallenge format, e.g. 0RB---
+                        _1LC1RC_1LD0RA_1RE0LD_1RA1RE
   -b BLOCK_SIZE, --block-size BLOCK_SIZE
                         The block size to use for the decider
   -r PLUS_REPEAT_THRESHOLD, --plus-repeat-threshold PLUS_REPEAT_THRESHOLD
@@ -52,8 +54,16 @@ options:
   --print-cert, --no-print-cert
                         Prints the RepWL non-halt certificate(s)
   --print-params-stats, --no-print-params-stats
-                        In case of a file with Turing machines and parameters, print statistics
-                        about the parameters (min, max, avg)
+                        In case of a file with Turing machines and parameters, print statistics about the
+                        parameters (min, max, avg)
+  --build-graph, --no-build-graph
+                        Build a DOT graph of the execution
+  --graph-output GRAPH_OUTPUT
+                        Path to save the DOT graph (default: tm_graph.dot)
+  --display-graph, --no-display-graph
+                        Display the graph when the decider finishes
+  --save-graph, --no-save-graph
+                        Save the graph to a file when the decider finishes
 ```
 
 ## Statistics about Coq-BB5 RepWL Parameters
