@@ -54,6 +54,7 @@ impl fmt::Display for Transition {
 
 #[derive(Clone)]
 pub struct TM {
+    pub machine_id: u32,
     pub n_states: u8,
     pub n_symbols: u8,
     pub transitions: Vec<Vec<Transition>>,
@@ -119,6 +120,7 @@ impl TM {
         }
 
         Ok(TM {
+            machine_id,
             n_states: 5,
             n_symbols: 2,
             transitions,
@@ -128,9 +130,9 @@ impl TM {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::PATH_TO_BBCHALLENGE_DB_TEST;
 
-    const PATH_TO_BBCHALLENGE_DB: &str = "../all_5_states_undecided_machines_with_global_header";
+    use super::*;
 
     #[test]
     fn bbchallenge_format() {
@@ -142,7 +144,7 @@ mod tests {
         ];
 
         for (id, format) in ids_and_format {
-            let computed = TM::from_bbchallenge_id(id, PATH_TO_BBCHALLENGE_DB)
+            let computed = TM::from_bbchallenge_id(id, PATH_TO_BBCHALLENGE_DB_TEST)
                 .unwrap()
                 .to_string();
             println!("{}", computed);

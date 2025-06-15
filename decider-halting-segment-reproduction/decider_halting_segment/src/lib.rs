@@ -1,75 +1,19 @@
-use std::{fmt, fs::File, io::Read};
-
-use std::io::prelude::*;
+// pub mod display_nodes;
+pub mod node;
+pub mod tm;
+pub mod utils;
 
 use indexmap::IndexSet;
-use rand::{distributions::Alphanumeric, Rng};
 
-use indicatif::{ParallelProgressIterator, ProgressStyle};
+use crate::{
+    node::{Node, NodeLimit, OutsideSegmentOrState, SegmentCell, SegmentCells},
+    tm::{HaltOrGoto, TM},
+    utils::u8_to_bool,
+};
 
-use rayon::prelude::*;
-use std::convert::TryInto;
-
-mod display_nodes;
-mod neighbours;
-mod tm;
-mod utils;
-
-use tm::{HaltOrGoto, HeadMove, TM};
-use utils::u8_to_bool;
-
-#[global_allocator]
-static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
-
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
-enum SegmentCell {
-    Unallocated,
-    Bit(bool),
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
-enum OutsideSegmentOrState {
-    OutsideSegment,
-    State(u8),
-}
-
-#[derive(Clone, PartialEq, Eq, Hash)]
-struct SegmentCells(pub Vec<SegmentCell>);
-
-impl SegmentCells {
-    fn are_there_no_ones(&self) -> bool {
-        !self
-            .0
-            .iter()
-            .any(|cell| matches!(cell, SegmentCell::Bit(true)))
-    }
-}
-
-#[derive(Clone, PartialEq, Eq, Hash)]
-struct Node {
-    state: OutsideSegmentOrState,
-    segment: SegmentCells,
-    pos_in_segment: usize,
-}
-
-impl Node {
-    fn is_fatal(&self) -> bool {
-        /* Fatal nodes are nodes whose segment contain no 1s and:
-           - head is outside segment
-           - Or, state is A
-        Detecting these nodes is important because when the decider meets one, we know
-        that we cannot conclude that the machine does not halt.
-        */
-        match self.state {
-            OutsideSegmentOrState::OutsideSegment | OutsideSegmentOrState::State(0) => {
-                self.segment.are_there_no_ones()
-            }
-            _ => false,
-        }
-    }
-}
-
-struct Nodes(pub Vec<Node>);
+// #[cfg(test)]
+pub const PATH_TO_BBCHALLENGE_DB_TEST: &str =
+    "../../all_5_states_undecided_machines_with_global_header";
 
 #[derive(Debug, PartialEq, Eq)]
 enum HaltingSegmentResult {
@@ -97,11 +41,6 @@ fn get_initial_nodes(tm: &TM, segment_size: u8, initial_pos_in_segment: usize) -
     }
 
     to_return
-}
-
-enum NodeLimit {
-    NoLimit,
-    NodeLimit(usize),
 }
 
 fn halting_segment_decider(
@@ -137,10 +76,8 @@ fn halting_segment_decider(
     HaltingSegmentResult::MachineDoesNotHalt(idx_seen)
 }
 
-const PATH_TO_BBCHALLENGE_DB: &str = "../all_5_states_undecided_machines_with_global_header";
-const PATH_TO_UNDECIDED_INDEX: &str = "../bb5_undecided_index";
-
-fn Iijil_strategy(machine_id: u32, node_limit: usize, print_run_info: bool) -> bool {
+#[allow(non_snake_case)]
+pub fn Iijil_strategy(turing_machine: TM, node_limit: usize, print_run_info: bool) -> bool {
     /* Implements @Iijil's strategy for running the backward halting segment decider:
         - The decider is run with all odd segment length until success or cumulative node limit is reached
         - Initial position in the segment is middle of it
@@ -150,10 +87,9 @@ fn Iijil_strategy(machine_id: u32, node_limit: usize, print_run_info: bool) -> b
     let mut distance_to_segment_end: u8 = 1;
     let mut total_nodes_consumed = 0;
 
-    let tm = TM::from_bbchallenge_id(machine_id, PATH_TO_BBCHALLENGE_DB).unwrap();
     if print_run_info {
-        println!("Machine ID: {}", machine_id);
-        println!("{}", tm);
+        println!("Machine ID: {}", turing_machine.machine_id);
+        println!("{}", turing_machine);
     }
     while total_nodes_consumed < node_limit {
         let segment_size = 2 * distance_to_segment_end + 1;
@@ -164,7 +100,7 @@ fn Iijil_strategy(machine_id: u32, node_limit: usize, print_run_info: bool) -> b
         }
 
         let result = halting_segment_decider(
-            &tm,
+            &turing_machine,
             segment_size,
             initial_pos_in_segment,
             NodeLimit::NodeLimit(node_limit),
@@ -175,7 +111,7 @@ fn Iijil_strategy(machine_id: u32, node_limit: usize, print_run_info: bool) -> b
             HaltingSegmentResult::MachineDoesNotHalt(nb_nodes) => {
                 if print_run_info {
                     println!(
-                        "Machine {} proved nonhalting with segment size {} and initial position {} after expanding {} nodes, and cumulatively {} nodes in search", machine_id,
+                        "Machine {} proved nonhalting with segment size {} and initial position {} after expanding {} nodes, and cumulatively {} nodes in search", turing_machine. machine_id,
                         segment_size, initial_pos_in_segment, nb_nodes, nb_nodes+total_nodes_consumed
                     );
                 }
@@ -204,8 +140,9 @@ fn Iijil_strategy(machine_id: u32, node_limit: usize, print_run_info: bool) -> b
     false
 }
 
-fn Iijil_strategy_updated(
-    machine_id: u32,
+#[allow(non_snake_case)]
+pub fn Iijil_strategy_updated(
+    turing_machine: TM,
     distance_to_end_limit: u8,
     print_run_info: bool,
 ) -> bool {
@@ -219,10 +156,10 @@ fn Iijil_strategy_updated(
     let mut distance_to_segment_end: u8 = 1;
     let mut total_nodes_consumed = 0;
 
-    let tm = TM::from_bbchallenge_id(machine_id, PATH_TO_BBCHALLENGE_DB).unwrap();
+    // let turing_machine = TM::from_bbchallenge_id(machine_id, path_to_bb_challenge_db).unwrap();
     if print_run_info {
-        println!("Machine ID: {}", machine_id);
-        println!("{}", tm);
+        println!("Machine ID: {}", turing_machine.machine_id);
+        println!("{}", turing_machine);
     }
     while distance_to_segment_end <= distance_to_end_limit {
         let segment_size = 2 * distance_to_segment_end + 1;
@@ -233,7 +170,7 @@ fn Iijil_strategy_updated(
         }
 
         let result = halting_segment_decider(
-            &tm,
+            &turing_machine,
             segment_size,
             initial_pos_in_segment,
             NodeLimit::NoLimit,
@@ -244,7 +181,7 @@ fn Iijil_strategy_updated(
             HaltingSegmentResult::MachineDoesNotHalt(nb_nodes) => {
                 if print_run_info {
                     println!(
-                        "Machine {} proved nonhalting with segment size {} and initial position {} after expanding {} nodes, and cumulatively {} nodes in search", machine_id,
+                        "Machine {} proved nonhalting with segment size {} and initial position {} after expanding {} nodes, and cumulatively {} nodes in search", turing_machine. machine_id,
                         segment_size, initial_pos_in_segment, nb_nodes, nb_nodes+total_nodes_consumed
                     );
                 }
@@ -273,71 +210,8 @@ fn Iijil_strategy_updated(
     false
 }
 
-use argh::FromArgs;
-
-fn default_distance_to_end_limit() -> u8 {
-    5
-}
-
-#[derive(FromArgs)]
-/// Halting segment deciders using @Iijil's updated search strategy.
-struct SearchArgs {
-    /// maximum size from center of segment to extremity, i.e. total size of segment is 2x+1
-    #[argh(option, short = 'n', default = "default_distance_to_end_limit()")]
-    distance_to_end_limit: u8,
-}
-
-fn main() {
-    let searchArgs: SearchArgs = argh::from_env();
-
-    let mut undecided_index_file = File::open(PATH_TO_UNDECIDED_INDEX).unwrap();
-    let mut raw_data: Vec<u8> = Vec::new();
-
-    undecided_index_file.read_to_end(&mut raw_data).unwrap();
-
-    let undecided_ids: Vec<u32> = raw_data
-        .chunks_exact(4)
-        .map(|s| s.try_into().unwrap())
-        .map(u32::from_be_bytes)
-        .collect();
-
-    let style = ProgressStyle::with_template(
-        "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
-    )
-    .unwrap()
-    .progress_chars("##-");
-
-    let mut decided_ids: Vec<&u32> = undecided_ids
-        .par_iter()
-        .progress_with_style(style)
-        .filter(|&id| Iijil_strategy_updated(*id, searchArgs.distance_to_end_limit, false))
-        .collect();
-
-    decided_ids.sort();
-
-    println!(
-        "{} machines decided by halting segment, starting from center of odd-size segments up to size {} (using @Iijil's updated strategy)",
-        decided_ids.len(), 2*searchArgs.distance_to_end_limit+1
-    );
-
-    let mut random_id: String = rand::thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(12)
-        .map(char::from)
-        .collect();
-    random_id = random_id.to_ascii_lowercase();
-
-    let d = searchArgs.distance_to_end_limit;
-    let output_file =
-        format!("output/halting-segment-reproduction-run-{random_id}-max-distance-to-end-{d}");
-
-    let mut file = File::create(output_file).unwrap();
-    for id in decided_ids {
-        file.write_all(&u32::to_be_bytes(*id)).unwrap();
-    }
-}
-
 #[cfg(test)]
+#[allow(non_snake_case)]
 mod tests {
     use super::*;
 
@@ -346,7 +220,8 @@ mod tests {
         // http://turbotm.de/~heiner/BB/TM4-proof.txt
         // Chaotic Machine [Marxen & Buntrock, 1990]
         let chaotic_machine_id = 76708232;
-        let tm: TM = TM::from_bbchallenge_id(chaotic_machine_id, PATH_TO_BBCHALLENGE_DB).unwrap();
+        let tm: TM =
+            TM::from_bbchallenge_id(chaotic_machine_id, PATH_TO_BBCHALLENGE_DB_TEST).unwrap();
         assert_eq!(
             halting_segment_decider(&tm, 5, 2, NodeLimit::NodeLimit(1000), false),
             // 7 nodes expanded, cross checked with @Iijil
@@ -358,7 +233,8 @@ mod tests {
     fn complex_counter() {
         // Complex Counter [Marxen & Buntrock, 1990]
         let chaotic_machine_id = 10936909;
-        let tm: TM = TM::from_bbchallenge_id(chaotic_machine_id, PATH_TO_BBCHALLENGE_DB).unwrap();
+        let tm: TM =
+            TM::from_bbchallenge_id(chaotic_machine_id, PATH_TO_BBCHALLENGE_DB_TEST).unwrap();
 
         assert_eq!(
             halting_segment_decider(&tm, 7, 3, NodeLimit::NodeLimit(1000), false),
@@ -371,7 +247,8 @@ mod tests {
     fn machine_108115() {
         // bbchallenge machine 108115
         let chaotic_machine_id = 108115;
-        let tm: TM = TM::from_bbchallenge_id(chaotic_machine_id, PATH_TO_BBCHALLENGE_DB).unwrap();
+        let tm: TM =
+            TM::from_bbchallenge_id(chaotic_machine_id, PATH_TO_BBCHALLENGE_DB_TEST).unwrap();
 
         assert_eq!(
             halting_segment_decider(&tm, 3, 1, NodeLimit::NodeLimit(1000), false),
@@ -382,13 +259,17 @@ mod tests {
 
     #[test]
     fn Iijil_strategy_23367211() {
-        assert!(Iijil_strategy(23367211, 200000, true))
+        let turing_machine =
+            TM::from_bbchallenge_id(23367211, PATH_TO_BBCHALLENGE_DB_TEST).unwrap();
+        assert!(Iijil_strategy(turing_machine, 200000, true))
     }
 
     #[test]
     fn Iijil_strategy_updated_23367211() {
+        let turing_machine =
+            TM::from_bbchallenge_id(23367211, PATH_TO_BBCHALLENGE_DB_TEST).unwrap();
         // Segment size 15 = 2*7+1
-        assert!(Iijil_strategy_updated(23367211, 7, true))
+        assert!(Iijil_strategy_updated(turing_machine, 7, true))
     }
 
     #[test]
@@ -420,13 +301,14 @@ mod tests {
             29798909,
         ];
 
-        for id in &missing {
+        for &id in &missing {
             let mut node_limit = 20000;
-            let mut r = Iijil_strategy(*id, node_limit, false);
+            let turing_machine = TM::from_bbchallenge_id(id, PATH_TO_BBCHALLENGE_DB_TEST).unwrap();
+            let mut r = Iijil_strategy(turing_machine.clone(), node_limit, false);
             while !r && node_limit < 200000000 {
                 node_limit *= 10;
                 println!("Machine {} up {}", id, node_limit);
-                r = Iijil_strategy(*id, node_limit, false);
+                r = Iijil_strategy(turing_machine.clone(), node_limit, false);
             }
             assert!(r);
         }

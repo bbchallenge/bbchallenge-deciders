@@ -1,0 +1,14 @@
+[package]
+name = "decider_halting_segment_app"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+argh = "0.1"
+indicatif = { version = "*", features = ["rayon"] }
+rand = "0.8"
+rayon = "1.5"
+jemallocator = "0.5"
+decider_halting_segment_reproduction = { path = "../decider_halting_segment" }

@@ -1,0 +1,15 @@
+[package]
+name = "decider_halting_segment_reproduction"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+indexmap = "1.9"
+
+# [dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "bench_bb_challenge"
+path = "benches/benchmarks-criterion.rs"
+harness = false
