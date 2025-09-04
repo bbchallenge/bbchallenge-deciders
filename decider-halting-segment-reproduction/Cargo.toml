@@ -1,14 +1,4 @@
-[package]
-edition = "2018"
-name = "halting-segment-reproduction"
-version = "0.1.0"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-indicatif = {version = "*", features = ["rayon"]}
-rayon = "1.5"
-rand = "*"
-indexmap = "1.9"
-jemallocator = "0.5"
-argh = "0.1"
+[workspace]
+resolver = "2"
+members = ["dhs_app", "decider_halting_segment"]
+default-members = ["dhs_app"]
