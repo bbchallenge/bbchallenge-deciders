@@ -22,6 +22,7 @@ class TMTape(object):
         TM_bbchallenge_format: str,
         before_head: str = "",
         state: int = 0,
+        num_symbols: int = 2,
         after_head: str = "",
         head_looking_after: bool = True,
         tape_extremity_infinite_zero: bool = True,
@@ -37,6 +38,7 @@ class TMTape(object):
         """
         self.TM_bbchallenge_format = TM_bbchallenge_format
         self.state = state
+        self.num_symbols = num_symbols
         self.head_looking_after = head_looking_after
 
         self.before_head = list(before_head)
@@ -66,9 +68,12 @@ class TMTape(object):
         return "0"  # Tape extension is implemented by the write operation
 
     def current_transition(self) -> str:
+        state_offset = 3 * self.num_symbols * self.state
+        symbol_offset = 3 * current_read
+        offset = state_offset + symbol_offset
         current_read = int(self.read())
         return self.TM_bbchallenge_format.replace("_", "")[
-            6 * self.state + 3 * current_read : 6 * self.state + 3 * current_read + 3
+            offset : offset + 3
         ]
 
     def write(self, to_write: str):
